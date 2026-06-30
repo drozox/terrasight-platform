@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Plataforma SIG Integrada - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #bccabc;
+            border-radius: 10px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e0e3e5",
+                        "surface-container": "#eceef0",
+                        "secondary": "#2f6388",
+                        "on-primary-fixed": "#00210c",
+                        "on-secondary-container": "#275c81",
+                        "surface-container-low": "#f2f4f6",
+                        "inverse-primary": "#61de8a",
+                        "on-primary-container": "#00391a",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "on-surface": "#191c1e",
+                        "primary": "#006d37",
+                        "surface-bright": "#f7f9fb",
+                        "on-tertiary-fixed": "#301400",
+                        "tertiary-fixed": "#ffdcc5",
+                        "outline": "#6d7a6e",
+                        "on-secondary-fixed": "#001e30",
+                        "on-surface-variant": "#3d4a3f",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary": "#944a00",
+                        "background": "#f7f9fb",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-container": "#4f2500",
+                        "surface-tint": "#006d37",
+                        "primary-container": "#27ae60",
+                        "secondary-fixed": "#cbe6ff",
+                        "outline-variant": "#bccabc",
+                        "tertiary-container": "#e57d21",
+                        "surface": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#7efba4",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-fixed-dim": "#61de8a",
+                        "on-background": "#191c1e",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#e6e8ea",
+                        "secondary-container": "#a3d4fe",
+                        "surface-dim": "#d8dadc",
+                        "inverse-surface": "#2d3133",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#005228",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed-dim": "#9bccf6",
+                        "on-secondary-fixed-variant": "#0e4b6e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "gutter": "16px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "md": "16px",
+                        "margin-edge": "24px"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "body-sm": ["Hanken Grotesk"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "headline-sm": ["Hanken Grotesk"],
+                        "label-md": ["Hanken Grotesk"],
+                        "label-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-md": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                        "label-lg": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-hidden h-screen flex">
+<!-- Sidebar Navigation -->
+<aside class="bg-surface-container-low border-r border-outline-variant flex flex-col h-screen w-64 overflow-y-auto py-md flex-shrink-0 transition-all duration-200 ease-in-out">
+<div class="px-md mb-lg">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-lg" data-alt="A stylized professional logo for Cundinamarca Management with an abstract green leaf and blue water drop integrated, reflecting environmental stewardship. The logo is clean and minimalist, rendered in high-resolution vector style on a soft white background to maintain a premium corporate identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEVqZGn0hieSVojdX64MG_JMDlxygofjClX2kJhIsSzTab3z2EBYY3Y9JzE2hov16A-vWdPazcUQIfOdYXti8bpvH_rmMhdU_3sh342aZLTAT-5WN87gcaoGXQZ56N95LDcXKIPyuKDNk7M4qhA2LlrvDAfY7Tp8cEw8SxcXmMbeenKgpgTyeXAEKun-RxTEv7i5ziF5Y9P1L0pAoCgdWs5InssFYS51pSfXVzvWJZetFnAWmDuOKzfPRU_zo1YBIMuSASCeJWfHU"/>
+<div>
+<h1 class="text-title-lg font-title-lg text-secondary font-bold leading-tight">Cundinamarca</h1>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Gestión Territorial</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="bg-primary text-on-primary rounded-lg mx-2 my-1 flex items-center gap-3 px-3 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="text-label-lg font-label-lg">Inicio</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="text-label-lg font-label-lg">Mapa 2D / 3D</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-label-lg font-label-lg">Dashboard</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="location_city">location_city</span>
+<span class="text-label-lg font-label-lg">Predios</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="engineering">engineering</span>
+<span class="text-label-lg font-label-lg">Intervenciones</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="biotech">biotech</span>
+<span class="text-label-lg font-label-lg">Monitoreo</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="query_stats">query_stats</span>
+<span class="text-label-lg font-label-lg">Análisis Espacial</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="text-label-lg font-label-lg">Reportes</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="notifications_active">notifications_active</span>
+<span class="text-label-lg font-label-lg">Alertas</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 mx-2 my-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-label-lg font-label-lg">Configuración</span>
+</a>
+</nav>
+<div class="mt-auto px-md pt-lg border-t border-outline-variant/30">
+<h3 class="text-label-md font-label-lg text-on-surface-variant mb-4 px-2">FILTROS TERRITORIALES</h3>
+<div class="space-y-4 px-2">
+<div>
+<label class="text-label-md block mb-1 text-on-surface-variant">Departamento</label>
+<select class="w-full bg-surface-container-highest border-none rounded-lg text-body-sm py-2 px-3 focus:ring-1 focus:ring-primary">
+<option>Cundinamarca</option>
+</select>
+</div>
+<div>
+<label class="text-label-md block mb-1 text-on-surface-variant">Municipio</label>
+<select class="w-full bg-surface-container-highest border-none rounded-lg text-body-sm py-2 px-3 focus:ring-1 focus:ring-primary">
+<option>Todos</option>
+</select>
+</div>
+<button class="w-full bg-secondary text-on-secondary rounded-lg py-2.5 font-bold text-label-lg flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="filter_alt">filter_alt</span>
+                    Aplicar Filtros
+                </button>
+</div>
+<div class="mt-8 flex items-center gap-2 px-2 text-on-surface-variant opacity-60">
+<span class="material-symbols-outlined text-[16px]" data-icon="sync">sync</span>
+<span class="text-[10px]">Última actualización: 16/05/2025</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- Top App Bar -->
+<header class="bg-surface flex justify-between items-center w-full px-margin-edge h-16 border-b border-outline-variant flex-shrink-0 z-50">
+<div class="flex items-center gap-4">
+<div>
+<h2 class="text-headline-sm font-headline-sm text-primary font-bold">Plataforma SIG Integrada</h2>
+<p class="text-label-lg font-label-lg text-on-surface-variant">Monitoreo Ambiental y Gestión Territorial</p>
+</div>
+</div>
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-6">
+<img class="h-8 object-contain" data-alt="Official WWF Panda logo in sharp black and white, professionally scaled for a corporate header interface. The aesthetic is clean and authoritative." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHWjaeysgsllqaykA1oydfiS1Xzy-6yogiZ570xfyDL-rYoxbjEZDdnuo-3lQdvOAC8zI7sc4g_Si2LafsuSmqEjWemjuICVZ_DwcQj1-iDPR_B0VZeZMOABygAHxJQ12uUw4ZQQ7RMLOpgL2myS8ge26uQUsM2QGYBrJX5Gv81BBNSUzL0Q8H-zMpWwxIRuWMcs5-22QjpiUNn2x-nS6n6txw7VmKAkCIHw7hEzERrhev4yyk1c3mXiQbkfkgF8jxW9yBPgRHe6M"/>
+<img class="h-8 object-contain" data-alt="Official CAR (Corporación Autónoma Regional) logo featuring ecological motifs in green and blue, integrated into a high-end GIS platform header. The style is modern government and environmentalist." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXxJiDntgpkmMM6bf1J9XqcEHXmIf3ZeBsSqJARA-wbCjipkYhDMC9ICB1qSb8mktmwXjeonUjLRd3gXiYJvSL5BXsRIBRIGuFfWIo1uy8JMzjr2XDPsCM9Oc-HY-usWMnzEHvmwuyTnzvT8WwMuPmlgGdqd2sT2JRdoF4tkiQqxS7CDEup1xkiG2rVLyxfOR8OrbDV-Xbm1uTvWYQBR1-CC4CUFvnBkzKYM8WtkvTCW8A97zfmyFa7bPBkkaehY_VZY85U3WZFCo"/>
+<img class="h-8 object-contain" data-alt="Fundación Natura logo with organic leaf shapes in earth tones, professional corporate branding for environmental NGOs." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCK15WsUtuvlinQ6YEUK2VuWO71DUJJ99NvG5OnugGW799UD4URHkv_imOzQIPNJVFDL5hmK5Odq1dPdywjOBhjVtrtC5w95LrNvuTIHpuCNtGfwmiRFX5bmURIqXQnoTM_tvgXd4jdMrGDGSLvusgU12EDEJuawQLtOjHAcJvfItl53xuGY7ezvZDR7bADEdKQwO6tT3bdOzFuxUWlYU-rGu_NTChj5plAcIKAkVnTMlxXiP8Kz3ZN9s6Q39wCpUplS3z9o48zgnk"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-outline-variant">
+<div class="text-right hidden sm:block">
+<p class="text-label-lg font-label-lg text-on-surface font-bold">Ana María</p>
+<p class="text-label-md font-label-md text-on-surface-variant">Administrador</p>
+</div>
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="Professional profile portrait of a female administrator, medium shot, soft studio lighting, high-end professional atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDl4VXzGP7aIhsFvSLW6I70GnTVtrjEUu1cW6boqZO2E53vVujDwbsd84ZWnY_CcBqQ08_xiNppFIEm8MppWEmf5SrVMbc3dJnQ-ksPgNDoGPuqZF-TuIOhFO54DY-2_3QlSTqvWCa0boRprHXF8qzqPWkqWSV474UWRY13XXeCSJLyY-c1IKx8BLWKdriA1n-ROnImeZbjkGTp1F5DK7eRNkEGcqs0PA2UMS_HVf94ejaCGuUWYV2CxX6FP8isx6ba_iAnu_pyWdY"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Dynamic Content Area -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Map and Panels Container -->
+<div class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-surface-container-low p-gutter">
+<!-- Component Ribbon -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex items-center gap-4 hover:shadow-md transition-shadow group cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="bg-primary/10 p-3 rounded-lg text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px]" data-icon="eco">eco</span>
+</div>
+<div>
+<h3 class="text-label-lg font-bold text-primary mb-0.5">COMPONENTE 1</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant line-clamp-2">Conservación del recurso hídrico y adaptación al cambio climático</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex items-center gap-4 hover:shadow-md transition-shadow group cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
+<div class="bg-secondary/10 p-3 rounded-lg text-secondary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px]" data-icon="water_drop">water_drop</span>
+</div>
+<div>
+<h3 class="text-label-lg font-bold text-secondary mb-0.5">COMPONENTE 2</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant line-clamp-2">Manejo integral del ciclo del agua y restauración de suelos</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex items-center gap-4 hover:shadow-md transition-shadow group cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary"></div>
+<div class="bg-tertiary/10 p-3 rounded-lg text-tertiary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px]" data-icon="park">park</span>
+</div>
+<div>
+<h3 class="text-label-lg font-bold text-tertiary mb-0.5">COMPONENTE 3</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant line-clamp-2">Planificación predial participativa y reconversión productiva</p>
+</div>
+</div>
+</div>
+<!-- Map Central Viewport -->
+<div class="relative h-[600px] w-full bg-surface-variant rounded-xl border border-outline-variant overflow-hidden">
+<!-- Map Mockup -->
+<div class="absolute inset-0 w-full h-full" data-alt="A highly detailed topographical GIS satellite map of Cundinamarca, Colombia. The terrain features lush green Andean mountains, winding rivers, and small urban clusters. Overlaid are vibrant, semi-transparent heatmaps and vector boundaries in emerald green, ocean blue, and earthy orange representing environmental zoning and land use. The style is clean, modern, and data-dense, resembling high-resolution spatial analysis software." data-location="Cundinamarca, Colombia" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC1Mai-4uu6gbPK_Mna8y6h5smQe-ScwPW-zIT_4PCV9uWBAKaV3vLuy22LF7eQvKbbEVpS1PffO-QKeKWISEG37nY-uZb-RIT_jeH85gZm3G87OQ-BzI5L9bSlH8zYV9aTaRAH3W40DjGmyi-35KcticElXgyQ3QpeleABd9ALUeg0VBz3hYlOU0QRQpddGbpwM2Jh9FcCGwgkE5Dju95Y5xs_q6go9e65m_QgclEtUKhHp8bZt8GzATiruklxie0WMjA9s4MKnPo')"></div>
+<!-- Search Bar Over Map -->
+<div class="absolute top-4 left-4 right-4 flex justify-center z-10">
+<div class="bg-surface-container-lowest shadow-xl rounded-full px-4 py-2 flex items-center gap-3 w-full max-w-2xl border border-outline-variant/30">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 w-full text-body-md text-on-surface" placeholder="Buscar municipio, vereda o predio..." type="text"/>
+<div class="h-6 w-[1px] bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 bg-surface-container text-on-surface-variant text-label-md rounded-md hover:bg-surface-variant transition-colors">3D</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="layers">layers</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="edit">edit</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="bookmark">bookmark</button>
+</div>
+</div>
+</div>
+<!-- Active Layers Panel -->
+<div class="absolute top-16 left-4 z-10 w-64 glass-panel border border-outline-variant rounded-xl shadow-lg flex flex-col max-h-[85%] overflow-hidden mt-4">
+<div class="p-3 border-b border-outline-variant flex justify-between items-center bg-primary/5">
+<h4 class="text-label-lg font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="list_alt">list_alt</span>
+                                CAPAS ACTIVAS
+                            </h4>
+<button class="material-symbols-outlined text-[18px] text-on-surface-variant" data-icon="close">close</button>
+</div>
+<div class="p-3 overflow-y-auto custom-scrollbar space-y-4">
+<!-- Administrative -->
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant mb-2 tracking-wider">LÍMITES ADMINISTRATIVOS</p>
+<div class="space-y-2">
+<label class="flex items-center gap-2 text-body-sm cursor-pointer group">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span class="flex-1 group-hover:text-primary transition-colors">Límite Departamental</span>
+<span class="material-symbols-outlined text-[14px] text-primary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</label>
+<label class="flex items-center gap-2 text-body-sm cursor-pointer group">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span class="flex-1 group-hover:text-primary transition-colors">Límite Municipal</span>
+<span class="material-symbols-outlined text-[14px] text-primary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</label>
+</div>
+</div>
+<!-- Hydrography -->
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant mb-2 tracking-wider">HIDROGRAFÍA</p>
+<div class="space-y-2">
+<label class="flex items-center gap-2 text-body-sm cursor-pointer group">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span class="flex-1 group-hover:text-primary transition-colors">Ríos Principales</span>
+<span class="material-symbols-outlined text-[14px] text-primary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</label>
+<label class="flex items-center gap-2 text-body-sm cursor-pointer group">
+<input class="rounded border-outline text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span class="flex-1 group-hover:text-primary transition-colors">Microcuencas</span>
+</label>
+</div>
+</div>
+<!-- Protected Areas -->
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant mb-2 tracking-wider">ÁREAS PROTEGIDAS</p>
+<div class="space-y-2">
+<label class="flex items-center gap-2 text-body-sm cursor-pointer group">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span class="flex-1 group-hover:text-primary transition-colors">Parques Naturales</span>
+<span class="material-symbols-outlined text-[14px] text-primary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</label>
+</div>
+</div>
+</div>
+<div class="p-3 bg-surface-container-low border-t border-outline-variant">
+<label class="text-[10px] block font-bold text-on-surface-variant mb-1">Transparencia: 75%</label>
+<input class="w-full h-1 bg-outline-variant rounded-lg appearance-none cursor-pointer accent-primary" type="range"/>
+</div>
+</div>
+<!-- Map Controls Floating -->
+<div class="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
+<div class="bg-surface-container-lowest shadow-lg rounded-xl border border-outline-variant flex flex-col">
+<button class="p-3 hover:bg-surface-container transition-colors border-b border-outline-variant/30">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+<button class="p-3 hover:bg-surface-container transition-colors border-b border-outline-variant/30">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<button class="p-3 hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined" data-icon="my_location">my_location</span>
+</button>
+</div>
+<div class="bg-surface-container-lowest shadow-lg rounded-xl border border-outline-variant flex flex-col">
+<button class="p-3 hover:bg-surface-container transition-colors border-b border-outline-variant/30">
+<span class="material-symbols-outlined" data-icon="view_in_ar">view_in_ar</span>
+</button>
+<button class="p-3 hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined" data-icon="north">north</span>
+</button>
+</div>
+</div>
+<!-- 3D Toggle Large -->
+<button class="absolute bottom-6 right-6 z-10 bg-primary text-on-primary px-6 py-3 rounded-full font-bold text-label-lg shadow-2xl flex items-center gap-3 hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="view_in_ar">view_in_ar</span>
+                        VISTA 3D
+                    </button>
+</div>
+<!-- Bottom Dashboard Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter mt-gutter">
+<!-- Interventions Table -->
+<div class="xl:col-span-6 bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden flex flex-col">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center">
+<h3 class="text-title-lg font-title-lg text-on-surface">Monitoreo de Intervenciones</h3>
+<button class="text-primary text-label-lg font-bold hover:underline">Ver todas</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-label-md text-on-surface-variant">
+<th class="px-4 py-3 font-bold">Intervención</th>
+<th class="px-4 py-3 font-bold">Predio</th>
+<th class="px-4 py-3 font-bold">Municipio</th>
+<th class="px-4 py-3 font-bold">Estado</th>
+<th class="px-4 py-3 font-bold">Avance</th>
+</tr>
+</thead>
+<tbody class="text-body-sm">
+<tr class="border-b border-outline-variant/30 hover:bg-surface-container-low transition-colors cursor-pointer">
+<td class="px-4 py-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="eco">eco</span>
+                                            Restauración Ecológica
+                                        </td>
+<td class="px-4 py-3 font-mono">PR-00125</td>
+<td class="px-4 py-3">Guasca</td>
+<td class="px-4 py-3"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-bold">En ejecución</span></td>
+<td class="px-4 py-3">
+<div class="w-full bg-outline-variant/30 rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-full" style="width: 75%"></div>
+</div>
+</td>
+</tr>
+<tr class="border-b border-outline-variant/30 hover:bg-surface-container-low transition-colors cursor-pointer">
+<td class="px-4 py-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="water_drop">water_drop</span>
+                                            Captación Agua Lluvia
+                                        </td>
+<td class="px-4 py-3 font-mono">PR-00234</td>
+<td class="px-4 py-3">La Calera</td>
+<td class="px-4 py-3"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-bold">En ejecución</span></td>
+<td class="px-4 py-3">
+<div class="w-full bg-outline-variant/30 rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-full" style="width: 20%"></div>
+</div>
+</td>
+</tr>
+<tr class="border-b border-outline-variant/30 hover:bg-surface-container-low transition-colors cursor-pointer">
+<td class="px-4 py-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[18px]" data-icon="inventory_2">inventory_2</span>
+                                            Compostaje
+                                        </td>
+<td class="px-4 py-3 font-mono">PR-00056</td>
+<td class="px-4 py-3">Fómeque</td>
+<td class="px-4 py-3"><span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">Finalizada</span></td>
+<td class="px-4 py-3">
+<div class="w-full bg-outline-variant/30 rounded-full h-1.5 overflow-hidden">
+<div class="bg-secondary h-full" style="width: 100%"></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Doughnut Charts -->
+<div class="xl:col-span-3 bg-surface-container-lowest rounded-xl border border-outline-variant p-4">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-title-lg font-title-lg text-on-surface">Cobertura Vegetal</h3>
+<button class="text-primary text-label-md font-bold">Ver mapa</button>
+</div>
+<div class="flex flex-col items-center">
+<div class="relative w-40 h-40 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-variant" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-width="20"></circle>
+<circle class="text-primary transition-all duration-1000" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-dasharray="440" stroke-dashoffset="167" stroke-width="20"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-headline-md font-bold">62%</span>
+<span class="text-[10px] text-on-surface-variant uppercase font-bold">Cobertura</span>
+</div>
+</div>
+<div class="w-full mt-4 space-y-2">
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-primary"></div><span>Bosque Natural</span></div>
+<span class="font-bold">38%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-secondary"></div><span>Vegetación Sec.</span></div>
+<span class="font-bold">24%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-tertiary"></div><span>Agropecuario</span></div>
+<span class="font-bold">28%</span>
+</div>
+</div>
+</div>
+</div>
+<div class="xl:col-span-3 bg-surface-container-lowest rounded-xl border border-outline-variant p-4">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-title-lg font-title-lg text-on-surface">Uso del Suelo</h3>
+<button class="text-primary text-label-md font-bold">Ver mapa</button>
+</div>
+<div class="flex flex-col items-center">
+<div class="relative w-40 h-40 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-variant" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-width="20"></circle>
+<circle class="text-secondary transition-all duration-1000" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-dasharray="440" stroke-dashoffset="250" stroke-width="20"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-headline-md font-bold text-on-surface">12.7K</span>
+<span class="text-[10px] text-on-surface-variant uppercase font-bold">Hectáreas</span>
+</div>
+</div>
+<div class="w-full mt-4 space-y-2">
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-primary-container"></div><span>Conservación</span></div>
+<span class="font-bold">32%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-secondary-container"></div><span>Agroforestal</span></div>
+<span class="font-bold">28%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-tertiary-container"></div><span>Protección Hídrica</span></div>
+<span class="font-bold">22%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Padding for footer height -->
+<div class="h-16 flex-shrink-0"></div>
+</div>
+<!-- Right Indicators Sidebar -->
+<aside class="w-80 bg-surface border-l border-outline-variant overflow-y-auto custom-scrollbar p-gutter space-y-gutter flex-shrink-0">
+<div>
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-label-lg font-bold text-on-surface-variant tracking-wider uppercase">Indicadores Generales</h3>
+<span class="material-symbols-outlined text-primary cursor-pointer hover:rotate-180 transition-transform duration-500" data-icon="refresh">refresh</span>
+</div>
+<div class="grid grid-cols-1 gap-3">
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant hover:border-primary transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<div class="bg-primary/10 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined" data-icon="domain">domain</span>
+</div>
+<span class="text-primary text-[10px] font-bold flex items-center bg-primary/5 px-2 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="trending_up">trending_up</span>
+                                    +12%
+                                </span>
+</div>
+<p class="text-body-sm text-on-surface-variant">Predios Concertados</p>
+<h4 class="text-display-lg font-display-lg text-on-surface group-hover:text-primary transition-colors">2.458</h4>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant hover:border-secondary transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<div class="bg-secondary/10 p-2 rounded-lg text-secondary">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+</div>
+<span class="text-secondary text-[10px] font-bold flex items-center bg-secondary/5 px-2 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="trending_up">trending_up</span>
+                                    +18%
+                                </span>
+</div>
+<p class="text-body-sm text-on-surface-variant">Intervenciones Realizadas</p>
+<h4 class="text-display-lg font-display-lg text-on-surface group-hover:text-secondary transition-colors">3.892</h4>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant">
+<h3 class="text-label-lg font-bold text-on-surface-variant mb-4 uppercase">Intervenciones por Componente</h3>
+<div class="relative h-48 w-full flex items-center justify-center">
+<!-- Simplified visualization for placeholder -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-32 h-32 rounded-full border-[12px] border-primary flex items-center justify-center">
+<div class="text-center">
+<p class="text-headline-md font-bold text-on-surface">10.148</p>
+<p class="text-[10px] font-bold text-on-surface-variant">TOTAL</p>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-4 space-y-2">
+<div class="flex justify-between items-center text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-primary"></div><span>Componente 1</span></div>
+<span class="font-bold">35%</span>
+</div>
+<div class="flex justify-between items-center text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-secondary"></div><span>Componente 2</span></div>
+<span class="font-bold">32%</span>
+</div>
+<div class="flex justify-between items-center text-body-sm">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-tertiary"></div><span>Componente 3</span></div>
+<span class="font-bold">33%</span>
+</div>
+</div>
+</div>
+<div class="bg-error-container/30 border border-error/20 p-4 rounded-xl">
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-label-lg font-bold text-error uppercase">Alertas Activas</h3>
+<span class="material-symbols-outlined text-error" data-icon="warning">warning</span>
+</div>
+<div class="space-y-3">
+<div class="bg-surface-container-lowest p-3 rounded-lg border-l-4 border-error">
+<div class="flex justify-between text-[10px] mb-1 font-bold text-on-surface-variant">
+<span>Deforestación Crítica</span>
+<span>HOY</span>
+</div>
+<p class="text-body-sm leading-tight text-on-surface">Detección de tala ilegal en sector San Rafael, Guasca.</p>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg border-l-4 border-tertiary-container">
+<div class="flex justify-between text-[10px] mb-1 font-bold text-on-surface-variant">
+<span>Nivel Hídrico</span>
+<span>14/05</span>
+</div>
+<p class="text-body-sm leading-tight text-on-surface">Nivel bajo en estación hidrométrica Rio Negro - Est. 04</p>
+</div>
+</div>
+</div>
+</aside>
+</div>
+<!-- Footer Bar -->
+<footer class="fixed bottom-0 left-64 right-0 h-16 bg-secondary text-on-secondary z-40 flex items-center px-lg justify-between shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
+<div class="flex items-center gap-8 overflow-x-auto no-scrollbar">
+<div class="flex items-center gap-3 whitespace-nowrap">
+<span class="material-symbols-outlined opacity-70" data-icon="location_on">location_on</span>
+<div>
+<p class="text-headline-sm font-bold leading-none">18</p>
+<p class="text-[10px] uppercase font-bold opacity-70">Municipios</p>
+</div>
+</div>
+<div class="flex items-center gap-3 whitespace-nowrap">
+<span class="material-symbols-outlined opacity-70" data-icon="explore">explore</span>
+<div>
+<p class="text-headline-sm font-bold leading-none">245</p>
+<p class="text-[10px] uppercase font-bold opacity-70">Veredas</p>
+</div>
+</div>
+<div class="flex items-center gap-3 whitespace-nowrap">
+<span class="material-symbols-outlined opacity-70" data-icon="handshake">handshake</span>
+<div>
+<p class="text-headline-sm font-bold leading-none">2.458</p>
+<p class="text-[10px] uppercase font-bold opacity-70">Predios Concertados</p>
+</div>
+</div>
+<div class="flex items-center gap-3 whitespace-nowrap">
+<span class="material-symbols-outlined opacity-70" data-icon="grid_view">grid_view</span>
+<div>
+<p class="text-headline-sm font-bold leading-none">12.756</p>
+<p class="text-[10px] uppercase font-bold opacity-70">Hectáreas Intervenidas</p>
+</div>
+</div>
+<div class="flex items-center gap-3 whitespace-nowrap">
+<span class="material-symbols-outlined opacity-70" data-icon="water">water</span>
+<div>
+<p class="text-headline-sm font-bold leading-none">128</p>
+<p class="text-[10px] uppercase font-bold opacity-70">Fuentes Hídricas</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6 border-l border-on-secondary/20 pl-8 ml-8">
+<p class="text-label-md opacity-80 whitespace-nowrap">© 2024 Monitoreo Ambiental</p>
+<div class="flex gap-4">
+<a class="text-label-md font-bold hover:underline" href="#">Soporte</a>
+<a class="text-label-md font-bold hover:underline" href="#">Metadatos</a>
+</div>
+</div>
+</footer>
+</main>
+<script>
+        // Micro-interactions for map buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                let ripple = document.createElement('div');
+                ripple.classList.add('ripple');
+                this.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+
+        // Simple layer toggle logic simulation
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                const layerName = this.nextElementSibling.textContent;
+                console.log(`Capa ${this.checked ? 'activada' : 'desactivada'}: ${layerName}`);
+            });
+        });
+    </script>
+</body></html>

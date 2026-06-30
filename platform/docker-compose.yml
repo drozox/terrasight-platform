@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: terrasight-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: convenio_car_wwf
+      POSTGRES_USER: terrasight
+      POSTGRES_PASSWORD: terrasight_dev
+      # Required for older GIS client compat
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      # 5432 ya está ocupado por afm-postgis (AeroAdmin); usamos 5433
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Seed-on-startup: si la BD está vacía, ejecuta el script de implementación
+      - ./scripts/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U terrasight -d convenio_car_wwf || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:
+    driver: local

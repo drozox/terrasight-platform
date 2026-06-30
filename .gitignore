@@ -1,0 +1,32 @@
+# =============================================================================
+# TerraSight — TG-Nikoll root .gitignore
+# =============================================================================
+
+# Plataforma Node
+platform/node_modules/
+platform/.next/
+platform/out/
+platform/build/
+
+# Secrets (override con .env.example en repo)
+platform/.env
+platform/.env.local
+platform/.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Modelo BDG zip (14 MB — se regenera desde el entregable del cliente)
+MODELO BDG-*.zip
