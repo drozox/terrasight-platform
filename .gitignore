@@ -30,3 +30,24 @@ desktop.ini
 
 # Modelo BDG zip (14 MB — se regenera desde el entregable del cliente)
 MODELO BDG-*.zip
+
+# Shapefiles del cliente (datos pesados, se regeneran desde el entregable)
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.sbn
+*.sbx
+*.fbn
+*.fbx
+*.ain
+*.aih
+*.atx
+*.ixs
+*.mxs
+*.qix
+*.qpj
+
+# Directorio específico de shapefiles del cliente (no versionar)
+DOCS/**/Datos_Prueba/

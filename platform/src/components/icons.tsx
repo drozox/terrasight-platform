@@ -19,14 +19,16 @@ export function TerraSightLogo({ className }: { className?: string }) {
   );
 }
 
-/** Placeholder estilizado para alianzas (WWF / CAR / Fundación Natura).
- *  Reemplazables por logos definitivos cuando el cliente los provea. */
+/** Logo de alianza. Si se pasa `src`, renderiza <img> con el archivo en /public.
+ *  Si no, usa un placeholder SVG estilizado (queda como fallback). */
 export function PartnerLogo({
   name,
   className,
+  src,
 }: {
   name: "wwf" | "car" | "natura";
   className?: string;
+  src?: string;
 }) {
   const palette: Record<typeof name, { primary: string; secondary: string; label: string; abbr: string }> = {
     wwf:   { primary: "#000000", secondary: "#FFFFFF", label: "WWF",          abbr: "W" },
@@ -34,6 +36,19 @@ export function PartnerLogo({
     natura: { primary: "#7a4f1d", secondary: "#FFFFFF", label: "Fund. Natura", abbr: "N" },
   };
   const p = palette[name];
+
+  // Si hay imagen real, usarla; conservar el alto del className y dejar ancho auto.
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={p.label}
+        className={className}
+        style={{ height: "auto", maxHeight: "2rem", width: "auto" }}
+      />
+    );
+  }
 
   return (
     <svg

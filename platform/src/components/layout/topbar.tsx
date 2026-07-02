@@ -54,9 +54,9 @@ export function TopBar({ alertas }: { alertas?: Alerta[] }) {
 
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-6">
-          <PartnerLogo name="wwf"    className="h-8" />
+          <PartnerLogo name="wwf"    src="/partners/wwf-panda.png"  className="h-8" />
           <PartnerLogo name="car"    className="h-8" />
-          <PartnerLogo name="natura" className="h-8" />
+          <PartnerLogo name="natura" src="/partners/natura-2018.png" className="h-8" />
         </div>
 
         <div className="flex items-center gap-1 border-l border-outline-variant pl-4">
