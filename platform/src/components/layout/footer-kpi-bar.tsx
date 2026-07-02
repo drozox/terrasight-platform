@@ -1,6 +1,13 @@
 "use client";
 
 import * as React from "react";
+import {
+  MapPin,
+  Compass,
+  Handshake,
+  LayoutGrid,
+  Droplets,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface KpiBarItem {
@@ -8,6 +15,14 @@ export interface KpiBarItem {
   value: string | number;
   icon?: string;
 }
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  location_on: MapPin,
+  explore:     Compass,
+  handshake:   Handshake,
+  grid_view:   LayoutGrid,
+  water:       Droplets,
+};
 
 export function FooterKpiBar({ items, className }: { items: KpiBarItem[]; className?: string }) {
   return (
@@ -19,23 +34,24 @@ export function FooterKpiBar({ items, className }: { items: KpiBarItem[]; classN
       )}
     >
       <div className="flex items-center gap-8 overflow-x-auto">
-        {items.map((item) => (
-          <div key={item.label} className="flex items-center gap-3 whitespace-nowrap">
-            {item.icon && (
-              <span className="material-symbols-outlined opacity-70">{item.icon}</span>
-            )}
-            <div>
-              <p className="font-bold leading-none">{item.value}</p>
-              <p className="text-[10px] font-bold uppercase opacity-70">{item.label}</p>
+        {items.map((item) => {
+          const Icon = item.icon ? ICON_MAP[item.icon] : undefined;
+          return (
+            <div key={item.label} className="flex items-center gap-3 whitespace-nowrap">
+              {Icon && <Icon className="size-4 opacity-80" />}
+              <div>
+                <p className="font-bold leading-none">{item.value}</p>
+                <p className="text-[10px] font-bold uppercase opacity-70">{item.label}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="ml-8 flex items-center gap-6 whitespace-nowrap border-l border-on-secondary/20 pl-8">
         <p className="text-[11px] opacity-80">© 2026 Monitoreo Ambiental</p>
         <div className="flex gap-4">
-          <a className="text-[11px] font-bold hover:underline" href="#">Soporte</a>
-          <a className="text-[11px] font-bold hover:underline" href="#">Metadatos</a>
+          <a className="cursor-pointer text-[11px] font-bold transition-opacity hover:opacity-80 hover:underline" href="#">Soporte</a>
+          <a className="cursor-pointer text-[11px] font-bold transition-opacity hover:opacity-80 hover:underline" href="#">Metadatos</a>
         </div>
       </div>
     </footer>

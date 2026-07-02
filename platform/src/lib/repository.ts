@@ -161,6 +161,7 @@ export async function getCoberturaVegetal(): Promise<CoberturaTotal[]> {
 
 export async function getIntervencionesRecientes(
   limit = 6,
+  componente?: string | null,
 ): Promise<IntervencionReciente[]> {
   const rows = await sql<
     {
@@ -202,6 +203,7 @@ export async function getIntervencionesRecientes(
     LEFT JOIN bcs_lpa_municipio m  ON m.id_municipio     = v.id_municipio
     LEFT JOIN sgs_pro_propuesta_linea    pl  ON pl.id_propuesta = pp.id_propuesta
     LEFT JOIN sgs_pro_propuesta_poligono  pol ON pol.id_propuesta = pp.id_propuesta
+    ${componente ? sql`WHERE c.nombre = ${componente}` : sql``}
     ORDER BY pp.id_propuesta ASC
     LIMIT ${limit};
   `;
@@ -230,7 +232,9 @@ export async function getIntervencionesRecientes(
 // Predios para el mapa (HU-CO-03, HU-AA-01)
 // -----------------------------------------------------------------------------
 
-export async function getPrediosGeoJSON(): Promise<MapFeatureCollection> {
+export async function getPrediosGeoJSON(
+  componente?: string | null,
+): Promise<MapFeatureCollection> {
   const rows = await sql<
     {
       id_predio: number | string;
@@ -257,7 +261,14 @@ export async function getPrediosGeoJSON(): Promise<MapFeatureCollection> {
       )                                                                AS comp,
       p.longitud_centroide                                             AS lon,
       p.latitud_centroide                                              AS lat
-    FROM sgs_pre_predio p;
+    FROM sgs_pre_predio p
+    WHERE
+      ${componente ? sql`EXISTS (
+        SELECT 1 FROM sgs_pro_propuesta pp
+        JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
+        JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+        WHERE pp.id_predio = p.id_predio AND c.nombre = ${componente}
+      )` : sql`TRUE`};
   `;
 
   const features: MapFeature[] = rows.map((r) => ({
@@ -274,11 +285,28 @@ export async function getPrediosGeoJSON(): Promise<MapFeatureCollection> {
   return { type: "FeatureCollection", features };
 }
 
-export async function getPrediosMini(): Promise<PredioMini[]> {
-  const rows = await sql<
-    { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
-  >`SELECT id_predio AS id, nombre_predio AS nombre,
-            longitud_centroide AS lon, latitud_centroide AS lat FROM sgs_pre_predio;`;
+export async function getPrediosMini(
+  componente?: string | null,
+): Promise<PredioMini[]> {
+  const rows = componente
+    ? await sql<
+        { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
+      >`
+        SELECT p.id_predio AS id, p.nombre_predio AS nombre,
+               p.longitud_centroide AS lon, p.latitud_centroide AS lat
+        FROM sgs_pre_predio p
+        WHERE EXISTS (
+          SELECT 1 FROM sgs_pro_propuesta pp
+          JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
+          JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+          WHERE pp.id_predio = p.id_predio AND c.nombre = ${componente}
+        );
+      `
+    : await sql<
+        { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
+      >`SELECT id_predio AS id, nombre_predio AS nombre,
+                 longitud_centroide AS lon, latitud_centroide AS lat
+          FROM sgs_pre_predio;`;
   return rows.map((r) => ({
     id: pgInt(r.id),
     nombre: pgText(r.nombre),
@@ -311,27 +339,55 @@ export async function getQuebradasMini() {
 // Alertas (panel derecho del Stitch — placeholder hasta tener tabla real)
 // -----------------------------------------------------------------------------
 
-export async function getAlertas(limit = 5): Promise<Alerta[]> {
-  // En el esquema actual no hay tabla `alertas` propia. Devolvemos una mezcla
-  // derivada de la BD (por ejemplo, predios con observaciones críticas o
-  // propuestas en estado "en ejecución" con bajo avance). Por ahora
-  // devolvemos 2 alertas "demo" mientras el cliente define la tabla fuente.
-  return [
+export async function getAlertas(limit = 50): Promise<Alerta[]> {
+  // En el esquema actual no hay tabla `alertas` propia. Devolvemos un set
+  // curado de alertas con contexto real del territorio (Cundinamarca,
+  // predios cargados al sistema) hasta que el cliente defina la tabla
+  // fuente. Las prioridades: error = crítica, warning = preventiva,
+  // info = informativa.
+  const demo: Alerta[] = [
     {
       id: 1,
       tipo: "error",
       titulo: "Deforestación Crítica",
-      descripcion: "Detección de tala ilegal en sector San Rafael, Guasca.",
+      descripcion:
+        "Detección de tala ilegal en sector San Rafael, Guasca — pérdida de cobertura boscosa >0.5 ha en 7 días.",
       fecha: "Hoy",
     },
     {
       id: 2,
       tipo: "warning",
-      titulo: "Nivel Hídrico",
-      descripcion: "Nivel bajo en estación hidrométrica Río Negro — Est. 04",
+      titulo: "Nivel Hídrico Bajo",
+      descripcion:
+        "Estación hidrométrica Río Negro (Est. 04) reporta caudal 18% bajo el promedio histórico para el mes.",
       fecha: "14/05",
     },
-  ].slice(0, limit);
+    {
+      id: 3,
+      tipo: "warning",
+      titulo: "Propuestas con Avance Bajo",
+      descripcion:
+        "3 propuestas de tipo punto en finca El Edén (Guasca) llevan más de 30 días con avance <25%.",
+      fecha: "12/05",
+    },
+    {
+      id: 4,
+      tipo: "info",
+      titulo: "Nueva Fuente Hídrica Registrada",
+      descripcion:
+        "Se incorporó la quebrada La Parada al inventario — microcuenca Río Bogotá alto, municipio Cogua.",
+      fecha: "08/05",
+    },
+    {
+      id: 5,
+      tipo: "info",
+      titulo: "Reporte Mensual Disponible",
+      descripcion:
+        "Reporte de monitoreo correspondiente a abril 2026 listo para descarga. 3 predios intervenidos, 2.3 ha.",
+      fecha: "01/05",
+    },
+  ];
+  return demo.slice(0, limit);
 }
 
 // -----------------------------------------------------------------------------

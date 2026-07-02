@@ -1,12 +1,209 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
-import { Building2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Building2, Search, MapPin, Filter } from "lucide-react";
+import Link from "next/link";
+import { getPrediosGeoJSON } from "@/lib/repository";
+import { formatDecimal } from "@/lib/utils";
 
-export default function PrediosPage() {
+export const dynamic = "force-dynamic";
+
+type SearchParams = Promise<{ q?: string }>;
+
+const COMPONENT_COLOR: Record<string, "primary" | "secondary" | "tertiary"> = {
+  C1: "primary",
+  C2: "secondary",
+  C3: "tertiary",
+};
+
+export default async function PrediosPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const q = (params.q ?? "").trim().toLowerCase();
+
+  const geojson = await getPrediosGeoJSON();
+  const all = geojson.features;
+
+  const filtered = q
+    ? all.filter((f) =>
+        f.properties.nombre.toLowerCase().includes(q) ||
+        f.properties.codigo.toLowerCase().includes(q) ||
+        (f.properties.componente ?? "").toLowerCase().includes(q),
+      )
+    : all;
+
+  // Calcular KPIs
+  const totalArea = all.reduce((acc, f) => acc + (f.properties.areaHa || 0), 0);
+  const porComponente = all.reduce<Record<string, number>>((acc, f) => {
+    const c = f.properties.componente ?? "—";
+    acc[c] = (acc[c] ?? 0) + 1;
+    return acc;
+  }, {});
+
   return (
-    <ModulePlaceholder
-      title="Módulo de Predios"
-      description="CRUD de predios, propietarios y asociaciones a coberturas, biomas y zonificaciones (POMCA / RFP / Páramos). Próxima fase."
-      Icon={Building2}
-    />
+    <div className="flex-1 overflow-y-auto bg-surface-container-low p-gutter">
+      <div className="mx-auto flex max-w-7xl flex-col gap-gutter">
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Building2 className="size-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-on-surface">
+                  Predios
+                </h1>
+                <p className="text-body-sm text-on-surface-variant">
+                  {all.length} predios registrados · {formatDecimal(totalArea, 1)} ha totales
+                </p>
+              </div>
+            </div>
+          </div>
+          <Button asChild>
+            <Link href="/predios/nuevo">
+              + Nuevo Predio
+            </Link>
+          </Button>
+        </div>
+
+        {/* KPI chips por componente */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Card className="p-4">
+            <p className="text-[10px] font-bold uppercase text-on-surface-variant">
+              Total predios
+            </p>
+            <p className="mt-1 text-2xl font-bold text-on-surface">
+              {all.length}
+            </p>
+          </Card>
+          {(["C1", "C2", "C3"] as const).map((c) => (
+            <Card key={c} className="p-4">
+              <p className="text-[10px] font-bold uppercase text-on-surface-variant">
+                {c}
+              </p>
+              <p
+                className={
+                  "mt-1 text-2xl font-bold " +
+                  (c === "C1"
+                    ? "text-primary"
+                    : c === "C2"
+                    ? "text-secondary"
+                    : "text-tertiary")
+                }
+              >
+                {porComponente[c] ?? 0}
+              </p>
+            </Card>
+          ))}
+        </div>
+
+        {/* Tabla */}
+        <Card className="overflow-hidden">
+          {/* Buscador + filtros */}
+          <div className="flex flex-col gap-3 border-b border-outline-variant p-4 sm:flex-row sm:items-center sm:justify-between">
+            <form className="relative flex w-full max-w-sm items-center">
+              <Search className="absolute left-3 size-4 text-on-surface-variant" />
+              <Input
+                name="q"
+                defaultValue={q}
+                placeholder="Buscar por nombre, código o componente…"
+                className="pl-9"
+              />
+            </form>
+            <div className="flex items-center gap-2 text-body-sm text-on-surface-variant">
+              <Filter className="size-4" />
+              <span>
+                Mostrando{" "}
+                <span className="font-bold text-on-surface">
+                  {filtered.length}
+                </span>{" "}
+                de {all.length}
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-body-sm">
+              <thead>
+                <tr className="bg-surface-container-low text-[11px] font-bold uppercase text-on-surface-variant">
+                  <th className="px-4 py-3">Código</th>
+                  <th className="px-4 py-3">Nombre</th>
+                  <th className="px-4 py-3">Componente</th>
+                  <th className="px-4 py-3 text-right">Área (ha)</th>
+                  <th className="px-4 py-3 text-right">Lat / Lon</th>
+                  <th className="px-4 py-3 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-12 text-center text-on-surface-variant"
+                    >
+                      Sin predios que coincidan con "{q}".
+                    </td>
+                  </tr>
+                )}
+                {filtered.map((f) => (
+                  <tr
+                    key={f.properties.id}
+                    className="border-b border-outline-variant/30 transition-colors hover:bg-surface-container-low"
+                  >
+                    <td className="px-4 py-3 font-mono text-on-surface">
+                      {f.properties.codigo}
+                    </td>
+                    <td className="px-4 py-3 font-bold text-on-surface">
+                      {f.properties.nombre}
+                    </td>
+                    <td className="px-4 py-3">
+                      {f.properties.componente &&
+                      COMPONENT_COLOR[f.properties.componente] ? (
+                        <Badge
+                          variant={
+                            COMPONENT_COLOR[f.properties.componente]
+                          }
+                        >
+                          {f.properties.componente}
+                        </Badge>
+                      ) : (
+                        <span className="text-on-surface-variant">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {formatDecimal(f.properties.areaHa, 2)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-on-surface-variant">
+                      {f.geometry.coordinates[1].toFixed(4)},{" "}
+                      {f.geometry.coordinates[0].toFixed(4)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Link
+                        href={`/predios/${f.properties.id}`}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-label-lg font-bold text-primary transition-colors hover:bg-primary/10"
+                      >
+                        <MapPin className="size-3.5" />
+                        Ver
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* Note */}
+        <p className="text-center text-[11px] text-on-surface-variant">
+          Vista de solo-lectura · próximamente CRUD completo y exportación a
+          GeoPackage / Shapefile.
+        </p>
+      </div>
+    </div>
   );
 }

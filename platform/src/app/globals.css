@@ -1,8 +1,8 @@
-// =============================================================================
-// TerraSight — paleta institucional
-// Basada en el sistema "TerraSight Intelligence" del Stitch, mapeada a tokens
-// Material-3 / shadcn-style (HSL friendly con Tailwind v4 `@theme`).
-// =============================================================================
+/* =============================================================================
+ * TerraSight — paleta institucional
+ * Basada en el sistema "TerraSight Intelligence" del Stitch, mapeada a tokens
+ * Material-3 / shadcn-style (HSL friendly con Tailwind v4 `@theme`).
+ * ============================================================================= */
 
 @import "tailwindcss";
 
@@ -77,6 +77,35 @@
   --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system,
                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
+  /* Typography scale (Material-3 style tokens — Stitch)
+     Genera utilities .text-* y .leading-* */
+  --text-body-sm:    0.75rem;   /* 12px */
+  --text-body-md:    0.8125rem; /* 13px */
+  --text-body-lg:    0.875rem;  /* 14px */
+  --text-label-md:   0.6875rem; /* 11px */
+  --text-label-lg:   0.75rem;   /* 12px */
+  --text-label-xl:   0.875rem;  /* 14px */
+  --text-title-md:   1rem;      /* 16px */
+  --text-title-lg:   1.125rem;  /* 18px */
+
+  --text-body-sm--line-height:   1.125rem;
+  --text-body-md--line-height:   1.25rem;
+  --text-body-lg--line-height:   1.375rem;
+  --text-label-md--line-height:  1rem;
+  --text-label-lg--line-height:  1rem;
+  --text-label-xl--line-height:  1.25rem;
+  --text-title-md--line-height:  1.5rem;
+  --text-title-lg--line-height:  1.625rem;
+
+  /* Spacing (Material-3 style)
+     --spacing-* tokens en Tailwind v4 generan utilities con cualquier
+     dirección: p-*, m-*, gap-*, w-*, h-* etc. */
+  --spacing-sm:           0.5rem;   /* 8px */
+  --spacing-md:           0.75rem;  /* 12px - py-md, px-md */
+  --spacing-lg:           1.5rem;   /* 24px - mb-lg, pt-lg */
+  --spacing-gutter:       1rem;     /* 16px - spacing estándar entre componentes */
+  --spacing-margin-edge:  1.5rem;   /* 24px - padding lateral del shell */
+
   /* Geometry */
   --radius:        0.5rem;
   --radius-sm:     0.25rem;
@@ -110,8 +139,10 @@ body { overflow: hidden; /* full-screen AppShell layout like the Stitch */ }
 ::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 9999px; }
 
 /* Leaflet z-index fixes when nested inside modal/floating panel */
-.leaflet-container { z-index: 0; outline: none; }
-.leaflet-control { z-index: 10; }
+.leaflet-container { z-index: 1; outline: none; position: relative; }
+/* No forzamos z-index en .leaflet-control — Leaflet ya gestiona su propio
+   stacking (default 1000). Si lo bajamos a 10, queda detrás del search
+   overlay (z-500) y el control de capas desaparece. */
 
 /* Material Symbols helpers (si más adelante los queremos por URL) */
 .material-symbols-outlined {

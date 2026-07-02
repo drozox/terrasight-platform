@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { IconArrowUp, IconWarn } from "@/components/icons";
+import { RefreshCw, Building2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatInt } from "@/lib/utils";
 import type { DashboardKpis, ComponenteTotal, FooterKpis, Alerta } from "@/lib/types";
@@ -32,38 +33,40 @@ export function KpiSidebar({
       "
     >
       <div>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between">
           <h3 className="text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
             Indicadores Generales
           </h3>
           <button
-            aria-label="refrescar"
-            className="cursor-pointer text-primary transition-transform duration-500 hover:rotate-180"
+            type="button"
+            aria-label="Refrescar"
+            title="Refrescar indicadores"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10"
           >
-            <span className="material-symbols-outlined">refresh</span>
+            <RefreshCw className="size-4 transition-transform hover:rotate-180" />
           </button>
         </div>
         <div className="grid grid-cols-1 gap-3">
-          <Card className="group cursor-pointer p-4 transition-colors hover:border-primary">
+          <Card className="group cursor-pointer p-4 transition-all hover:border-primary hover:shadow-md">
             <div className="mb-2 flex items-start justify-between">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <span className="material-symbols-outlined">domain</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-on-primary">
+                <Building2 className="size-5" />
               </div>
               <span className="flex items-center gap-1 rounded-full bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary">
                 <IconArrowUp className="size-3" />
-                {`${footer.predios}`} <span className="opacity-60">·</span>
+                {footer.predios}
               </span>
             </div>
             <p className="text-body-sm text-on-surface-variant">Predios Concertados</p>
-            <h4 className="text-3xl font-bold text-on-surface transition-colors group-hover:text-primary">
+            <h4 className="mt-1 text-3xl font-bold text-on-surface transition-colors group-hover:text-primary">
               {formatInt(kpis.predios)}
             </h4>
           </Card>
 
-          <Card className="group cursor-pointer p-4 transition-colors hover:border-secondary">
+          <Card className="group cursor-pointer p-4 transition-all hover:border-secondary hover:shadow-md">
             <div className="mb-2 flex items-start justify-between">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
-                <span className="material-symbols-outlined">task_alt</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/10 text-secondary transition-colors group-hover:bg-secondary group-hover:text-on-secondary">
+                <CheckCircle2 className="size-5" />
               </div>
               <span className="flex items-center gap-1 rounded-full bg-secondary/5 px-2 py-0.5 text-[10px] font-bold text-secondary">
                 <IconArrowUp className="size-3" />
@@ -71,7 +74,7 @@ export function KpiSidebar({
               </span>
             </div>
             <p className="text-body-sm text-on-surface-variant">Intervenciones Realizadas</p>
-            <h4 className="text-3xl font-bold text-on-surface transition-colors group-hover:text-secondary">
+            <h4 className="mt-1 text-3xl font-bold text-on-surface transition-colors group-hover:text-secondary">
               {formatInt(kpis.propuestas)}
             </h4>
           </Card>
@@ -114,31 +117,39 @@ export function KpiSidebar({
         </div>
       </Card>
 
-      <Card className="border-error/20 bg-error-container/30 p-4">
+      <Card className="border-error/20 bg-error/5 p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-label-lg font-bold uppercase text-error">Alertas Activas</h3>
+          <h3 className="text-label-lg font-bold uppercase text-error">
+            Alertas Activas
+          </h3>
           <IconWarn className="size-5 text-error" />
         </div>
         <div className="space-y-3">
           {alertas.length === 0 ? (
-            <p className="text-body-sm text-on-surface-variant">Sin alertas activas</p>
-          ) : alertas.map((a) => (
-            <div
-              key={a.id}
-              className={cn(
-                "rounded-lg border-l-4 bg-surface-container-lowest p-3",
-                a.tipo === "error"   && "border-error",
-                a.tipo === "warning" && "border-tertiary-container",
-                a.tipo === "info"    && "border-secondary",
-              )}
-            >
-              <div className="mb-1 flex justify-between text-[10px] font-bold text-on-surface-variant">
-                <span>{a.titulo}</span>
-                <span>{a.fecha}</span>
+            <p className="text-body-sm text-on-surface-variant">
+              Sin alertas activas
+            </p>
+          ) : (
+            alertas.map((a) => (
+              <div
+                key={a.id}
+                className={cn(
+                  "rounded-lg border-l-4 bg-surface-container-lowest p-3 transition-colors hover:bg-surface-variant/30",
+                  a.tipo === "error"   && "border-error",
+                  a.tipo === "warning" && "border-warning",
+                  a.tipo === "info"    && "border-info",
+                )}
+              >
+                <div className="mb-1 flex justify-between text-[10px] font-bold text-on-surface-variant">
+                  <span>{a.titulo}</span>
+                  <span>{a.fecha}</span>
+                </div>
+                <p className="text-body-sm leading-tight text-on-surface">
+                  {a.descripcion}
+                </p>
               </div>
-              <p className="text-body-sm leading-tight text-on-surface">{a.descripcion}</p>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </Card>
     </aside>

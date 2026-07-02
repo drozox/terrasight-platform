@@ -1,9 +1,14 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDecimal } from "@/lib/utils";
 import type { IntervencionReciente } from "@/lib/types";
 import { IconLeaf, IconDrop } from "@/components/icons";
+import { ArrowRight } from "lucide-react";
 
 export function IntervencionesTable({
   rows,
@@ -14,14 +19,19 @@ export function IntervencionesTable({
   title?: string;
   limit?: number;
 }) {
+  const router = useRouter();
   const data = limit ? rows.slice(0, limit) : rows;
 
   return (
     <Card className="overflow-hidden xl:col-span-6">
       <div className="flex items-center justify-between border-b border-outline-variant p-4">
         <h3 className="text-title-lg font-semibold text-on-surface">{title}</h3>
-        <Link href="/intervenciones" className="text-label-lg font-bold text-primary hover:underline">
+        <Link
+          href="/intervenciones"
+          className="group flex items-center gap-1 text-label-lg font-bold text-primary transition-colors hover:text-primary/80"
+        >
           Ver todas
+          <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
       <div className="overflow-x-auto">
@@ -38,7 +48,10 @@ export function IntervencionesTable({
           <tbody className="text-body-sm">
             {data.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-on-surface-variant">
+                <td
+                  colSpan={5}
+                  className="px-4 py-8 text-center text-on-surface-variant"
+                >
                   Sin intervenciones registradas aún.
                 </td>
               </tr>
@@ -46,6 +59,7 @@ export function IntervencionesTable({
             {data.map((r) => (
               <tr
                 key={r.id}
+                onClick={() => router.push(`/intervenciones/${r.id}`)}
                 className="cursor-pointer border-b border-outline-variant/30 transition-colors hover:bg-surface-container-low"
               >
                 <td className="flex items-center gap-2 px-4 py-3">
@@ -54,25 +68,21 @@ export function IntervencionesTable({
                   ) : (
                     <IconLeaf className="size-4 text-primary" />
                   )}
-                  <span className="capitalize">
-                    {r.actividad || r.tipo}
-                  </span>
+                  <span className="capitalize">{r.actividad || r.tipo}</span>
                 </td>
                 <td className="px-4 py-3 font-mono text-on-surface">
                   {r.codigoPredio}
                 </td>
                 <td className="px-4 py-3">{r.municipio || "—"}</td>
                 <td className="px-4 py-3">
-                  <Badge
-                    variant={r.estado === "Finalizada" ? "info" : "success"}
-                  >
+                  <Badge variant={r.estado === "Finalizada" ? "info" : "success"}>
                     {r.estado}
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-outline-variant/30">
                     <div
-                      className="h-full bg-primary"
+                      className="h-full rounded-full bg-primary transition-all"
                       style={{ width: `${r.avance}%` }}
                     />
                   </div>

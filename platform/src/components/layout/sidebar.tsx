@@ -14,32 +14,48 @@ import {
   FileText,
   Bell,
   Settings as SettingsIcon,
+  Filter as FilterIcon,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TerraSightLogo } from "@/components/icons";
 
 const navItems = [
-  { href: "/", label: "Inicio", icon: HomeIcon },
-  { href: "/mapa", label: "Mapa 2D / 3D", icon: MapIcon },
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/predios", label: "Predios", icon: Building2 },
-  { href: "/intervenciones", label: "Intervenciones", icon: Wrench },
-  { href: "/monitoreo", label: "Monitoreo", icon: Activity },
-  { href: "/analisis", label: "Análisis Espacial", icon: PieChart },
-  { href: "/reportes", label: "Reportes", icon: FileText },
-  { href: "/alertas", label: "Alertas", icon: Bell },
-  { href: "/configuracion", label: "Configuración", icon: SettingsIcon },
+  { href: "/",              label: "Inicio",             icon: HomeIcon },
+  { href: "/mapa",          label: "Mapa 2D / 3D",       icon: MapIcon },
+  { href: "/dashboard",     label: "Dashboard",          icon: BarChart3 },
+  { href: "/predios",       label: "Predios",            icon: Building2 },
+  { href: "/intervenciones",label: "Intervenciones",     icon: Wrench },
+  { href: "/monitoreo",     label: "Monitoreo",          icon: Activity },
+  { href: "/analisis",      label: "Análisis Espacial",  icon: PieChart },
+  { href: "/reportes",      label: "Reportes",           icon: FileText },
+  { href: "/alertas",       label: "Alertas",            icon: Bell },
+  { href: "/configuracion", label: "Configuración",      icon: SettingsIcon },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [depto, setDepto] = React.useState("Cundinamarca");
+  const [municipio, setMunicipio] = React.useState("Todos");
+  const [refreshKey, setRefreshKey] = React.useState(0);
+  const [lastUpdate, setLastUpdate] = React.useState("16/05/2025");
+
+  // Formatear fecha actual en es-CO cuando se refresca
+  React.useEffect(() => {
+    if (refreshKey > 0) {
+      const fmt = new Intl.DateTimeFormat("es-CO", {
+        day: "2-digit", month: "2-digit", year: "numeric",
+      }).format(new Date());
+      setLastUpdate(fmt);
+    }
+  }, [refreshKey]);
+
   return (
     <aside
-      className="
-        flex h-screen w-64 flex-shrink-0 flex-col overflow-y-auto
-        border-r border-outline-variant bg-surface-container-low
-        py-md transition-all
-      "
+      className={cn(
+        "flex h-screen w-64 flex-shrink-0 flex-col overflow-y-auto",
+        "border-r border-outline-variant bg-surface-container-low py-md transition-all",
+      )}
     >
       <div className="mb-lg px-md">
         <Link href="/" className="flex items-center gap-3">
@@ -48,7 +64,9 @@ export function Sidebar() {
             <h1 className="text-lg font-bold leading-tight text-secondary">
               Cundinamarca
             </h1>
-            <p className="text-body-sm text-on-surface-variant">Gestión Territorial</p>
+            <p className="text-body-sm text-on-surface-variant">
+              Gestión Territorial
+            </p>
           </div>
         </Link>
       </div>
@@ -67,7 +85,7 @@ export function Sidebar() {
               className={cn(
                 "mx-2 my-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-label-lg transition-colors",
                 isActive
-                  ? "bg-primary text-on-primary"
+                  ? "bg-primary text-on-primary shadow-sm"
                   : "text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface",
               )}
             >
@@ -79,30 +97,63 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto border-t border-outline-variant/30 px-md pt-lg">
-        <h3 className="mb-4 px-2 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+        <h3 className="mb-3 px-2 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
           Filtros territoriales
         </h3>
-        <div className="space-y-4 px-2">
+        <div className="space-y-3 px-2">
           <div>
-            <label className="mb-1 block text-[11px] text-on-surface-variant">Departamento</label>
-            <select className="w-full rounded-lg border-none bg-surface-container-highest px-3 py-2 text-sm focus:ring-1 focus:ring-primary">
+            <label className="mb-1 block text-[11px] text-on-surface-variant">
+              Departamento
+            </label>
+            <select
+              value={depto}
+              onChange={(e) => setDepto(e.target.value)}
+              className="w-full rounded-lg border-none bg-surface-container-highest px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+            >
               <option>Cundinamarca</option>
+              <option>Boyacá</option>
+              <option>Meta</option>
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-[11px] text-on-surface-variant">Municipio</label>
-            <select className="w-full rounded-lg border-none bg-surface-container-highest px-3 py-2 text-sm focus:ring-1 focus:ring-primary">
+            <label className="mb-1 block text-[11px] text-on-surface-variant">
+              Municipio
+            </label>
+            <select
+              value={municipio}
+              onChange={(e) => setMunicipio(e.target.value)}
+              className="w-full rounded-lg border-none bg-surface-container-highest px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+            >
               <option>Todos</option>
+              <option>Guasca</option>
+              <option>Cogua</option>
+              <option>San Rafael</option>
+              <option>Río Negro</option>
             </select>
           </div>
-          <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-secondary px-3 py-2.5 font-bold text-label-lg text-on-secondary transition-all hover:bg-opacity-90">
-            <span className="material-symbols-outlined text-[18px]">filter_alt</span>
+          <button
+            type="button"
+            onClick={() => setRefreshKey((k) => k + 1)}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-lg bg-secondary px-3 py-2.5",
+              "font-bold text-label-lg text-on-secondary transition-all hover:bg-secondary/90 active:scale-[0.98]",
+            )}
+          >
+            <FilterIcon className="size-4" />
             Aplicar Filtros
           </button>
         </div>
-        <div className="mt-8 flex items-center gap-2 px-2 text-[11px] text-on-surface-variant opacity-60">
-          <span className="material-symbols-outlined text-[16px]">sync</span>
-          Última actualización: 16/05/2025
+        <div className="mt-6 flex items-center gap-2 px-2 text-[11px] text-on-surface-variant">
+          <RefreshCw
+            className={cn(
+              "size-3 transition-transform",
+              refreshKey > 0 && "text-primary",
+            )}
+          />
+          <span>
+            Última actualización:{" "}
+            <span className="font-bold text-on-surface-variant">{lastUpdate}</span>
+          </span>
         </div>
       </div>
     </aside>
