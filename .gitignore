@@ -51,3 +51,6 @@ MODELO BDG-*.zip
 
 # Directorio específico de shapefiles del cliente (no versionar)
 DOCS/**/Datos_Prueba/
+
+# Material de análisis/inspiración (no versionar — solo referencia local)
+geoportal-data-dashboard.zip

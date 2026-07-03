@@ -12,6 +12,9 @@ import {
 import L from "leaflet";
 import type { PredioMini, MapFeatureCollection } from "@/lib/types";
 import { MapLayersPanel, type MapLayerKey } from "./map-layers-panel";
+import { MapTools, type MapToolKey } from "./map-tools";
+import { MapCompass } from "./map-compass";
+import { MapRegionLabels } from "./map-region-labels";
 
 // Fix: leaflet default icons no cargan en bundlers — usamos SVG inline.
 // (resolve el bug clásico "marker icon not found")
@@ -109,9 +112,25 @@ export default function MapClient({
   const [layers, setLayers] = React.useState<Record<MapLayerKey, boolean>>({
     predios: true,
     quebradas: true,
-    coberturas: false,
     municipios: false,
+    veredas: false,
+    rios: false,
+    parques: false,
+    reservas: false,
+    bosque: false,
+    agropecuario: false,
   });
+  const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
+
+  const onSelectTool = React.useCallback((tool: MapToolKey) => {
+    // Por ahora solo toggle visual; las acciones reales (medir/dibujar)
+    // son HU-AA-04 (Análisis Espacial) — pendiente.
+    setActiveTool((prev) => (prev === tool ? null : tool));
+  }, []);
+
+  const onRecenter = React.useCallback(() => {
+    mapRef.current?.flyTo(center, 11, { duration: 0.6 });
+  }, []);
 
   const BASEMAPS: Record<BasemapKey, { url: string; maxZoom?: number; attribution: string }> = {
     osm:       { url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution: "© OpenStreetMap" },
@@ -220,6 +239,9 @@ export default function MapClient({
               </Popup>
             </Marker>
           ))}
+
+        {/* Labels de regiones hidrográficas (siguen pan/zoom del mapa) */}
+        <MapRegionLabels />
       </MapContainer>
 
       {showLayersPanel && (
@@ -232,6 +254,16 @@ export default function MapClient({
           quebradasCount={quebradas.length}
         />
       )}
+
+      {/* Tools toolbar inferior */}
+      <MapTools
+        activeTool={activeTool}
+        onSelect={onSelectTool}
+        onRecenter={onRecenter}
+      />
+
+      {/* Brújula flotante */}
+      <MapCompass />
     </div>
   );
 }

@@ -1,10 +1,28 @@
 "use client";
 
 import * as React from "react";
-import { Layers, MapPin, Droplets, Trees, Map as MapIcon } from "lucide-react";
+import {
+  Layers,
+  MapPin,
+  Droplets,
+  Trees,
+  Map as MapIcon,
+  Building2,
+  Mountain,
+  ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type MapLayerKey = "predios" | "quebradas" | "coberturas" | "municipios";
+export type MapLayerKey =
+  | "municipios"
+  | "veredas"
+  | "rios"
+  | "quebradas"
+  | "parques"
+  | "reservas"
+  | "bosque"
+  | "agropecuario"
+  | "predios";
 
 interface MapLayersPanelProps {
   basemap: "osm" | "topo" | "satellite";
@@ -15,16 +33,67 @@ interface MapLayersPanelProps {
   quebradasCount: number;
 }
 
-const LAYERS_META: Array<{
-  key: MapLayerKey;
-  label: string;
+/**
+ * MapLayersPanel — panel "Capas Activas" reorganizado por grupos temáticos.
+ * Inspirado en `map-panel.tsx` del dashboard de referencia, adaptado a
+ * TerraSight.
+ *
+ * Grupos:
+ *  - Límites Administrativos: municipios, veredas
+ *  - Hidrografía: ríos, quebradas
+ *  - Áreas Protegidas: parques, reservas
+ *  - Cobertura Vegetal: bosque, agropecuario
+ *  - Mis puntos: predios
+ */
+const LAYER_GROUPS: Array<{
+  title: string;
   Icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
+  items: Array<{
+    key: MapLayerKey;
+    label: string;
+    badge?: string;
+    active?: boolean;
+  }>;
 }> = [
-  { key: "predios",    label: "Predios",          Icon: MapPin },
-  { key: "quebradas",  label: "Fuentes Hídricas", Icon: Droplets },
-  { key: "coberturas", label: "Cobertura Vegetal", Icon: Trees, badge: "próx." },
-  { key: "municipios", label: "Límites Municipales", Icon: MapIcon, badge: "próx." },
+  {
+    title: "Límites Administrativos",
+    Icon: Building2,
+    items: [
+      { key: "municipios", label: "Límite Municipal", badge: "próx." },
+      { key: "veredas",    label: "Límite Veredal",  badge: "próx." },
+    ],
+  },
+  {
+    title: "Hidrografía",
+    Icon: Droplets,
+    items: [
+      { key: "rios",      label: "Ríos principales", badge: "próx." },
+      { key: "quebradas", label: "Quebradas" },
+    ],
+  },
+  {
+    title: "Áreas Protegidas",
+    Icon: Mountain,
+    items: [
+      { key: "parques",  label: "Parques Naturales", badge: "próx." },
+      { key: "reservas", label: "Reservas Forestales", badge: "próx." },
+    ],
+  },
+  {
+    title: "Cobertura Vegetal",
+    Icon: Trees,
+    items: [
+      { key: "bosque",       label: "Bosque Natural", badge: "próx." },
+      { key: "agropecuario", label: "Uso Agropecuario", badge: "próx." },
+    ],
+  },
+  {
+    title: "Mis Puntos",
+    Icon: MapPin,
+    items: [
+      { key: "predios", label: "Predios del convenio" },
+    ],
+  },
 ];
 
 export function MapLayersPanel({
@@ -40,11 +109,9 @@ export function MapLayersPanel({
   const toggle = (k: MapLayerKey) =>
     onLayersChange({ ...layers, [k]: !layers[k] });
 
-  const counts: Record<MapLayerKey, number> = {
-    predios:    prediosCount,
-    quebradas:  quebradasCount,
-    coberturas: 0,
-    municipios: 0,
+  const counts: Partial<Record<MapLayerKey, number>> = {
+    predios: prediosCount,
+    quebradas: quebradasCount,
   };
 
   return (
@@ -56,25 +123,28 @@ export function MapLayersPanel({
       >
         <span className="flex items-center gap-2 text-label-lg font-bold uppercase text-on-surface-variant">
           <Layers className="size-4" />
-          Capas
+          Capas Activas
         </span>
-        <span className="text-[10px] font-bold text-on-surface-variant">
-          {open ? "ocultar" : "mostrar"}
-        </span>
+        <ChevronRight
+          className={cn(
+            "size-3.5 text-on-surface-variant transition-transform",
+            open && "rotate-90",
+          )}
+        />
       </button>
 
       {open && (
-        <div className="space-y-3 p-3">
+        <div className="max-h-[calc(100vh-220px)] space-y-3 overflow-y-auto p-3">
           {/* Base map selector */}
           <div>
-            <p className="mb-1.5 text-[10px] font-bold uppercase text-on-surface-variant">
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
               Mapa base
             </p>
             <div className="grid grid-cols-3 gap-1">
               {(
                 [
-                  { k: "osm" as const, label: "Calles" },
-                  { k: "topo" as const, label: "Topo" },
+                  { k: "osm" as const,       label: "Calles"   },
+                  { k: "topo" as const,      label: "Topo"     },
                   { k: "satellite" as const, label: "Satélite" },
                 ]
               ).map((b) => (
@@ -95,46 +165,48 @@ export function MapLayersPanel({
             </div>
           </div>
 
-          {/* Capas overlay */}
-          <div>
-            <p className="mb-1.5 text-[10px] font-bold uppercase text-on-surface-variant">
-              Capas
-            </p>
-            <ul className="space-y-1">
-              {LAYERS_META.map(({ key, label, Icon, badge }) => (
-                <li key={key}>
-                  <label
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-body-sm transition-colors hover:bg-surface-container-low",
-                      badge && "opacity-60",
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={layers[key]}
-                      onChange={() => toggle(key)}
-                      disabled={!!badge}
-                      className="size-3.5 cursor-pointer rounded border-outline-variant accent-primary"
-                    />
-                    <Icon className="size-4 text-on-surface-variant" />
-                    <span className="flex-1 font-medium text-on-surface">
-                      {label}
-                    </span>
-                    {!badge && (
-                      <span className="rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-bold text-on-surface-variant">
-                        {counts[key]}
+          {/* Capas overlay agrupadas */}
+          {LAYER_GROUPS.map(({ title, Icon: GIcon, items }) => (
+            <div key={title}>
+              <p className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+                <GIcon className="size-3" />
+                {title}
+              </p>
+              <ul className="space-y-0.5">
+                {items.map(({ key, label, badge }) => (
+                  <li key={key}>
+                    <label
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-body-sm transition-colors hover:bg-surface-container-low",
+                        badge && "opacity-60",
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!layers[key]}
+                        onChange={() => toggle(key)}
+                        disabled={!!badge}
+                        className="size-3.5 cursor-pointer rounded border-outline-variant accent-primary"
+                      />
+                      <span className="flex-1 font-medium text-on-surface">
+                        {label}
                       </span>
-                    )}
-                    {badge && (
-                      <span className="rounded-full bg-tertiary-container/30 px-2 py-0.5 text-[9px] font-bold uppercase text-tertiary">
-                        {badge}
-                      </span>
-                    )}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
+                      {!badge && counts[key] !== undefined && (
+                        <span className="rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-bold text-on-surface-variant">
+                          {counts[key]}
+                        </span>
+                      )}
+                      {badge && (
+                        <span className="rounded-full bg-tertiary-container/30 px-2 py-0.5 text-[9px] font-bold uppercase text-tertiary">
+                          {badge}
+                        </span>
+                      )}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )}
     </div>
