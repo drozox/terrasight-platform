@@ -84,3 +84,15 @@ export interface PredioMini {
   lon: number;
   lat: number;
 }
+
+export interface PredioPorMunicipio {
+  id_municipio: number;
+  nombre_municipio: string;
+  predios: number;
+  hectareas: number;
+}
+
+export interface SerieTemporal {
+  etiqueta: string;          // "2024", "Q1 2025", "Bosque Natural", "La Calera"
+  valor: number;
+}

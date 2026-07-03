@@ -1,11 +1,8 @@
-import { FooterKpiBar } from "@/components/layout/footer-kpi-bar";
 import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
-import { KpiSidebar } from "@/components/dashboard/kpi-sidebar";
-import { IntervencionesTable } from "@/components/dashboard/intervenciones-table";
-import { CoberturaChart } from "@/components/dashboard/cobertura-chart";
+import { RightPanel } from "@/components/dashboard/right-panel";
+import { BottomSections, SummaryBar } from "@/components/dashboard/bottom-sections";
 import { MapSearchBar } from "@/components/map/map-search-bar";
 import { LeafletMap } from "@/components/map/leaflet-map";
-import { formatHa, formatInt } from "@/lib/utils";
 import {
   getDashboardKpis,
   getComponentes,
@@ -16,6 +13,8 @@ import {
   getPrediosGeoJSON,
   getAlertas,
   getFooterKpis,
+  getPrediosPorMunicipio,
+  getPropuestasPorComponente,
   pingDb,
 } from "@/lib/repository";
 
@@ -42,21 +41,25 @@ export default async function HomePage({
     geojson,
     alertas,
     footer,
+    topMunicipios,
+    seriesComponentes,
     dbHealth,
   ] = await Promise.all([
     getDashboardKpis(),
     getComponentes(),
     getCoberturaVegetal(),
-    getIntervencionesRecientes(6, componenteFiltro),
+    getIntervencionesRecientes(8, componenteFiltro),
     getPrediosMini(componenteFiltro),
     getQuebradasMini(),
     getPrediosGeoJSON(componenteFiltro),
     getAlertas(5),
     getFooterKpis(),
+    getPrediosPorMunicipio(6),
+    getPropuestasPorComponente(),
     pingDb(),
   ]);
 
-  // Filtrado adicional en memoria por texto (municipio / nombre_predio)
+  // Filtrado adicional en memoria por texto
   const intervencionesFiltradas = queryTexto
     ? intervenciones.filter((i) => {
         const t = queryTexto.toLowerCase();
@@ -68,21 +71,19 @@ export default async function HomePage({
       })
     : intervenciones;
 
-  const footerItems = [
-    { label: "Municipios",      value: footer.municipios,            icon: "location_on" },
-    { label: "Veredas",         value: footer.veredas,               icon: "explore" },
-    { label: "Predios",         value: formatInt(footer.predios),     icon: "handshake" },
-    { label: "Hectáreas Intervenidas", value: formatHa(footer.hectareasIntervenidas), icon: "grid_view" },
-    { label: "Fuentes Hídricas", value: formatInt(footer.quebradas),  icon: "water" },
-  ];
-
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
-          <ComponentRibbon active={componenteFiltro} />
+      {/* ComponentRibbon (C1/C2/C3) — siempre visible */}
+      <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-3">
+        <ComponentRibbon active={componenteFiltro} />
+      </div>
 
-          <div className="relative h-[460px] w-full overflow-hidden rounded-xl border border-outline-variant bg-surface-variant">
+      {/* Contenido principal: mapa + right panel + bottom + footer */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Columna izquierda: mapa + bottom sections */}
+        <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
+          {/* Mapa */}
+          <div className="relative h-[420px] w-full overflow-hidden rounded-xl border border-outline-variant bg-surface-variant">
             <LeafletMap
               predios={predios}
               quebradas={quebradas}
@@ -109,39 +110,27 @@ export default async function HomePage({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-gutter xl:grid-cols-12">
-            <IntervencionesTable rows={intervencionesFiltradas} limit={5} />
-
-            <CoberturaChart
-              title="Cobertura Vegetal"
-              items={cobertura}
-              totalValue="62%"
-              totalLabel="Cobertura"
-            />
-
-            <CoberturaChart
-              title="Uso del Suelo"
-              items={[
-                { nombre: "Conservación",       area: 32, porcentaje: 32, color: "secondary" },
-                { nombre: "Agroforestal",       area: 28, porcentaje: 28, color: "primary" },
-                { nombre: "Protección Hídrica", area: 22, porcentaje: 22, color: "tertiary" },
-                { nombre: "Otros",              area: 18, porcentaje: 18, color: "outline" },
-              ]}
-              totalValue={formatHa(footer.hectareasIntervenidas)}
-              totalLabel="Hectáreas"
-            />
-          </div>
+          {/* Fila inferior: tabla + cards */}
+          <BottomSections
+            intervenciones={intervencionesFiltradas}
+            cobertura={cobertura}
+            topMunicipios={topMunicipios}
+            footer={footer}
+          />
         </div>
 
-        <KpiSidebar
+        {/* Right Panel: KPIs + componentes + tendencia + alertas */}
+        <RightPanel
           kpis={kpis}
           componentes={componentes}
-          alertas={alertas}
           footer={footer}
+          alertas={alertas}
+          seriesComponentes={seriesComponentes}
         />
       </div>
 
-      <FooterKpiBar items={footerItems} />
+      {/* Footer Summary Bar */}
+      <SummaryBar footer={footer} />
     </div>
   );
 }

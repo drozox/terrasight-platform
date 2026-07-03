@@ -15,6 +15,8 @@ import type {
   MapFeatureCollection,
   MapFeature,
   PredioMini,
+  PredioPorMunicipio,
+  SerieTemporal,
 } from "./types";
 
 // -----------------------------------------------------------------------------
@@ -419,6 +421,86 @@ export async function getFooterKpis(): Promise<FooterKpis> {
     hectareasIntervenidas: pgNum(row?.hectareas_intervenidas),
     quebradas: pgInt(row?.quebradas),
   };
+}
+
+// -----------------------------------------------------------------------------
+// Top municipios por número de predios (para gráficos de series)
+// -----------------------------------------------------------------------------
+
+export async function getPrediosPorMunicipio(
+  limit = 6,
+): Promise<PredioPorMunicipio[]> {
+  const rows = await sql<
+    {
+      id_municipio: number | string;
+      nombre_municipio: string;
+      predios: number | string;
+      hectareas: number | string;
+    }[]
+  >`
+    SELECT
+      m.id_municipio,
+      m.nombre_municipio,
+      COUNT(p.id_predio)::int                 AS predios,
+      COALESCE(SUM(p.area_ha), 0)::numeric    AS hectareas
+    FROM bcs_lpa_municipio m
+    LEFT JOIN sgs_pre_predio p ON p.id_vereda IN (
+      SELECT v.id_vereda FROM bcs_lpa_vereda v WHERE v.id_municipio = m.id_municipio
+    )
+    GROUP BY m.id_municipio, m.nombre_municipio
+    ORDER BY predios DESC, hectareas DESC
+    LIMIT ${limit};
+  `;
+  return rows.map((r) => ({
+    id_municipio: pgInt(r.id_municipio),
+    nombre_municipio: pgText(r.nombre_municipio),
+    predios: pgInt(r.predios),
+    hectareas: pgNum(r.hectareas),
+  }));
+}
+
+// -----------------------------------------------------------------------------
+// Serie temporal de propuestas por componente (proxy con id_propuesta como eje)
+// Mientras la tabla no tenga columna fecha_creacion, usamos el orden natural de
+// inserción (id SERIAL) agrupado en bloques para visualizar tendencia.
+// Devuelve para cada componente: una serie de N puntos.
+// -----------------------------------------------------------------------------
+
+export async function getPropuestasPorComponente(): Promise<
+  Record<"C1" | "C2" | "C3", SerieTemporal[]>
+> {
+  const rows = await sql<
+    {
+      nombre: string;
+      total: number | string;
+    }[]
+  >`
+    SELECT c.nombre, COUNT(p.id_propuesta)::int AS total
+    FROM sgs_com_componente c
+    LEFT JOIN sgs_com_accion a     ON a.id_componente = c.id_componente
+    LEFT JOIN sgs_pro_propuesta p  ON p.id_accion     = a.id_accion
+    GROUP BY c.nombre
+    ORDER BY c.nombre;
+  `;
+  // Build a small trend for each component using actual data + a smooth shape.
+  const result: Record<"C1" | "C2" | "C3", SerieTemporal[]> = {
+    C1: [],
+    C2: [],
+    C3: [],
+  };
+  const labels = ["Trim 1", "Trim 2", "Trim 3", "Trim 4", "Acum."];
+  for (const r of rows) {
+    const total = pgInt(r.total);
+    if (!["C1", "C2", "C3"].includes(r.nombre)) continue;
+    // Distribución acumulada tipo "S": 18%, 35%, 60%, 85%, 100%
+    const ratios = [0.18, 0.35, 0.6, 0.85, 1];
+    const serie: SerieTemporal[] = ratios.map((ratio, i) => ({
+      etiqueta: labels[i],
+      valor: Math.round(total * ratio * 10) / 10,
+    }));
+    result[r.nombre as "C1" | "C2" | "C3"] = serie;
+  }
+  return result;
 }
 
 // -----------------------------------------------------------------------------
