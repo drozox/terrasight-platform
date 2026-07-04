@@ -18,12 +18,43 @@ import type {
   PredioPorMunicipio,
   SerieTemporal,
 } from "./types";
+import {
+  DEMO_DASHBOARD_KPIS,
+  DEMO_COMPONENTES,
+  DEMO_COBERTURA,
+  DEMO_INTERVENCIONES,
+  DEMO_PREDIOS,
+  DEMO_QUEBRADAS,
+  DEMO_PREDIOS_GEOJSON,
+  DEMO_ALERTAS,
+  DEMO_FOOTER,
+  DEMO_TOP_MUNICIPIOS,
+  DEMO_SERIES_COMPONENTES,
+} from "./demo-data";
+
+// -----------------------------------------------------------------------------
+// Helper: ejecuta una consulta contra Postgres y, si falla (BD caída, sin
+// Docker, modo demo), retorna el fallback demo. Permite que la UI siempre
+// se renderice incluso sin infraestructura levantada.
+// -----------------------------------------------------------------------------
+
+async function withFallback<T>(label: string, query: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await query();
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[terrasight] DB query "${label}" failed, using demo data:`, (err as Error).message);
+    }
+    return fallback;
+  }
+}
 
 // -----------------------------------------------------------------------------
 // Dashboard — KPIs principales (HU-CO-01)
 // -----------------------------------------------------------------------------
 
 export async function getDashboardKpis(): Promise<DashboardKpis> {
+  return withFallback("dashboardKpis", async () => {
   // En el esquema del cliente las cifras del Stitch (2.458 predios, etc.) son
   // ilustrativas. Las calculamos en vivo desde la BD.
   const [row] = await sql<
@@ -87,6 +118,7 @@ export async function getDashboardKpis(): Promise<DashboardKpis> {
     hectareasPropuestasEjecucion: pgNum(row?.hectareas_predios_ejecucion),
     hectareasPropuestasPoligono: pgNum(row?.hectareas_propuestas_poligono),
   };
+  }, DEMO_DASHBOARD_KPIS);
 }
 
 // -----------------------------------------------------------------------------
@@ -94,6 +126,7 @@ export async function getDashboardKpis(): Promise<DashboardKpis> {
 // -----------------------------------------------------------------------------
 
 export async function getComponentes(): Promise<ComponenteTotal[]> {
+  return withFallback("componentes", async () => {
   const rows = await sql<
     {
       nombre: string;
@@ -124,6 +157,7 @@ export async function getComponentes(): Promise<ComponenteTotal[]> {
     punto: pgInt(r.punto),
     porcentaje: total > 0 ? Math.round((pgInt(r.total) / total) * 100) : 0,
   }));
+  }, DEMO_COMPONENTES);
 }
 
 // -----------------------------------------------------------------------------
@@ -132,6 +166,7 @@ export async function getComponentes(): Promise<ComponenteTotal[]> {
 // -----------------------------------------------------------------------------
 
 export async function getCoberturaVegetal(): Promise<CoberturaTotal[]> {
+  return withFallback("coberturaVegetal", async () => {
   const rows = await sql<{ nombre: string; area: number | string }[]>`
     SELECT
       c.nombre_cobertura AS nombre,
@@ -155,6 +190,7 @@ export async function getCoberturaVegetal(): Promise<CoberturaTotal[]> {
     porcentaje: Math.round((pgNum(r.area) / total) * 100),
     color: (["primary", "secondary", "tertiary", "outline"] as const)[i] ?? "outline",
   }));
+  }, DEMO_COBERTURA);
 }
 
 // -----------------------------------------------------------------------------
@@ -165,6 +201,7 @@ export async function getIntervencionesRecientes(
   limit = 6,
   componente?: string | null,
 ): Promise<IntervencionReciente[]> {
+  return withFallback("intervencionesRecientes", async () => {
   const rows = await sql<
     {
       id_propuesta: number | string;
@@ -228,6 +265,7 @@ export async function getIntervencionesRecientes(
       estado,
     };
   });
+  }, componente ? DEMO_INTERVENCIONES.filter(i => i.componente === componente).slice(0, limit) : DEMO_INTERVENCIONES.slice(0, limit));
 }
 
 // -----------------------------------------------------------------------------
@@ -237,6 +275,7 @@ export async function getIntervencionesRecientes(
 export async function getPrediosGeoJSON(
   componente?: string | null,
 ): Promise<MapFeatureCollection> {
+  return withFallback("prediosGeoJSON", async () => {
   const rows = await sql<
     {
       id_predio: number | string;
@@ -285,11 +324,16 @@ export async function getPrediosGeoJSON(
     },
   }));
   return { type: "FeatureCollection", features };
+  }, componente ? {
+    type: "FeatureCollection" as const,
+    features: DEMO_PREDIOS_GEOJSON.features.filter(f => f.properties.componente === componente),
+  } : DEMO_PREDIOS_GEOJSON);
 }
 
 export async function getPrediosMini(
   componente?: string | null,
 ): Promise<PredioMini[]> {
+  return withFallback("prediosMini", async () => {
   const rows = componente
     ? await sql<
         { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
@@ -315,6 +359,7 @@ export async function getPrediosMini(
     lon: pgNum(r.lon),
     lat: pgNum(r.lat),
   }));
+  }, DEMO_PREDIOS);
 }
 
 // -----------------------------------------------------------------------------
@@ -322,6 +367,7 @@ export async function getPrediosMini(
 // -----------------------------------------------------------------------------
 
 export async function getQuebradasMini() {
+  return withFallback("quebradasMini", async () => {
   const rows = await sql<
     { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
   >`
@@ -335,6 +381,7 @@ export async function getQuebradasMini() {
     lon: pgNum(r.lon),
     lat: pgNum(r.lat),
   }));
+  }, DEMO_QUEBRADAS);
 }
 
 // -----------------------------------------------------------------------------
@@ -342,6 +389,7 @@ export async function getQuebradasMini() {
 // -----------------------------------------------------------------------------
 
 export async function getAlertas(limit = 50): Promise<Alerta[]> {
+  return withFallback("alertas", async () => {
   // En el esquema actual no hay tabla `alertas` propia. Devolvemos un set
   // curado de alertas con contexto real del territorio (Cundinamarca,
   // predios cargados al sistema) hasta que el cliente defina la tabla
@@ -390,6 +438,7 @@ export async function getAlertas(limit = 50): Promise<Alerta[]> {
     },
   ];
   return demo.slice(0, limit);
+  }, DEMO_ALERTAS.slice(0, limit));
 }
 
 // -----------------------------------------------------------------------------
@@ -397,6 +446,7 @@ export async function getAlertas(limit = 50): Promise<Alerta[]> {
 // -----------------------------------------------------------------------------
 
 export async function getFooterKpis(): Promise<FooterKpis> {
+  return withFallback("footerKpis", async () => {
   const [row] = await sql<
     {
       municipios: number | string;
@@ -421,6 +471,7 @@ export async function getFooterKpis(): Promise<FooterKpis> {
     hectareasIntervenidas: pgNum(row?.hectareas_intervenidas),
     quebradas: pgInt(row?.quebradas),
   };
+  }, DEMO_FOOTER);
 }
 
 // -----------------------------------------------------------------------------
@@ -430,6 +481,7 @@ export async function getFooterKpis(): Promise<FooterKpis> {
 export async function getPrediosPorMunicipio(
   limit = 6,
 ): Promise<PredioPorMunicipio[]> {
+  return withFallback("prediosPorMunicipio", async () => {
   const rows = await sql<
     {
       id_municipio: number | string;
@@ -457,6 +509,7 @@ export async function getPrediosPorMunicipio(
     predios: pgInt(r.predios),
     hectareas: pgNum(r.hectareas),
   }));
+  }, DEMO_TOP_MUNICIPIOS.slice(0, limit));
 }
 
 // -----------------------------------------------------------------------------
@@ -501,6 +554,7 @@ export async function getPropuestasPorComponente(): Promise<
     result[r.nombre as "C1" | "C2" | "C3"] = serie;
   }
   return result;
+  }, DEMO_SERIES_COMPONENTES);
 }
 
 // -----------------------------------------------------------------------------
