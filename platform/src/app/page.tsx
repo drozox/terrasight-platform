@@ -1,4 +1,5 @@
 import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
+import { ImportPanel } from "@/components/dashboard/import-panel";
 import { RightPanel } from "@/components/dashboard/right-panel";
 import { BottomSections, SummaryBar } from "@/components/dashboard/bottom-sections";
 import { MapSearchBar } from "@/components/map/map-search-bar";
@@ -30,6 +31,7 @@ export default async function HomePage({
   const params = await searchParams;
   const componenteFiltro = params.componente ?? null;
   const queryTexto = params.q ?? "";
+  const esImportar = componenteFiltro === "IMPORT";
 
   const [
     kpis,
@@ -70,6 +72,24 @@ export default async function HomePage({
         );
       })
     : intervenciones;
+
+  // Modo "Importar capa": reemplazamos el cuerpo por el ImportPanel.
+  // El component-ribbon sigue visible para poder volver a C1/C2/C3.
+  if (esImportar) {
+    return (
+      <div className="flex h-full flex-1 flex-col overflow-hidden">
+        <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-3">
+          <ComponentRibbon active="IMPORT" />
+        </div>
+        <div className="flex flex-1 overflow-y-auto bg-surface-container-low p-gutter">
+          <div className="mx-auto w-full max-w-5xl">
+            <ImportPanel />
+          </div>
+        </div>
+        <SummaryBar footer={footer} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">

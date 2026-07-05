@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IconLeaf, IconDrop, IconForest } from "@/components/icons";
+import { IconLeaf, IconDrop, IconForest, IconUpload } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
-type Key = "C1" | "C2" | "C3";
+type Key = "C1" | "C2" | "C3" | "IMPORT";
 
 const CONFIG: Record<Key, {
   label: string;
@@ -47,7 +47,19 @@ const CONFIG: Record<Key, {
     borderClass:  "bg-tertiary",
     pillClass:    "bg-tertiary text-on-tertiary",
   },
+  IMPORT: {
+    label: "IMPORTAR CAPA",
+    desc: "Carga GeoJSON o Shapefile para crear propuestas de acciones en lote",
+    Icon: IconUpload,
+    bgClass:      "bg-inverse-surface/10",
+    textClass:    "text-inverse-surface",
+    ringClass:    "ring-inverse-surface",
+    borderClass:  "bg-inverse-surface",
+    pillClass:    "bg-inverse-surface text-inverse-on-surface",
+  },
 };
+
+const ORDER: Key[] = ["C1", "C2", "C3", "IMPORT"];
 
 export function ComponentRibbon({ active }: { active?: string | null }) {
   const router = useRouter();
@@ -65,8 +77,8 @@ export function ComponentRibbon({ active }: { active?: string | null }) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-gutter lg:grid-cols-3">
-      {(Object.keys(CONFIG) as Key[]).map((k) => {
+    <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
+      {ORDER.map((k) => {
         const c = CONFIG[k];
         const isActive = active === k;
         return (
