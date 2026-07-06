@@ -14,6 +14,7 @@
     "db:seed": "powershell -ExecutionPolicy Bypass -File scripts/seed.ps1",
     "db:psql": "powershell -ExecutionPolicy Bypass -File scripts/psql.ps1",
     "db:auth-schema": "powershell -ExecutionPolicy Bypass -File scripts/auth-schema.ps1",
+    "db:migrate": "powershell -ExecutionPolicy Bypass -File scripts/db-migrate.ps1",
     "auth:create-admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {

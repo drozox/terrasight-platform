@@ -217,6 +217,7 @@ export async function getIntervencionesRecientes(
       hectareas: number | string | null;
       longitud: number | string | null;
       avance: number | string | null;
+      estado: string;
       fecha: Date | string | null;
     }[]
   >`
@@ -235,7 +236,8 @@ export async function getIntervencionesRecientes(
         WHEN pp.tipo = 'punto'    THEN 20
         WHEN pp.tipo = 'linea'    THEN 75
         WHEN pp.tipo = 'poligono' THEN 100
-      END                                                          AS avance
+      END                                                          AS avance,
+      pp.estado                                                     AS estado
     FROM sgs_pro_propuesta pp
     JOIN sgs_pre_predio pr   ON pr.id_predio = pp.id_predio
     JOIN sgs_com_accion a    ON a.id_accion  = pp.id_accion
@@ -250,8 +252,9 @@ export async function getIntervencionesRecientes(
   `;
   return rows.map((r) => {
     const avance = pgInt(r.avance);
-    const estado: IntervencionReciente["estado"] =
-      avance >= 100 ? "Finalizada" : "En ejecución";
+    const dbEstado = pgText(r.estado);
+    const estado: EstadoIntervencion =
+      dbEstado === "Pendiente" || dbEstado === "Finalizada" ? dbEstado : "En ejecución";
     return {
       id: pgInt(r.id_propuesta),
       tipo: pgText(r.tipo),
@@ -1111,6 +1114,26 @@ export async function listMunicipios(): Promise<MunicipioMini[]> {
 // =============================================================================
 
 export type EstadoIntervencion = "En ejecución" | "Finalizada" | "Pendiente";
+
+const ESTADOS_VALIDOS: readonly EstadoIntervencion[] = ["Pendiente", "En ejecución", "Finalizada"];
+
+export function isEstadoIntervencion(s: string): s is EstadoIntervencion {
+  return (ESTADOS_VALIDOS as readonly string[]).includes(s);
+}
+
+export async function setIntervencionEstado(
+  idPropuesta: number,
+  nuevoEstado: EstadoIntervencion,
+): Promise<void> {
+  if (!ESTADOS_VALIDOS.includes(nuevoEstado)) {
+    throw new Error(`Estado inválido: ${nuevoEstado}`);
+  }
+  await sql`
+    UPDATE sgs_pro_propuesta
+    SET    estado = ${nuevoEstado}
+    WHERE  id_propuesta = ${idPropuesta};
+  `;
+}
 
 // =============================================================================
 // Catálogo lookup: Componentes y Acciones (TC-03 catálogo, lectura)

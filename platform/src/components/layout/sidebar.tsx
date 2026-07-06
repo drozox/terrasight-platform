@@ -16,6 +16,7 @@ import {
   Settings as SettingsIcon,
   Filter as FilterIcon,
   RefreshCw,
+  Droplet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TerraSightLogo } from "@/components/icons";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/mapa",          label: "Mapa 2D / 3D",       icon: MapIcon },
   { href: "/dashboard",     label: "Dashboard",          icon: BarChart3 },
   { href: "/predios",       label: "Predios",            icon: Building2 },
+  { href: "/quebradas",     label: "Quebradas",          icon: Droplet },
   { href: "/intervenciones",label: "Intervenciones",     icon: Wrench },
   { href: "/monitoreo",     label: "Monitoreo",          icon: Activity },
   { href: "/analisis",      label: "Análisis Espacial",  icon: PieChart },

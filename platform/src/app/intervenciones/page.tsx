@@ -1,10 +1,11 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Wrench, Search, ArrowRight } from "lucide-react";
+import { Wrench, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { getIntervencionesRecientes, getComponentes } from "@/lib/repository";
+import { getCurrentUser } from "@/lib/auth-guard";
 import { formatDecimal, formatInt } from "@/lib/utils";
+import { EstadoIntervencionDropdown } from "./estado-dropdown";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +28,12 @@ export default async function IntervencionesPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const params = await searchParams;
+  const [params, usuario] = await Promise.all([
+    searchParams,
+    getCurrentUser(),
+  ]);
   const componente = params.componente ?? null;
+  const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
   const [intervenciones, componentes] = await Promise.all([
     getIntervencionesRecientes(50, componente),
@@ -142,11 +147,11 @@ export default async function IntervencionesPage({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant={i.estado === "Finalizada" ? "info" : "success"}
-                      >
-                        {i.estado}
-                      </Badge>
+                      <EstadoIntervencionDropdown
+                        idPropuesta={i.id}
+                        estado={i.estado}
+                        canEdit={canEdit}
+                      />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
