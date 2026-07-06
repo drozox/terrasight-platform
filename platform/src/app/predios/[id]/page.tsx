@@ -1,18 +1,46 @@
+// =============================================================================
+// /predios/[id] — Ficha del predio.
+// Server Component que carga y delega a la vista interactiva.
+// =============================================================================
+
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { getPrediosGeoJSON } from "@/lib/repository";
+import { requireUser } from "@/lib/auth-guard";
+import {
+  getPredioById,
+  getPrediosGeoJSON,
+  listPropietarios,
+  listVeredas,
+} from "@/lib/repository";
+import { PredioDetail } from "./predio-detail";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Predio — TerraSight" };
 
 export default async function PredioDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await requireUser();
   const { id } = await params;
   const idNum = Number(id);
+  if (!Number.isFinite(idNum) || idNum <= 0) notFound();
 
-  const geojson = await getPrediosGeoJSON();
-  const feature = geojson.features.find((f) => f.properties.id === idNum);
+  const [predio, geojson, propietarios, veredas] = await Promise.all([
+    getPredioById(idNum),
+    getPrediosGeoJSON(),
+    listPropietarios(),
+    listVeredas(),
+  ]);
+  if (!predio) notFound();
+
+  const feature = geojson.features.find((f) => f.properties.id === idNum) ?? null;
+
+  // Permiso: ADMIN o GESTOR pueden editar; ANALISTA queda read-only.
+  const canEdit = user.rol === "ADMIN" || user.rol === "GESTOR";
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-container-low p-gutter">
@@ -26,64 +54,36 @@ export default async function PredioDetailPage({
         </Link>
 
         <Card className="p-6">
-          <div className="flex items-start gap-4">
+          <div className="mb-4 flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Building2 className="size-6" />
             </div>
-            <div className="flex-1">
+            <div>
               <p className="font-mono text-[11px] text-on-surface-variant">
                 {feature?.properties.codigo ?? `PR-${String(idNum).padStart(5, "0")}`}
               </p>
               <h1 className="text-2xl font-bold text-on-surface">
-                {feature?.properties.nombre ?? `Predio #${id}`}
+                {predio.nombrePredio}
               </h1>
-              {feature && (
-                <div className="mt-3 grid grid-cols-2 gap-4 text-body-sm sm:grid-cols-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-on-surface-variant">
-                      Área
-                    </p>
-                    <p className="font-bold text-on-surface">
-                      {feature.properties.areaHa.toLocaleString("es-CO", {
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      ha
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-on-surface-variant">
-                      Componente
-                    </p>
-                    <p className="font-bold text-on-surface">
-                      {feature.properties.componente}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-on-surface-variant">
-                      Centroide
-                    </p>
-                    <p className="font-mono text-on-surface">
-                      {feature.geometry.coordinates[1].toFixed(4)},{" "}
-                      {feature.geometry.coordinates[0].toFixed(4)}
-                    </p>
-                  </div>
-                </div>
+              {canEdit ? (
+                <p className="mt-1 text-[11px] text-on-surface-variant">
+                  Tu rol ({user.rol}) permite editar este registro.
+                </p>
+              ) : (
+                <p className="mt-1 text-[11px] text-on-surface-variant">
+                  Modo lectura — edición reservada a ADMIN y GESTOR.
+                </p>
               )}
             </div>
           </div>
-        </Card>
 
-        <Card className="p-6">
-          <h2 className="mb-3 text-title-lg font-semibold text-on-surface">
-            Próximas funciones
-          </h2>
-          <ul className="space-y-2 text-body-sm text-on-surface-variant">
-            <li>⏳ Visualización del polígono del predio en mapa</li>
-            <li>⏳ Propietarios y actores concertados</li>
-            <li>⏳ Historial de intervenciones y planes de manejo</li>
-            <li>⏳ Carga de documentos legales (resoluciones, contratos)</li>
-            <li>⏳ Edición en línea del registro (CRUD)</li>
-          </ul>
+          <PredioDetail
+            initial={predio}
+            featureResumen={feature}
+            canEdit={canEdit}
+            propietarios={propietarios}
+            veredas={veredas}
+          />
         </Card>
       </div>
     </div>

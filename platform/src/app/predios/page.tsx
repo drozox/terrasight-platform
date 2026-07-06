@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Building2, Search, MapPin, Filter } from "lucide-react";
 import Link from "next/link";
 import { getPrediosGeoJSON } from "@/lib/repository";
+import { getCurrentUser } from "@/lib/auth-guard";
 import { formatDecimal } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +23,12 @@ export default async function PrediosPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const params = await searchParams;
+  const [params, usuario] = await Promise.all([
+    searchParams,
+    getCurrentUser(),
+  ]);
   const q = (params.q ?? "").trim().toLowerCase();
+  const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
   const geojson = await getPrediosGeoJSON();
   const all = geojson.features;
@@ -64,11 +69,13 @@ export default async function PrediosPage({
               </div>
             </div>
           </div>
-          <Button asChild>
-            <Link href="/predios/nuevo">
-              + Nuevo Predio
-            </Link>
-          </Button>
+          {canEdit && (
+            <Button asChild>
+              <Link href="/predios/nuevo">
+                + Nuevo Predio
+              </Link>
+            </Button>
+          )}
         </div>
 
         {/* KPI chips por componente */}
@@ -200,8 +207,9 @@ export default async function PrediosPage({
 
         {/* Note */}
         <p className="text-center text-[11px] text-on-surface-variant">
-          Vista de solo-lectura · próximamente CRUD completo y exportación a
-          GeoPackage / Shapefile.
+          {canEdit
+            ? "Edición disponible — alta, baja y modificación de registros."
+            : "Modo lectura: tu rol no permite editar predios."}
         </p>
       </div>
     </div>

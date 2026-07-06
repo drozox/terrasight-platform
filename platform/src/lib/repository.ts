@@ -811,3 +811,347 @@ export async function listAuditEventos(
 export async function listEventTypes(): Promise<AuditEvento[]> {
   return ["LOGIN_OK", "LOGIN_FAIL", "LOGOUT", "ACCESS_DENY"];
 }
+
+// =============================================================================
+// Predios CRUD (HU-TC-01)
+// =============================================================================
+
+export type PredioFull = {
+  idPredio: number;
+  nombrePredio: string;
+  areaHa: number;
+  cedulaCatastral: string;
+  cedulaAnt: string;
+  longitudCentroide: number;
+  latitudCentroide: number;
+  nucleoPredial: string;
+  observaciones: string;
+  perimetro: number;
+  idPropietario: number;
+  idVereda: number;
+};
+
+type PredioRow = {
+  id_predio: number | string;
+  nombre_predio: string;
+  area_ha: number | string;
+  cedula_catastral: string;
+  cedula_ant: string;
+  longitud_centroide: number | string;
+  latitud_centroide: number | string;
+  nucleo_predial: string;
+  observaciones: string;
+  perimetro: number | string;
+  id_propietario: number | string;
+  id_vereda: number | string;
+};
+
+function mapPredioRow(r: PredioRow): PredioFull {
+  return {
+    idPredio: pgInt(r.id_predio),
+    nombrePredio: pgText(r.nombre_predio),
+    areaHa: pgNum(r.area_ha),
+    cedulaCatastral: pgText(r.cedula_catastral),
+    cedulaAnt: pgText(r.cedula_ant),
+    longitudCentroide: pgNum(r.longitud_centroide),
+    latitudCentroide: pgNum(r.latitud_centroide),
+    nucleoPredial: pgText(r.nucleo_predial),
+    observaciones: pgText(r.observaciones),
+    perimetro: pgNum(r.perimetro),
+    idPropietario: pgInt(r.id_propietario),
+    idVereda: pgInt(r.id_vereda),
+  };
+}
+
+export async function listPredios(): Promise<PredioFull[]> {
+  const rows = await sql<PredioRow[]>`
+    SELECT id_predio, nombre_predio, area_ha, cedula_catastral, cedula_ant,
+           longitud_centroide, latitud_centroide, nucleo_predial,
+           observaciones, perimetro, id_propietario, id_vereda
+    FROM   sgs_pre_predio
+    ORDER  BY nombre_predio;
+  `;
+  return rows.map(mapPredioRow);
+}
+
+export async function getPredioById(id: number): Promise<PredioFull | null> {
+  const rows = await sql<PredioRow[]>`
+    SELECT id_predio, nombre_predio, area_ha, cedula_catastral, cedula_ant,
+           longitud_centroide, latitud_centroide, nucleo_predial,
+           observaciones, perimetro, id_propietario, id_vereda
+    FROM   sgs_pre_predio
+    WHERE  id_predio = ${id}
+    LIMIT  1;
+  `;
+  return rows[0] ? mapPredioRow(rows[0]) : null;
+}
+
+export type PropietarioMini = {
+  idPropietario: number;
+  nombreRazonSocial: string;
+};
+
+export async function listPropietarios(): Promise<PropietarioMini[]> {
+  const rows = await sql<{ id_propietario: number | string; nombre_razon_social: string }[]>`
+    SELECT id_propietario, nombre_razon_social
+    FROM   sgs_pre_propietario
+    ORDER  BY nombre_razon_social;
+  `;
+  return rows.map((r) => ({
+    idPropietario: pgInt(r.id_propietario),
+    nombreRazonSocial: pgText(r.nombre_razon_social),
+  }));
+}
+
+export type VeredaMini = {
+  idVereda: number;
+  nombreVereda: string;
+  idMunicipio: number;
+  nombreMunicipio: string;
+};
+
+export async function listVeredas(): Promise<VeredaMini[]> {
+  const rows = await sql<{
+    id_vereda: number | string;
+    nombre_vereda: string;
+    id_municipio: number | string;
+    nombre_municipio: string;
+  }[]>`
+    SELECT v.id_vereda, v.nombre_vereda, v.id_municipio, m.nombre_municipio
+    FROM   bcs_lpa_vereda v
+    JOIN   bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
+    ORDER  BY m.nombre_municipio, v.nombre_vereda;
+  `;
+  return rows.map((r) => ({
+    idVereda: pgInt(r.id_vereda),
+    nombreVereda: pgText(r.nombre_vereda),
+    idMunicipio: pgInt(r.id_municipio),
+    nombreMunicipio: pgText(r.nombre_municipio),
+  }));
+}
+
+export async function crearPredio(input: Omit<PredioFull, "idPredio">): Promise<PredioFull> {
+  const rows = await sql<{ id_predio: number | string }[]>`
+    INSERT INTO sgs_pre_predio (
+      nombre_predio, area_ha, cedula_catastral, cedula_ant,
+      longitud_centroide, latitud_centroide, nucleo_predial,
+      observaciones, perimetro, id_propietario, id_vereda
+    ) VALUES (
+      ${input.nombrePredio}, ${input.areaHa}, ${input.cedulaCatastral}, ${input.cedulaAnt},
+      ${input.longitudCentroide}, ${input.latitudCentroide}, ${input.nucleoPredial},
+      ${input.observaciones}, ${input.perimetro}, ${input.idPropietario}, ${input.idVereda}
+    )
+    RETURNING id_predio;
+  `;
+  if (!rows[0]) throw new Error("Insert fallido");
+  const fresh = await getPredioById(pgInt(rows[0].id_predio));
+  if (!fresh) throw new Error("Insert OK pero no se puede releer");
+  return fresh;
+}
+
+export async function actualizarPredio(
+  id: number,
+  input: Omit<PredioFull, "idPredio">,
+): Promise<void> {
+  await sql`
+    UPDATE sgs_pre_predio SET
+      nombre_predio       = ${input.nombrePredio},
+      area_ha             = ${input.areaHa},
+      cedula_catastral    = ${input.cedulaCatastral},
+      cedula_ant          = ${input.cedulaAnt},
+      longitud_centroide  = ${input.longitudCentroide},
+      latitud_centroide   = ${input.latitudCentroide},
+      nucleo_predial      = ${input.nucleoPredial},
+      observaciones       = ${input.observaciones},
+      perimetro           = ${input.perimetro},
+      id_propietario      = ${input.idPropietario},
+      id_vereda           = ${input.idVereda}
+    WHERE id_predio = ${id};
+  `;
+}
+
+export async function eliminarPredio(id: number): Promise<void> {
+  // Verificamos que no tenga propuestas asociadas (FK logic está en BD,
+  // pero queremos un mensaje útil antes del 23503).
+  const propuestas = await sql<{ count: number | string }[]>`
+    SELECT COUNT(*)::int AS count
+    FROM   sgs_pro_propuesta
+    WHERE  id_predio = ${id};
+  `;
+  const count = pgInt(propuestas[0]?.count);
+  if (count > 0) {
+    throw new Error(
+      `No se puede eliminar: el predio tiene ${count} propuesta(s) asociada(s). ` +
+      `Desvinculá las propuestas o agregá una columna "activo" (TODO).`,
+    );
+  }
+  await sql`DELETE FROM sgs_pre_predio WHERE id_predio = ${id};`;
+}
+
+// =============================================================================
+// Quebradas CRUD (HU-TC-02)
+// =============================================================================
+
+export type QuebradaFull = {
+  idQuebrada: number;
+  nombreQuebrada: string;
+  area: number;
+  latitud: number;
+  longitud: number;
+  idMunicipio: number | null;
+  idMicrocuenca: number | null;
+};
+
+type QuebradaRow = {
+  id_quebrada: number | string;
+  nombre_quebrada: string;
+  area: number | string | null;
+  latitud: number | string;
+  longitud: number | string;
+  id_municipio: number | string | null;
+  id_microcuenca: number | string | null;
+};
+
+function mapQuebradaRow(r: QuebradaRow): QuebradaFull {
+  return {
+    idQuebrada: pgInt(r.id_quebrada),
+    nombreQuebrada: pgText(r.nombre_quebrada),
+    area: r.area == null ? 0 : pgNum(r.area),
+    latitud: pgNum(r.latitud),
+    longitud: pgNum(r.longitud),
+    idMunicipio: r.id_municipio == null ? null : pgInt(r.id_municipio),
+    idMicrocuenca: r.id_microcuenca == null ? null : pgInt(r.id_microcuenca),
+  };
+}
+
+export async function listQuebradasFull(): Promise<QuebradaFull[]> {
+  const rows = await sql<QuebradaRow[]>`
+    SELECT id_quebrada, nombre_quebrada, area, latitud, longitud,
+           id_municipio, id_microcuenca
+    FROM   bcs_dh_quebrada
+    ORDER  BY nombre_quebrada;
+  `;
+  return rows.map(mapQuebradaRow);
+}
+
+export async function getQuebradaById(id: number): Promise<QuebradaFull | null> {
+  const rows = await sql<QuebradaRow[]>`
+    SELECT id_quebrada, nombre_quebrada, area, latitud, longitud,
+           id_municipio, id_microcuenca
+    FROM   bcs_dh_quebrada
+    WHERE  id_quebrada = ${id}
+    LIMIT  1;
+  `;
+  return rows[0] ? mapQuebradaRow(rows[0]) : null;
+}
+
+export async function crearQuebrada(input: Omit<QuebradaFull, "idQuebrada">): Promise<QuebradaFull> {
+  const rows = await sql<{ id_quebrada: number | string }[]>`
+    INSERT INTO bcs_dh_quebrada (
+      nombre_quebrada, area, latitud, longitud, id_municipio, id_microcuenca
+    ) VALUES (
+      ${input.nombreQuebrada}, ${input.area}, ${input.latitud}, ${input.longitud},
+      ${input.idMunicipio}, ${input.idMicrocuenca}
+    )
+    RETURNING id_quebrada;
+  `;
+  if (!rows[0]) throw new Error("Insert fallido");
+  const fresh = await getQuebradaById(pgInt(rows[0].id_quebrada));
+  if (!fresh) throw new Error("Insert OK pero no se puede releer");
+  return fresh;
+}
+
+export async function actualizarQuebrada(
+  id: number,
+  input: Omit<QuebradaFull, "idQuebrada">,
+): Promise<void> {
+  await sql`
+    UPDATE bcs_dh_quebrada SET
+      nombre_quebrada = ${input.nombreQuebrada},
+      area            = ${input.area},
+      latitud         = ${input.latitud},
+      longitud        = ${input.longitud},
+      id_municipio    = ${input.idMunicipio},
+      id_microcuenca  = ${input.idMicrocuenca}
+    WHERE id_quebrada = ${id};
+  `;
+}
+
+export async function eliminarQuebrada(id: number): Promise<void> {
+  // Las FKs (sgs_pro_propuesta.id_quebrada) son ON DELETE RESTRICT, así que
+  // un 23503 nos llega de la BD si hay dependencias. El cliente lo verá.
+  await sql`DELETE FROM bcs_dh_quebrada WHERE id_quebrada = ${id};`;
+}
+
+export type MunicipioMini = {
+  idMunicipio: number;
+  nombreMunicipio: string;
+};
+
+export async function listMunicipios(): Promise<MunicipioMini[]> {
+  const rows = await sql<{ id_municipio: number | string; nombre_municipio: string }[]>`
+    SELECT id_municipio, nombre_municipio
+    FROM   bcs_lpa_municipio
+    ORDER  BY nombre_municipio;
+  `;
+  return rows.map((r) => ({
+    idMunicipio: pgInt(r.id_municipio),
+    nombreMunicipio: pgText(r.nombre_municipio),
+  }));
+}
+
+// =============================================================================
+// Intervenciones — solo cambio de estado (HU-TC-04)
+//
+// TODO: la columna `estado` no existe todavía en sgs_pro_propuesta. El estado
+// se calcula desde `tipo` (punto=20%, linea=75%, poligono=100% → Finalizada).
+// Para que el GESTOR pueda editar el estado hace falta una migración
+// `04-intervencion-estado.sql` que agregue la columna con backfill.
+// Marcamos este CRUD como pendiente.
+// =============================================================================
+
+export type EstadoIntervencion = "En ejecución" | "Finalizada" | "Pendiente";
+
+// =============================================================================
+// Catálogo lookup: Componentes y Acciones (TC-03 catálogo, lectura)
+// =============================================================================
+
+export type ComponenteLookup = {
+  idComponente: number;
+  nombre: string;
+};
+
+export type AccionLookup = {
+  idAccion: number;
+  nombre: string;
+  idComponente: number;
+  nombreComponente: string;
+};
+
+export async function listComponentesLookup(): Promise<ComponenteLookup[]> {
+  const rows = await sql<{ id_componente: number | string; nombre: string }[]>`
+    SELECT id_componente, nombre FROM sgs_com_componente ORDER BY nombre;
+  `;
+  return rows.map((r) => ({
+    idComponente: pgInt(r.id_componente),
+    nombre: pgText(r.nombre),
+  }));
+}
+
+export async function listAccionesLookup(): Promise<AccionLookup[]> {
+  const rows = await sql<{
+    id_accion: number | string; nombre: string;
+    id_componente: number | string; nombre_componente: string;
+  }[]>`
+    SELECT a.id_accion, a.nombre, a.id_componente, c.nombre AS nombre_componente
+    FROM   sgs_com_accion a
+    JOIN   sgs_com_componente c ON c.id_componente = a.id_componente
+    ORDER  BY c.nombre, a.nombre;
+  `;
+  return rows.map((r) => ({
+    idAccion: pgInt(r.id_accion),
+    nombre: pgText(r.nombre),
+    idComponente: pgInt(r.id_componente),
+    nombreComponente: pgText(r.nombre_componente),
+  }));
+}
