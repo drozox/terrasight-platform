@@ -19,7 +19,7 @@ import { BufferForm } from "./buffer-form";
 import { BufferResults } from "./buffer-results";
 import { MatrizTable } from "./matriz-table";
 import { CoberturaSection } from "./cobertura-section";
-import { requireUser } from "@/lib/auth-guard";
+import { requireRole } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Análisis Espacial — TerraSight" };
@@ -41,7 +41,7 @@ export default async function AnalisisPage({
 }: {
   searchParams: SearchParams;
 }) {
-  await requireUser();
+  await requireRole(["ADMIN", "ANALISTA"] as const);
   const sp = await searchParams;
 
   const [quebradas, propuestas, cobertura, matriz] = await Promise.all([

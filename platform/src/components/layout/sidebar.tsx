@@ -1,5 +1,10 @@
 "use client";
 
+// =============================================================================
+// Sidebar — cliente (necesita usePathname para highlight).
+// Acepta un `rol` opcional; si está presente, filtra los items visibles.
+// =============================================================================
+
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,29 +25,37 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TerraSightLogo } from "@/components/icons";
+import type { RolSistema } from "@/lib/auth";
 
-const navItems = [
-  { href: "/",              label: "Inicio",             icon: HomeIcon },
-  { href: "/mapa",          label: "Mapa 2D / 3D",       icon: MapIcon },
-  { href: "/dashboard",     label: "Dashboard",          icon: BarChart3 },
-  { href: "/predios",       label: "Predios",            icon: Building2 },
-  { href: "/quebradas",     label: "Quebradas",          icon: Droplet },
-  { href: "/intervenciones",label: "Intervenciones",     icon: Wrench },
-  { href: "/monitoreo",     label: "Monitoreo",          icon: Activity },
-  { href: "/analisis",      label: "Análisis Espacial",  icon: PieChart },
-  { href: "/reportes",      label: "Reportes",           icon: FileText },
-  { href: "/alertas",       label: "Alertas",            icon: Bell },
-  { href: "/configuracion", label: "Configuración",      icon: SettingsIcon },
+type Item = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  // null = visible para cualquier rol logueado.
+  roles: readonly RolSistema[] | null;
+};
+
+const ALL_ITEMS: Item[] = [
+  { href: "/",               label: "Inicio",             icon: HomeIcon,    roles: null },
+  { href: "/mapa",           label: "Mapa 2D / 3D",       icon: MapIcon,     roles: null },
+  { href: "/dashboard",      label: "Dashboard",          icon: BarChart3,   roles: null },
+  { href: "/predios",        label: "Predios",            icon: Building2,   roles: null },
+  { href: "/quebradas",      label: "Quebradas",          icon: Droplet,     roles: null },
+  { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,      roles: null },
+  { href: "/monitoreo",      label: "Monitoreo",          icon: Activity,    roles: ["ADMIN", "GESTOR"] },
+  { href: "/analisis",       label: "Análisis Espacial",  icon: PieChart,    roles: ["ADMIN", "ANALISTA"] },
+  { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
+  { href: "/alertas",        label: "Alertas",            icon: Bell,        roles: ["ADMIN", "ANALISTA"] },
+  { href: "/configuracion",  label: "Configuración",      icon: SettingsIcon, roles: ["ADMIN"] },
 ];
 
-export function Sidebar() {
+export function Sidebar({ rol }: { rol?: RolSistema | null }) {
   const pathname = usePathname();
   const [depto, setDepto] = React.useState("Cundinamarca");
   const [municipio, setMunicipio] = React.useState("Todos");
   const [refreshKey, setRefreshKey] = React.useState(0);
   const [lastUpdate, setLastUpdate] = React.useState("16/05/2025");
 
-  // Formatear fecha actual en es-CO cuando se refresca
   React.useEffect(() => {
     if (refreshKey > 0) {
       const fmt = new Intl.DateTimeFormat("es-CO", {
@@ -51,6 +64,11 @@ export function Sidebar() {
       setLastUpdate(fmt);
     }
   }, [refreshKey]);
+
+  const navItems = React.useMemo(
+    () => (rol ? ALL_ITEMS.filter((it) => it.roles === null || it.roles.includes(rol)) : ALL_ITEMS),
+    [rol],
+  );
 
   return (
     <aside

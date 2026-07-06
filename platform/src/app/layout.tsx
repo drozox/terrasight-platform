@@ -27,8 +27,8 @@ export default async function RootLayout({
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <AuthSessionProvider>
           {/* Si no hay sesión el middleware redirige a /login; dejamos
-              renderizar el sidebar vacío igual para no romper el layout. */}
-          <Sidebar />
+              renderizar el sidebar igual para no romper el layout. */}
+          <Sidebar rol={usuario?.rol ?? null} />
           <main className="flex h-screen flex-1 flex-col overflow-hidden">
             <TopBar alertas={alertas} usuario={usuario} />
             <div className="flex-1 overflow-hidden">{children}</div>

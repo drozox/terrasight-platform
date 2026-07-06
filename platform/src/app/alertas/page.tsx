@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAlertas, getPrediosGeoJSON } from "@/lib/repository";
+import { requireRole } from "@/lib/auth-guard";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,7 @@ const TIPO_META: Record<
 };
 
 export default async function AlertasPage({ searchParams }: { searchParams: SearchParams }) {
+  await requireRole(["ADMIN", "ANALISTA"] as const);
   const params = await searchParams;
   const filtro = (params.tipo ?? "todas").toLowerCase();
 

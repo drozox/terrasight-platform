@@ -1,7 +1,9 @@
 import { ModulePlaceholder } from "@/components/layout/module-placeholder";
 import { FileText } from "lucide-react";
+import { requireRole } from "@/lib/auth-guard";
 
-export default function ReportesPage() {
+export default async function ReportesPage() {
+  await requireRole(["ADMIN", "ANALISTA"] as const);
   return (
     <ModulePlaceholder
       title="Reportes"
