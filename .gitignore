@@ -16,6 +16,9 @@ platform/.env.*.local
 # Logs
 *.log
 npm-debug.log*
+# Logs de Next.js dev (creados al levantar next dev en background)
+*.log.err
+*.log.out
 
 # OS
 .DS_Store
