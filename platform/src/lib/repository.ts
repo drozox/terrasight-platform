@@ -4,6 +4,7 @@
 // stored procedures según necesitemos.
 // =============================================================================
 
+import bcrypt from "bcryptjs";
 import { sql, pgInt, pgNum, pgDate, pgText } from "./db";
 import type {
   DashboardKpis,
@@ -18,6 +19,7 @@ import type {
   PredioPorMunicipio,
   SerieTemporal,
 } from "./types";
+import type { RolSistema } from "./auth";
 import {
   DEMO_DASHBOARD_KPIS,
   DEMO_COMPONENTES,
@@ -571,4 +573,241 @@ export async function pingDb(): Promise<{ ok: boolean; latencyMs: number; server
   } catch {
     return { ok: false, latencyMs: Date.now() - start };
   }
+}
+
+// =============================================================================
+// Auth plataforma — usuarios y roles (HU-AD-02)
+// =============================================================================
+
+export type UsuarioAdmin = {
+  idUsuario: number;
+  email: string;
+  nombre: string;
+  rol: RolSistema;
+  activo: boolean;
+  ultimoAccesoEn: Date | null;
+  creadoEn: Date;
+};
+
+type UsuarioRowRaw = {
+  id_usuario: number | string;
+  email: string;
+  nombre: string;
+  rol: RolSistema;
+  activo: boolean | string;
+  ultimo_acceso_en: Date | string | null;
+  creado_en: Date | string;
+};
+
+function mapUsuarioRow(r: UsuarioRowRaw): UsuarioAdmin {
+  return {
+    idUsuario: pgInt(r.id_usuario),
+    email: pgText(r.email),
+    nombre: pgText(r.nombre),
+    rol: r.rol,
+    activo: r.activo === true || r.activo === "t" || r.activo === "true",
+    ultimoAccesoEn: r.ultimo_acceso_en ? new Date(pgText(r.ultimo_acceso_en)) : null,
+    creadoEn: new Date(pgText(r.creado_en)),
+  };
+}
+
+export async function listRoles(): Promise<RolSistema[]> {
+  const rows = await sql<{ nombre: RolSistema }[]>`SELECT nombre FROM sgs_adm_rol ORDER BY id_rol;`;
+  return rows.map((r) => r.nombre);
+}
+
+export async function listUsuarios(): Promise<UsuarioAdmin[]> {
+  const rows = await sql<UsuarioRowRaw[]>`
+    SELECT u.id_usuario, u.email, u.nombre, r.nombre AS rol, u.activo,
+           u.ultimo_acceso_en, u.creado_en
+    FROM   sgs_adm_usuario u
+    JOIN   sgs_adm_rol      r ON r.id_rol = u.id_rol
+    ORDER  BY u.creado_en DESC, u.id_usuario DESC;
+  `;
+  return rows.map(mapUsuarioRow);
+}
+
+export async function getUsuarioById(id: number): Promise<UsuarioAdmin | null> {
+  const rows = await sql<UsuarioRowRaw[]>`
+    SELECT u.id_usuario, u.email, u.nombre, r.nombre AS rol, u.activo,
+           u.ultimo_acceso_en, u.creado_en
+    FROM   sgs_adm_usuario u
+    JOIN   sgs_adm_rol      r ON r.id_rol = u.id_rol
+    WHERE  u.id_usuario = ${id}
+    LIMIT  1;
+  `;
+  return rows[0] ? mapUsuarioRow(rows[0]) : null;
+}
+
+export async function findUsuarioByEmail(email: string): Promise<UsuarioAdmin | null> {
+  const rows = await sql<UsuarioRowRaw[]>`
+    SELECT u.id_usuario, u.email, u.nombre, r.nombre AS rol, u.activo,
+           u.ultimo_acceso_en, u.creado_en
+    FROM   sgs_adm_usuario u
+    JOIN   sgs_adm_rol      r ON r.id_rol = u.id_rol
+    WHERE  lower(u.email) = lower(${email})
+    LIMIT  1;
+  `;
+  return rows[0] ? mapUsuarioRow(rows[0]) : null;
+}
+
+export async function crearUsuario(args: {
+  email: string;
+  nombre: string;
+  password: string;
+  rol: RolSistema;
+}): Promise<UsuarioAdmin> {
+  const passwordHash = await bcrypt.hash(args.password, 10);
+  const rows = await sql<{ id_usuario: number | string }[]>`
+    INSERT INTO sgs_adm_usuario (email, password_hash, nombre, id_rol)
+    SELECT ${args.email.toLowerCase()}, ${passwordHash}, ${args.nombre}, r.id_rol
+    FROM   sgs_adm_rol r
+    WHERE  r.nombre = ${args.rol}
+    RETURNING id_usuario;
+  `;
+  if (!rows[0]) {
+    throw new Error(`Rol ${args.rol} no existe en sgs_adm_rol`);
+  }
+  const fresh = await getUsuarioById(pgInt(rows[0].id_usuario));
+  if (!fresh) throw new Error("Usuario creado pero no encontrado al releer");
+  return fresh;
+}
+
+export async function actualizarUsuario(args: {
+  idUsuario: number;
+  nombre: string;
+  rol: RolSistema;
+  activo: boolean;
+}): Promise<void> {
+  await sql`
+    UPDATE sgs_adm_usuario u
+    SET    nombre        = ${args.nombre},
+           id_rol        = (SELECT id_rol FROM sgs_adm_rol WHERE nombre = ${args.rol}),
+           activo        = ${args.activo},
+           actualizado_en = now()
+    WHERE  u.id_usuario  = ${args.idUsuario};
+  `;
+}
+
+export async function resetPasswordUsuario(args: {
+  idUsuario: number;
+  password: string;
+}): Promise<void> {
+  const passwordHash = await bcrypt.hash(args.password, 10);
+  await sql`
+    UPDATE sgs_adm_usuario
+    SET    password_hash = ${passwordHash},
+           actualizado_en = now()
+    WHERE  id_usuario    = ${args.idUsuario};
+  `;
+}
+
+export async function setUsuarioActivo(args: {
+  idUsuario: number;
+  activo: boolean;
+}): Promise<void> {
+  await sql`
+    UPDATE sgs_adm_usuario
+    SET    activo        = ${args.activo},
+           actualizado_en = now()
+    WHERE  id_usuario    = ${args.idUsuario};
+  `;
+}
+
+// =============================================================================
+// Auditoría — vista admin (HU-AD-04)
+// =============================================================================
+
+export type AuditEvento = "LOGIN_OK" | "LOGIN_FAIL" | "LOGOUT" | "ACCESS_DENY";
+
+export type AuditEvent = {
+  idEvento: string;
+  ocurridoEn: Date;
+  idUsuario: number | null;
+  emailUsado: string | null;
+  evento: AuditEvento;
+  recurso: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  exitoso: boolean;
+  detalle: string | null;
+  // Para la UI: nombre del usuario si existe
+  nombreUsuario: string | null;
+};
+
+export type AuditFiltros = {
+  evento?: AuditEvento | null;
+  idUsuario?: number | null;
+  emailLike?: string | null;
+  limit?: number;
+  offset?: number;
+};
+
+type AuditRowRaw = {
+  id_evento: string | number;
+  ocurrido_en: Date | string;
+  id_usuario: number | string | null;
+  email_usado: string | null;
+  evento: AuditEvento;
+  recurso: string | null;
+  ip: string | null;
+  user_agent: string | null;
+  exitoso: boolean | string;
+  detalle: string | null;
+  nombre_usuario: string | null;
+};
+
+function mapAuditRow(r: AuditRowRaw): AuditEvent {
+  return {
+    idEvento: pgText(r.id_evento),
+    ocurridoEn: new Date(pgText(r.ocurrido_en)),
+    idUsuario: r.id_usuario == null ? null : pgInt(r.id_usuario),
+    emailUsado: r.email_usado ? pgText(r.email_usado) : null,
+    evento: r.evento,
+    recurso: r.recurso,
+    ip: r.ip,
+    userAgent: r.user_agent,
+    exitoso: r.exitoso === true || r.exitoso === "t" || r.exitoso === "true",
+    detalle: r.detalle,
+    nombreUsuario: r.nombre_usuario,
+  };
+}
+
+export async function listAuditEventos(
+  filtros: AuditFiltros = {},
+): Promise<{ rows: AuditEvent[]; total: number }> {
+  const limit = Math.min(filtros.limit ?? 50, 200);
+  const offset = filtros.offset ?? 0;
+
+  const whereParts: ReturnType<typeof sql>[] = [];
+  if (filtros.evento) whereParts.push(sql`a.evento = ${filtros.evento}`);
+  if (filtros.idUsuario != null) whereParts.push(sql`a.id_usuario = ${filtros.idUsuario}`);
+  if (filtros.emailLike) whereParts.push(sql`a.email_usado ILIKE ${"%" + filtros.emailLike + "%"}`);
+  const whereSql = whereParts.length === 0
+    ? sql``
+    : sql`WHERE ${whereParts.reduce((acc, p, i) => i === 0 ? p : sql`${acc} AND ${p}`)}`;
+
+  const events = await sql<AuditRowRaw[]>`
+    SELECT a.id_evento, a.ocurrido_en, a.id_usuario, a.email_usado, a.evento,
+           a.recurso, a.ip, a.user_agent, a.exitoso, a.detalle,
+           u.nombre AS nombre_usuario
+    FROM   sgs_adm_auditoria_acceso a
+    LEFT JOIN sgs_adm_usuario u ON u.id_usuario = a.id_usuario
+    ${whereSql}
+    ORDER BY a.ocurrido_en DESC
+    LIMIT ${limit} OFFSET ${offset};
+  `;
+  const totalRows = await sql<{ count: number | string }[]>`
+    SELECT COUNT(*)::int AS count
+    FROM   sgs_adm_auditoria_acceso a
+    ${whereSql};
+  `;
+  return {
+    rows: events.map(mapAuditRow),
+    total: pgInt(totalRows[0]?.count),
+  };
+}
+
+export async function listEventTypes(): Promise<AuditEvento[]> {
+  return ["LOGIN_OK", "LOGIN_FAIL", "LOGOUT", "ACCESS_DENY"];
 }

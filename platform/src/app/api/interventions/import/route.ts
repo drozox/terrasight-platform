@@ -60,9 +60,16 @@ function polygonToWKT(geom: {
 }
 
 function geometryToWKT(item: ImportPayloadItem): string {
-  if (item.geometry.type === "Point") return pointToWKT(item.geometry);
-  if (item.geometry.type === "LineString") return lineStringToWKT(item.geometry);
-  return polygonToWKT(item.geometry);
+  // Cast: GeoJSON Position puede tener 3+ componentes (altitud), pero el
+  // importador sólo emite 2D. Si en runtime hay 3D, las queries PostGIS igual
+  // funcionan porque ST_GeomFromText lo tolera; aquí proyectamos a 2D.
+  if (item.geometry.type === "Point") {
+    return pointToWKT(item.geometry as unknown as { type: "Point"; coordinates: [number, number] });
+  }
+  if (item.geometry.type === "LineString") {
+    return lineStringToWKT(item.geometry as unknown as { type: "LineString"; coordinates: [number, number][] });
+  }
+  return polygonToWKT(item.geometry as unknown as { type: "Polygon"; coordinates: [number, number][][] });
 }
 
 /** Convierte bbox a PostGIS ENVELOPE via POLYGON (minX minY, maxX minY, maxX maxY, minX maxY, minX minY) */
@@ -280,7 +287,9 @@ export async function POST(req: Request): Promise<NextResponse<ImportResult>> {
 
         let idPredio = item.id_predio;
         if (idPredio == null && item.geometry.type === "Point") {
-          idPredio = await resolveNearestPredioId(item.geometry.coordinates);
+          idPredio = await resolveNearestPredioId(
+            item.geometry.coordinates as unknown as [number, number],
+          );
         }
 
         const wkt = geometryToWKT(item);

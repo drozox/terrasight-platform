@@ -30,9 +30,6 @@ import type {
   Point,
   LineString,
   Polygon,
-  MultiPoint,
-  MultiLineString,
-  MultiPolygon,
 } from "geojson";
 
 // -----------------------------------------------------------------------------
@@ -165,19 +162,17 @@ function normalizeGeometry(g: Geometry): Point | LineString | Polygon | null {
     case "Polygon":
       return g;
     case "MultiPoint":
+      return g.coordinates[0]
+        ? ({ type: "Point",        coordinates: g.coordinates[0]     as [number, number] })
+        : null;
     case "MultiLineString":
+      return g.coordinates[0]
+        ? ({ type: "LineString",   coordinates: g.coordinates[0]     as [number, number][] })
+        : null;
     case "MultiPolygon":
-      // Usamos turf para convertir Multi* → single
-      try {
-        const merged = turf.combine(turf.feature(g) as Feature<MultiPoint | MultiLineString | MultiPolygon>);
-        if (merged.features.length === 0) return null;
-        const f = merged.features[0];
-        const fg = f.geometry;
-        if (fg.type === "Point" || fg.type === "LineString" || fg.type === "Polygon") return fg;
-        return null;
-      } catch {
-        return null;
-      }
+      return g.coordinates[0]
+        ? ({ type: "Polygon",      coordinates: g.coordinates[0]     as [number, number][][] })
+        : null;
     default:
       return null;
   }
