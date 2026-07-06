@@ -816,6 +816,230 @@ export async function listEventTypes(): Promise<AuditEvento[]> {
 }
 
 // =============================================================================
+// Reportes (HU-CO-04)
+//
+// Implementamos los reportes que están escritos en
+// `DOCS/7. Consultas y Vistas/Consultas_Reportes.sql`. Cada uno devuelve
+// filas planas con tipos primitivos — el componente cliente (page o API
+// CSV) se encarga del formato.
+// =============================================================================
+
+export type ReporteTipo = "R1" | "R3" | "R8" | "R9";
+
+export const REPORTE_LABELS: Record<ReporteTipo, string> = {
+  R1: "R1 — Listado completo de predios",
+  R3: "R3 — Propuestas por componente y acción",
+  R8: "R8 — Resumen de predios por componente",
+  R9: "R9 — Quebradas con más propuestas",
+};
+
+export const REPORTE_DESCRIPCIONES: Record<ReporteTipo, string> = {
+  R1: "Lista los predios con propietario, vereda, municipio, cédula catastral y área. Útil para cruce con catastro IGAC.",
+  R3: "Agrupa las propuestas por componente (C1/C2/C3) y acción (A1/A2). Muestra el total y desglose por tipo (punto/línea/polígono).",
+  R8: "Resumen ejecutivo de predios con propuestas por componente, con totales por tipo. Para reportes de avance.",
+  R9: "Top de quebradas con más propuestas asociadas, con desglose por tipo. Útil para priorizar inversión.",
+};
+
+// -----------------------------------------------------------------------------
+// R1 — Listado completo de predios
+// -----------------------------------------------------------------------------
+
+export type ReporteR1Fila = {
+  idPredio: number;
+  nombrePredio: string;
+  areaHa: number;
+  propietario: string;
+  telefonoPropietario: string;
+  nombreVereda: string;
+  nombreMunicipio: string;
+  departamento: string;
+  cedulaCatastral: string;
+  observaciones: string;
+};
+
+export async function getReporteR1(): Promise<ReporteR1Fila[]> {
+  const rows = await sql<{
+    id_predio: number | string;
+    nombre_predio: string;
+    area_ha: number | string;
+    propietario: string;
+    telefono_propietario: string;
+    nombre_vereda: string;
+    nombre_municipio: string;
+    departamento: string;
+    cedula_catastral: string;
+    observaciones: string;
+  }[]>`
+    SELECT p.id_predio, p.nombre_predio, p.area_ha,
+           pr.nombre_razon_social AS propietario,
+           pr.telefono             AS telefono_propietario,
+           v.nombre_vereda, m.nombre_municipio,
+           m.departamento,
+           p.cedula_catastral, p.observaciones
+    FROM   sgs_pre_predio p
+    JOIN   sgs_pre_propietario pr ON p.id_propietario = pr.id_propietario
+    JOIN   bcs_lpa_vereda       v ON p.id_vereda      = v.id_vereda
+    JOIN   bcs_lpa_municipio    m ON v.id_municipio   = m.id_municipio
+    ORDER  BY m.nombre_municipio, v.nombre_vereda, p.nombre_predio;
+  `;
+  return rows.map((r) => ({
+    idPredio: pgInt(r.id_predio),
+    nombrePredio: pgText(r.nombre_predio),
+    areaHa: pgNum(r.area_ha),
+    propietario: pgText(r.propietario),
+    telefonoPropietario: pgText(r.telefono_propietario),
+    nombreVereda: pgText(r.nombre_vereda),
+    nombreMunicipio: pgText(r.nombre_municipio),
+    departamento: pgText(r.departamento),
+    cedulaCatastral: pgText(r.cedula_catastral),
+    observaciones: pgText(r.observaciones),
+  }));
+}
+
+// -----------------------------------------------------------------------------
+// R3 — Propuestas por componente y acción
+// -----------------------------------------------------------------------------
+
+export type ReporteR3Fila = {
+  componente: string;
+  accion: string;
+  totalPropuestas: number;
+  propuestasLinea: number;
+  propuestasPoligono: number;
+  propuestasPunto: number;
+  tiposPresentes: string;
+};
+
+export async function getReporteR3(): Promise<ReporteR3Fila[]> {
+  const rows = await sql<{
+    componente: string;
+    accion: string;
+    total_propuestas: number | string;
+    propuestas_linea: number | string;
+    propuestas_poligono: number | string;
+    propuestas_punto: number | string;
+    tipos_presentes: string;
+  }[]>`
+    SELECT comp.nombre AS componente,
+           acc.nombre AS accion,
+           COUNT(prop.id_propuesta)::int AS total_propuestas,
+           COUNT(*) FILTER (WHERE prop.tipo = 'linea')::int    AS propuestas_linea,
+           COUNT(*) FILTER (WHERE prop.tipo = 'poligono')::int AS propuestas_poligono,
+           COUNT(*) FILTER (WHERE prop.tipo = 'punto')::int    AS propuestas_punto,
+           STRING_AGG(DISTINCT prop.tipo, ', ')               AS tipos_presentes
+    FROM   sgs_pro_propuesta prop
+    JOIN   sgs_com_accion     acc ON prop.id_accion     = acc.id_accion
+    JOIN   sgs_com_componente comp ON acc.id_componente = comp.id_componente
+    GROUP  BY comp.nombre, acc.nombre
+    ORDER  BY comp.nombre, acc.nombre;
+  `;
+  return rows.map((r) => ({
+    componente: pgText(r.componente),
+    accion: pgText(r.accion),
+    totalPropuestas: pgInt(r.total_propuestas),
+    propuestasLinea: pgInt(r.propuestas_linea),
+    propuestasPoligono: pgInt(r.propuestas_poligono),
+    propuestasPunto: pgInt(r.propuestas_punto),
+    tiposPresentes: pgText(r.tipos_presentes),
+  }));
+}
+
+// -----------------------------------------------------------------------------
+// R8 — Resumen de predios por componente
+// -----------------------------------------------------------------------------
+
+export type ReporteR8Fila = {
+  componente: string;
+  prediosConPropuestas: number;
+  totalPropuestas: number;
+  linea: number;
+  poligono: number;
+  punto: number;
+};
+
+export async function getReporteR8(): Promise<ReporteR8Fila[]> {
+  const rows = await sql<{
+    componente: string;
+    predios_con_propuestas: number | string;
+    total_propuestas: number | string;
+    linea: number | string;
+    poligono: number | string;
+    punto: number | string;
+  }[]>`
+    SELECT comp.nombre AS componente,
+           COUNT(DISTINCT prop.id_predio)::int AS predios_con_propuestas,
+           COUNT(prop.id_propuesta)::int      AS total_propuestas,
+           COUNT(*) FILTER (WHERE prop.tipo = 'linea')::int    AS linea,
+           COUNT(*) FILTER (WHERE prop.tipo = 'poligono')::int AS poligono,
+           COUNT(*) FILTER (WHERE prop.tipo = 'punto')::int    AS punto
+    FROM   sgs_com_componente comp
+    LEFT JOIN sgs_com_accion     acc  ON comp.id_componente = acc.id_componente
+    LEFT JOIN sgs_pro_propuesta prop  ON acc.id_accion      = prop.id_accion
+    GROUP  BY comp.id_componente, comp.nombre
+    ORDER  BY comp.nombre;
+  `;
+  return rows.map((r) => ({
+    componente: pgText(r.componente),
+    prediosConPropuestas: pgInt(r.predios_con_propuestas),
+    totalPropuestas: pgInt(r.total_propuestas),
+    linea: pgInt(r.linea),
+    poligono: pgInt(r.poligono),
+    punto: pgInt(r.punto),
+  }));
+}
+
+// -----------------------------------------------------------------------------
+// R9 — Quebradas con más propuestas
+// -----------------------------------------------------------------------------
+
+export type ReporteR9Fila = {
+  idQuebrada: number;
+  nombreQuebrada: string;
+  area: number | null;
+  nombreMunicipio: string;
+  totalPropuestas: number;
+  propuestasLinea: number;
+  propuestasPoligono: number;
+  propuestasPunto: number;
+};
+
+export async function getReporteR9(): Promise<ReporteR9Fila[]> {
+  const rows = await sql<{
+    id_quebrada: number | string;
+    nombre_quebrada: string;
+    area: number | string | null;
+    nombre_municipio: string;
+    total_propuestas: number | string;
+    propuestas_linea: number | string;
+    propuestas_poligono: number | string;
+    propuestas_punto: number | string;
+  }[]>`
+    SELECT q.id_quebrada, q.nombre_quebrada, q.area,
+           m.nombre_municipio,
+           COUNT(prop.id_propuesta)::int                       AS total_propuestas,
+           COUNT(*) FILTER (WHERE prop.tipo = 'linea')::int    AS propuestas_linea,
+           COUNT(*) FILTER (WHERE prop.tipo = 'poligono')::int AS propuestas_poligono,
+           COUNT(*) FILTER (WHERE prop.tipo = 'punto')::int    AS propuestas_punto
+    FROM   bcs_dh_quebrada q
+    JOIN   bcs_lpa_municipio m ON q.id_municipio = m.id_municipio
+    LEFT JOIN sgs_pro_propuesta prop ON q.id_quebrada = prop.id_quebrada
+    GROUP  BY q.id_quebrada, q.nombre_quebrada, q.area, m.nombre_municipio
+    HAVING  COUNT(prop.id_propuesta) > 0
+    ORDER  BY total_propuestas DESC, q.nombre_quebrada;
+  `;
+  return rows.map((r) => ({
+    idQuebrada: pgInt(r.id_quebrada),
+    nombreQuebrada: pgText(r.nombre_quebrada),
+    area: r.area == null ? null : pgNum(r.area),
+    nombreMunicipio: pgText(r.nombre_municipio),
+    totalPropuestas: pgInt(r.total_propuestas),
+    propuestasLinea: pgInt(r.propuestas_linea),
+    propuestasPoligono: pgInt(r.propuestas_poligono),
+    propuestasPunto: pgInt(r.propuestas_punto),
+  }));
+}
+
+// =============================================================================
 // Predios CRUD (HU-TC-01)
 // =============================================================================
 

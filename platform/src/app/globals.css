@@ -176,3 +176,40 @@ body { overflow: hidden; /* full-screen AppShell layout like the Stitch */ }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* =============================================================================
+ * Print styles (export a PDF desde el navegador).
+ *   - Oculta sidebar + topbar + filtros y chips de "no-print".
+ *   - Forza fondo blanco y bordes negros para tabular limpio.
+ *   - Mantiene los anchos de columna estables para tablas largas.
+ * Aplicado en páginas como /reportes (sección btn Imprimir / PDF).
+ * ============================================================================= */
+@media print {
+  body { background: #ffffff !important; color: #000000 !important; }
+
+  /* Layout chrome — no queremos sidebar ni topbar en la impresión */
+  aside,
+  header,
+  nav,
+  .print\\:hidden { display: none !important; }
+
+  /* El main pasa a ser full-width */
+  main, body > div { display: block !important; height: auto !important; overflow: visible !important; }
+
+  /* Tablas: bordes finos negros, no wrap */
+  table { page-break-inside: auto; border-collapse: collapse !important; width: 100% !important; }
+  thead { display: table-header-group; } /* repetir header en cada página */
+  tr    { page-break-inside: avoid; }
+  th, td {
+    border: 1px solid #000 !important;
+    color: #000 !important;
+    background: transparent !important;
+    padding: 4px 8px !important;
+  }
+  th { background: #eee !important; }
+
+  /* Las URLs (enlaces) muestran el destino para que el reporte sea navegable
+     si lo abre otra persona impresa. */
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 90%; }
+}
+
