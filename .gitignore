@@ -57,3 +57,6 @@ geoportal-data-dashboard.zip
 
 # Referencia visual local del geoportal de inspiración (no versionar — solo local)
 .ref-geoportal/
+
+# Caché de TypeScript (tsc incremental)
+*.tsbuildinfo

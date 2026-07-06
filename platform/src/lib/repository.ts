@@ -554,7 +554,6 @@ export async function getPropuestasPorComponente(): Promise<
     result[r.nombre as "C1" | "C2" | "C3"] = serie;
   }
   return result;
-  }, DEMO_SERIES_COMPONENTES);
 }
 
 // -----------------------------------------------------------------------------

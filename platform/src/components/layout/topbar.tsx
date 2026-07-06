@@ -1,5 +1,11 @@
 "use client";
 
+// =============================================================================
+// TopBar — recibe `usuario` desde el root layout (server-resolved vía JWT).
+// Si NO hay sesión, muestra un botón "Iniciar sesión" en lugar del menú.
+// El logout usa `signOut` de next-auth/react.
+// =============================================================================
+
 import * as React from "react";
 import Link from "next/link";
 import {
@@ -9,12 +15,37 @@ import {
   LogOut,
   User as UserIcon,
   Settings as SettingsIcon,
+  LogIn,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { PartnerLogo } from "@/components/icons";
 import type { Alerta } from "@/lib/types";
+import type { SessionUser } from "@/lib/auth-guard";
 import { cn } from "@/lib/utils";
 
-export function TopBar({ alertas }: { alertas?: Alerta[] }) {
+const ROL_LABEL: Record<SessionUser["rol"], string> = {
+  ADMIN:    "Administrador",
+  ANALISTA: "Analista Ambiental",
+  GESTOR:   "Gestor de Campo",
+};
+
+function initialsFor(nombre: string, email: string): string {
+  const n = nombre?.trim();
+  if (n) {
+    const parts = n.split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return n.slice(0, 2).toUpperCase();
+  }
+  return (email?.[0] ?? "?").toUpperCase();
+}
+
+export function TopBar({
+  alertas,
+  usuario,
+}: {
+  alertas?: Alerta[];
+  usuario: SessionUser | null;
+}) {
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [userOpen, setUserOpen] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
@@ -36,6 +67,11 @@ export function TopBar({ alertas }: { alertas?: Alerta[] }) {
 
   const alertasList = alertas ?? [];
 
+  async function onLogout() {
+    setUserOpen(false);
+    await signOut({ callbackUrl: "/login" });
+  }
+
   return (
     <header
       className="
@@ -55,78 +91,80 @@ export function TopBar({ alertas }: { alertas?: Alerta[] }) {
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-6">
           <PartnerLogo name="wwf"    src="/partners/wwf-panda.png"  className="h-8" />
-          <PartnerLogo name="car"    src="/partners/car.png"          className="h-8" />
+          <PartnerLogo name="car"    src="/partners/car.png"         className="h-8" />
           <PartnerLogo name="natura" src="/partners/natura-2018.png" className="h-8" />
         </div>
 
         <div className="flex items-center gap-1 border-l border-outline-variant pl-4">
-          {/* Notificaciones */}
-          <div className="relative" ref={notifRef}>
-            <button
-              type="button"
-              aria-label="Notificaciones"
-              onClick={() => setNotifOpen((v) => !v)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
-            >
-              <Bell className="size-5" />
-              {alertasList.length > 0 && (
-                <span className="absolute right-2 top-2 inline-flex size-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-on-error">
-                  {alertasList.length}
-                </span>
-              )}
-            </button>
-            {notifOpen && (
-              <div
-                className={cn(
-                  "absolute right-0 top-12 z-50 w-80 origin-top-right rounded-xl border border-outline-variant",
-                  "bg-surface-container-lowest p-3 shadow-xl animate-in fade-in slide-in-from-top-1",
-                )}
+          {/* Notificaciones (solo si hay sesión) */}
+          {usuario && (
+            <div className="relative" ref={notifRef}>
+              <button
+                type="button"
+                aria-label="Notificaciones"
+                onClick={() => setNotifOpen((v) => !v)}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
               >
-                <div className="mb-2 flex items-center justify-between px-1">
-                  <h3 className="text-label-lg font-bold uppercase text-on-surface-variant">
-                    Notificaciones
-                  </h3>
-                  <span className="text-[10px] text-on-surface-variant">
-                    {alertasList.length} activas
+                <Bell className="size-5" />
+                {alertasList.length > 0 && (
+                  <span className="absolute right-2 top-2 inline-flex size-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-on-error">
+                    {alertasList.length}
                   </span>
-                </div>
-                <div className="max-h-80 space-y-2 overflow-y-auto">
-                  {alertasList.length === 0 ? (
-                    <p className="p-4 text-center text-body-sm text-on-surface-variant">
-                      Sin alertas activas
-                    </p>
-                  ) : (
-                    alertasList.map((a) => (
-                      <div
-                        key={a.id}
-                        className={cn(
-                          "rounded-lg border-l-4 bg-surface-container-low p-3 transition-colors hover:bg-surface-variant/40",
-                          a.tipo === "error"   && "border-error",
-                          a.tipo === "warning" && "border-warning",
-                          a.tipo === "info"    && "border-info",
-                        )}
-                      >
-                        <div className="mb-1 flex justify-between text-[10px] font-bold text-on-surface-variant">
-                          <span>{a.titulo}</span>
-                          <span>{a.fecha}</span>
-                        </div>
-                        <p className="text-body-sm leading-tight text-on-surface">
-                          {a.descripcion}
-                        </p>
-                      </div>
-                    ))
+                )}
+              </button>
+              {notifOpen && (
+                <div
+                  className={cn(
+                    "absolute right-0 top-12 z-50 w-80 origin-top-right rounded-xl border border-outline-variant",
+                    "bg-surface-container-lowest p-3 shadow-xl animate-in fade-in slide-in-from-top-1",
                   )}
-                </div>
-                <Link
-                  href="/alertas"
-                  className="mt-3 block rounded-md py-2 text-center text-label-lg font-bold text-primary transition-colors hover:bg-primary/5"
-                  onClick={() => setNotifOpen(false)}
                 >
-                  Ver todas las alertas
-                </Link>
-              </div>
-            )}
-          </div>
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <h3 className="text-label-lg font-bold uppercase text-on-surface-variant">
+                      Notificaciones
+                    </h3>
+                    <span className="text-[10px] text-on-surface-variant">
+                      {alertasList.length} activas
+                    </span>
+                  </div>
+                  <div className="max-h-80 space-y-2 overflow-y-auto">
+                    {alertasList.length === 0 ? (
+                      <p className="p-4 text-center text-body-sm text-on-surface-variant">
+                        Sin alertas activas
+                      </p>
+                    ) : (
+                      alertasList.map((a) => (
+                        <div
+                          key={a.id}
+                          className={cn(
+                            "rounded-lg border-l-4 bg-surface-container-low p-3 transition-colors hover:bg-surface-variant/40",
+                            a.tipo === "error"   && "border-error",
+                            a.tipo === "warning" && "border-warning",
+                            a.tipo === "info"    && "border-info",
+                          )}
+                        >
+                          <div className="mb-1 flex justify-between text-[10px] font-bold text-on-surface-variant">
+                            <span>{a.titulo}</span>
+                            <span>{a.fecha}</span>
+                          </div>
+                          <p className="text-body-sm leading-tight text-on-surface">
+                            {a.descripcion}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <Link
+                    href="/alertas"
+                    className="mt-3 block rounded-md py-2 text-center text-label-lg font-bold text-primary transition-colors hover:bg-primary/5"
+                    onClick={() => setNotifOpen(false)}
+                  >
+                    Ver todas las alertas
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Ayuda */}
           <button
@@ -138,66 +176,87 @@ export function TopBar({ alertas }: { alertas?: Alerta[] }) {
             <HelpCircle className="size-5" />
           </button>
 
-          {/* Usuario */}
-          <div className="relative" ref={userRef}>
-            <button
-              type="button"
-              onClick={() => setUserOpen((v) => !v)}
-              className="ml-2 flex items-center gap-3 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-surface-container-low"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-label-lg font-bold text-on-primary">
-                AM
-              </div>
-              <div className="hidden text-left sm:block">
-                <p className="text-label-lg font-bold leading-none text-on-surface">
-                  Ana María
-                </p>
-                <p className="text-[11px] text-on-surface-variant">Administrador</p>
-              </div>
-              <ChevronDown
-                className={cn(
-                  "size-4 text-on-surface-variant transition-transform",
-                  userOpen && "rotate-180",
-                )}
-              />
-            </button>
-            {userOpen && (
-              <div
-                className={cn(
-                  "absolute right-0 top-12 z-50 w-56 origin-top-right rounded-xl border border-outline-variant",
-                  "bg-surface-container-lowest p-2 shadow-xl animate-in fade-in slide-in-from-top-1",
-                )}
+          {/* Usuario — botón de login si NO hay sesión, menú si sí */}
+          {usuario ? (
+            <div className="relative" ref={userRef}>
+              <button
+                type="button"
+                onClick={() => setUserOpen((v) => !v)}
+                className="ml-2 flex items-center gap-3 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-surface-container-low"
               >
-                <div className="mb-2 border-b border-outline-variant px-3 py-2">
-                  <p className="text-label-lg font-bold text-on-surface">Ana María</p>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-label-lg font-bold text-on-primary">
+                  {initialsFor(usuario.name, usuario.email)}
+                </div>
+                <div className="hidden text-left sm:block">
+                  <p className="text-label-lg font-bold leading-none text-on-surface">
+                    {usuario.name || usuario.email}
+                  </p>
                   <p className="text-[11px] text-on-surface-variant">
-                    ana.maria@car.gov.co
+                    {ROL_LABEL[usuario.rol]}
                   </p>
                 </div>
-                <Link
-                  href="/configuracion"
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-sm text-on-surface transition-colors hover:bg-surface-variant/40"
-                  onClick={() => setUserOpen(false)}
+                <ChevronDown
+                  className={cn(
+                    "size-4 text-on-surface-variant transition-transform",
+                    userOpen && "rotate-180",
+                  )}
+                />
+              </button>
+              {userOpen && (
+                <div
+                  className={cn(
+                    "absolute right-0 top-12 z-50 w-56 origin-top-right rounded-xl border border-outline-variant",
+                    "bg-surface-container-lowest p-2 shadow-xl animate-in fade-in slide-in-from-top-1",
+                  )}
                 >
-                  <UserIcon className="size-4" /> Mi perfil
-                </Link>
-                <Link
-                  href="/configuracion"
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-sm text-on-surface transition-colors hover:bg-surface-variant/40"
-                  onClick={() => setUserOpen(false)}
-                >
-                  <SettingsIcon className="size-4" /> Configuración
-                </Link>
-                <div className="my-1 border-t border-outline-variant" />
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-sm text-error transition-colors hover:bg-error/5"
-                >
-                  <LogOut className="size-4" /> Cerrar sesión
-                </button>
-              </div>
-            )}
-          </div>
+                  <div className="mb-2 border-b border-outline-variant px-3 py-2">
+                    <p className="text-label-lg font-bold text-on-surface">
+                      {usuario.name || usuario.email}
+                    </p>
+                    <p className="text-[11px] text-on-surface-variant">
+                      {usuario.email}
+                    </p>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                      {ROL_LABEL[usuario.rol]}
+                    </p>
+                  </div>
+                  <Link
+                    href="/configuracion"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-sm text-on-surface transition-colors hover:bg-surface-variant/40"
+                    onClick={() => setUserOpen(false)}
+                  >
+                    <UserIcon className="size-4" /> Mi perfil
+                  </Link>
+                  {/* Admin solo ve Gestión de usuarios y Auditoría */}
+                  {usuario.rol === "ADMIN" && (
+                    <Link
+                      href="/admin/usuarios"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-sm text-on-surface transition-colors hover:bg-surface-variant/40"
+                      onClick={() => setUserOpen(false)}
+                    >
+                      <SettingsIcon className="size-4" /> Gestión de usuarios
+                    </Link>
+                  )}
+                  <div className="my-1 border-t border-outline-variant" />
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-sm text-error transition-colors hover:bg-error/5"
+                  >
+                    <LogOut className="size-4" /> Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="ml-2 flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-label-lg font-bold text-on-primary transition-colors hover:bg-primary/90"
+            >
+              <LogIn className="size-4" />
+              Iniciar sesión
+            </Link>
+          )}
         </div>
       </div>
     </header>
