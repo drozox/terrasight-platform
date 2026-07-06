@@ -992,6 +992,239 @@ export async function eliminarPredio(id: number): Promise<void> {
 }
 
 // =============================================================================
+// Análisis espacial (HU-AA-02..04)
+// =============================================================================
+
+export type BufferTarget = "quebrada" | "propuesta";
+
+export function isBufferTarget(s: string): s is BufferTarget {
+  return s === "quebrada" || s === "propuesta";
+}
+
+export type BufferResultTipo = "predio" | "quebrada" | "propuesta";
+
+export type BufferResultItem = {
+  tipo: BufferResultTipo;
+  id: number;
+  nombre: string;
+  distanciaM: number | null;
+  areaHa: number | null;
+  longitudM: number | null;
+  centroidLat: number | null;
+  centroidLon: number | null;
+};
+
+/**
+ * Análisis buffer (HU-AA-02).
+ *
+ *   - target="quebrada",  id=ID  → devuelve predios dentro de distanciaM.
+ *   - target="propuesta", id=ID  → devuelve quebradas dentro de distanciaM.
+ *
+ * PostGIS: usamos cast ::geography para que las distancias queden en metros
+ * independientemente del SRID (4686 para predios, 4326 para intervenciones).
+ * Si PostGIS no está disponible, retorna [].
+ */
+export async function getAnalisisBuffer(args: {
+  target: BufferTarget;
+  id: number;
+  distanciaM: number;
+}): Promise<BufferResultItem[]> {
+  if (args.distanciaM <= 0 || args.distanciaM > 50000) {
+    // Tope de seguridad: 50 km. Más que eso es operacionalmente raro y
+    // tarda demasiado en correr.
+    throw new Error("Distancia debe estar entre 1 y 50000 metros.");
+  }
+  const dist = args.distanciaM;
+
+  if (args.target === "quebrada") {
+    // Centroid de la quebrada + lista de predios a <= dist metros
+    const targetRows = await sql<{ geom_exists: boolean }[]>`
+      SELECT (geom IS NOT NULL) AS geom_exists
+      FROM   bcs_dh_quebrada
+      WHERE  id_quebrada = ${args.id}
+      LIMIT  1;
+    `;
+    if (!targetRows[0]?.geom_exists) {
+      throw new Error("Quebrada sin geometría. Asignale lat/lon primero.");
+    }
+    const rows = await sql<{
+      id_predio: number | string;
+      nombre_predio: string;
+      distancia_m: number | string;
+      area_ha: number | string;
+      centroid_lat: number | string;
+      centroid_lon: number | string;
+    }[]>`
+      SELECT p.id_predio, p.nombre_predio,
+             ST_Distance(p.geom::geography, q.geom::geography)::numeric(12,2) AS distancia_m,
+             p.area_ha,
+             ST_Y(ST_Centroid(p.geom))::numeric(10,6) AS centroid_lat,
+             ST_X(ST_Centroid(p.geom))::numeric(10,6) AS centroid_lon
+      FROM   sgs_pre_predio p,
+             bcs_dh_quebrada  q
+      WHERE  q.id_quebrada = ${args.id}
+        AND  p.geom IS NOT NULL
+        AND  ST_DWithin(p.geom::geography, q.geom::geography, ${dist})
+      ORDER  BY distancia_m ASC
+      LIMIT  500;
+    `;
+    return rows.map((r) => ({
+      tipo: "predio",
+      id: pgInt(r.id_predio),
+      nombre: pgText(r.nombre_predio),
+      distanciaM: pgNum(r.distancia_m),
+      areaHa: pgNum(r.area_ha),
+      longitudM: null,
+      centroidLat: pgNum(r.centroid_lat),
+      centroidLon: pgNum(r.centroid_lon),
+    }));
+  }
+
+  // target === "propuesta": para no acoplarnos al tipo (punto/linea/poligono),
+  // usamos la sub-tabla sgs_pro_propuesta_{punto|linea|poligono} con UNION,
+  // y devolvemos quebradas cercanas.
+  const rows = await sql<{
+    id_quebrada: number | string;
+    nombre_quebrada: string;
+    distancia_m: number | string;
+    centroid_lat: number | string;
+    centroid_lon: number | string;
+  }[]>`
+    SELECT q.id_quebrada, q.nombre_quebrada,
+           ST_Distance(q.geom::geography, pp_geom.geom::geography)::numeric(12,2) AS distancia_m,
+           ST_Y(q.geom)::numeric(10,6) AS centroid_lat,
+           ST_X(q.geom)::numeric(10,6) AS centroid_lon
+    FROM   bcs_dh_quebrada q,
+           (
+             SELECT geom FROM sgs_pro_propuesta_punto    WHERE id_propuesta = ${args.id} AND geom IS NOT NULL
+             UNION ALL
+             SELECT geom FROM sgs_pro_propuesta_linea    WHERE id_propuesta = ${args.id} AND geom IS NOT NULL
+             UNION ALL
+             SELECT geom FROM sgs_pro_propuesta_poligono  WHERE id_propuesta = ${args.id} AND geom IS NOT NULL
+           ) pp_geom
+    WHERE  q.geom IS NOT NULL
+      AND  ST_DWithin(q.geom::geography, pp_geom.geom::geography, ${dist})
+    ORDER  BY distancia_m ASC
+    LIMIT  500;
+  `;
+  return rows.map((r) => ({
+    tipo: "quebrada",
+    id: pgInt(r.id_quebrada),
+    nombre: pgText(r.nombre_quebrada),
+    distanciaM: pgNum(r.distancia_m),
+    areaHa: null,
+    longitudM: null,
+    centroidLat: pgNum(r.centroid_lat),
+    centroidLon: pgNum(r.centroid_lon),
+  }));
+}
+
+// -----------------------------------------------------------------------------
+// Matriz componente × municipio (HU-AA-04)
+// -----------------------------------------------------------------------------
+
+export type MatrizFila = {
+  municipio: string;
+  C1: { numPropuestas: number; hectareas: number };
+  C2: { numPropuestas: number; hectareas: number };
+  C3: { numPropuestas: number; hectareas: number };
+  totalNumPropuestas: number;
+  totalHectareas: number;
+};
+
+export async function getMatrizComponenteMunicipio(): Promise<MatrizFila[]> {
+  const rows = await sql<{
+    municipio: string;
+    nombre_componente: string;
+    num_propuestas: number | string;
+    hectareas: number | string;
+  }[]>`
+    SELECT m.nombre_municipio                          AS municipio,
+           c.nombre                                    AS nombre_componente,
+           COUNT(DISTINCT pp.id_propuesta)::int        AS num_propuestas,
+           COALESCE(SUM(DISTINCT ON (pp.id_propuesta) pol.area_ha), 0)::numeric
+                                                       AS hectareas
+    FROM   bcs_lpa_municipio m
+    LEFT JOIN bcs_lpa_vereda    v ON v.id_municipio  = m.id_municipio
+    LEFT JOIN sgs_pre_predio    pr ON pr.id_vereda    = v.id_vereda
+    LEFT JOIN sgs_pro_propuesta pp ON pp.id_predio    = pr.id_predio
+    LEFT JOIN sgs_com_accion    a ON a.id_accion     = pp.id_accion
+    LEFT JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+    LEFT JOIN sgs_pro_propuesta_poligono pol ON pol.id_propuesta = pp.id_propuesta
+    GROUP BY m.nombre_municipio, c.nombre
+    ORDER BY m.nombre_municipio, c.nombre;
+  `;
+  // Pivotar a filas por municipio
+  const porMunicipio = new Map<string, MatrizFila>();
+  for (const r of rows) {
+    const mun = pgText(r.municipio);
+    let fila = porMunicipio.get(mun);
+    if (!fila) {
+      fila = {
+        municipio: mun,
+        C1: { numPropuestas: 0, hectareas: 0 },
+        C2: { numPropuestas: 0, hectareas: 0 },
+        C3: { numPropuestas: 0, hectareas: 0 },
+        totalNumPropuestas: 0,
+        totalHectareas: 0,
+      };
+      porMunicipio.set(mun, fila);
+    }
+    const c = pgText(r.nombre_componente);
+    if (c === "C1" || c === "C2" || c === "C3") {
+      const num = pgInt(r.num_propuestas);
+      const ha  = pgNum(r.hectareas);
+      fila[c].numPropuestas += num;
+      fila[c].hectareas     += ha;
+      fila.totalNumPropuestas += num;
+      fila.totalHectareas     += ha;
+    }
+  }
+  return Array.from(porMunicipio.values()).sort((a, b) =>
+    a.municipio.localeCompare(b.municipio, "es"),
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Listado simple de propuestas para los <select> del buffer
+// -----------------------------------------------------------------------------
+
+export type PropuestaSimple = {
+  idPropuesta: number;
+  tipo: "punto" | "linea" | "poligono";
+  actividad: string;
+  hectareas: number | null;
+  longitudM: number | null;
+};
+
+export async function listPropuestasSimple(limit = 200): Promise<PropuestaSimple[]> {
+  // Damos un set curado: 200 más recientes. Para el buffer select es suficiente.
+  const rows = await sql<{
+    id_propuesta: number | string;
+    tipo: "punto" | "linea" | "poligono";
+    actividad: string;
+    hectareas: number | string | null;
+    longitud_m: number | string | null;
+  }[]>`
+    SELECT pp.id_propuesta, pp.tipo, pp.actividad,
+           pol.area_ha          AS hectareas,
+           pl.longitud_m        AS longitud_m
+    FROM   sgs_pro_propuesta pp
+    LEFT JOIN sgs_pro_propuesta_poligono pol ON pol.id_propuesta = pp.id_propuesta
+    LEFT JOIN sgs_pro_propuesta_linea    pl  ON pl.id_propuesta  = pp.id_propuesta
+    ORDER BY pp.id_propuesta DESC
+    LIMIT ${limit};
+  `;
+  return rows.map((r) => ({
+    idPropuesta: pgInt(r.id_propuesta),
+    tipo: r.tipo,
+    actividad: pgText(r.actividad),
+    hectareas: r.hectareas == null ? null : pgNum(r.hectareas),
+    longitudM: r.longitud_m == null ? null : pgNum(r.longitud_m),
+  }));
+}
+
+// =============================================================================
 // Quebradas CRUD (HU-TC-02)
 // =============================================================================
 
