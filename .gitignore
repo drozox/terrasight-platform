@@ -54,3 +54,6 @@ DOCS/**/Datos_Prueba/
 
 # Material de análisis/inspiración (no versionar — solo referencia local)
 geoportal-data-dashboard.zip
+
+# Referencia visual local del geoportal de inspiración (no versionar — solo local)
+.ref-geoportal/
