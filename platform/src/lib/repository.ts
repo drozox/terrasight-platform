@@ -1186,6 +1186,231 @@ export async function getMatrizComponenteMunicipio(): Promise<MatrizFila[]> {
 }
 
 // -----------------------------------------------------------------------------
+// Cobertura CLC × municipio (HU-AA-03)
+// -----------------------------------------------------------------------------
+
+export type CoberturaMunicipioFila = {
+  municipio: string;
+  totalHa: number;
+  totalPredios: number;
+  porCobertura: Array<{
+    nombre: string;
+    ha: number;
+    predios: number;
+    porcentaje: number;
+  }>;
+};
+
+export async function getCoberturaPorMunicipio(): Promise<CoberturaMunicipioFila[]> {
+  const rows = await sql<{
+    municipio: string;
+    nombre_cobertura: string;
+    ha: number | string;
+    num_predios: number | string;
+  }[]>`
+    SELECT m.nombre_municipio    AS municipio,
+           c.nombre_cobertura     AS nombre_cobertura,
+           COALESCE(SUM(pc.area_ha_parcial), 0)::numeric AS ha,
+           COUNT(DISTINCT pc.id_predio)::int              AS num_predios
+    FROM   bcs_lpa_municipio        m
+    LEFT JOIN bcs_lpa_vereda                v  ON v.id_municipio  = m.id_municipio
+    LEFT JOIN sgs_pre_predio                p  ON p.id_vereda     = v.id_vereda
+    LEFT JOIN sgs_rel_predio_cobertura     pc ON pc.id_predio    = p.id_predio
+    LEFT JOIN sgs_amb_cobertura_clc        c  ON c.id_cobertura  = pc.id_cobertura
+    GROUP  BY m.nombre_municipio, c.nombre_cobertura
+    ORDER  BY m.nombre_municipio;
+  `;
+  const porMin = new Map<string, CoberturaMunicipioFila>();
+  for (const r of rows) {
+    const mun = pgText(r.municipio);
+    let fila = porMin.get(mun);
+    if (!fila) {
+      fila = { municipio: mun, totalHa: 0, totalPredios: 0, porCobertura: [] };
+      porMin.set(mun, fila);
+    }
+    const cobertura = pgText(r.nombre_cobertura);
+    if (!cobertura) continue;
+    const ha = pgNum(r.ha);
+    const predios = pgInt(r.num_predios);
+    fila.porCobertura.push({ nombre: cobertura, ha, predios, porcentaje: 0 });
+    fila.totalHa += ha;
+    fila.totalPredios = Math.max(fila.totalPredios, predios);
+  }
+  // Calcular porcentaje dentro de cada municipio
+  const list = Array.from(porMin.values());
+  for (const fila of list) {
+    if (fila.totalHa > 0) {
+      for (const c of fila.porCobertura) {
+        c.porcentaje = Math.round((c.ha / fila.totalHa) * 100);
+      }
+      fila.porCobertura.sort((a, b) => b.ha - a.ha);
+    }
+  }
+  return list.sort((a, b) => a.municipio.localeCompare(b.municipio, "es"));
+}
+
+// -----------------------------------------------------------------------------
+// Intersección por bounding box (HU-AA-03)
+// -----------------------------------------------------------------------------
+
+export type BoundingBox = {
+  minLon: number;
+  minLat: number;
+  maxLon: number;
+  maxLat: number;
+};
+
+export type IntersectionResult = {
+  bbox: BoundingBox;
+  areaHaBbox: number | null;
+  numPredios: number;
+  totalAreaPrediosHa: number;
+  numPropuestas: number;
+  predios: Array<{
+    idPredio: number;
+    nombre: string;
+    areaHaBdr: number;
+    centroideLat: number;
+    centroideLon: number;
+    componente: string | null;
+  }>;
+  propuestas: Array<{
+    idPropuesta: number;
+    tipo: "punto" | "linea" | "poligono";
+    actividad: string;
+    estado: string;
+    hectareas: number | null;
+    longitudM: number | null;
+  }>;
+};
+
+export async function getIntersectPorBoundingBox(
+  bbox: BoundingBox,
+): Promise<IntersectionResult> {
+  // Validaciones livianas — el SRID se mantiene 4326 (lon/lat WGS84),
+  // consistente con el convenio.
+  if (
+    !Number.isFinite(bbox.minLon) ||
+    !Number.isFinite(bbox.minLat) ||
+    !Number.isFinite(bbox.maxLon) ||
+    !Number.isFinite(bbox.maxLat)
+  ) {
+    throw new Error("bbox inválido");
+  }
+  if (bbox.minLon >= bbox.maxLon || bbox.minLat >= bbox.maxLat) {
+    throw new Error("bbox debe tener min < max en cada eje");
+  }
+
+  // 1) Predios dentro
+  const predios = await sql<{
+    id_predio: number | string;
+    nombre_predio: string;
+    area_ha: number | string;
+    centroid_lat: number | string;
+    centroid_lon: number | string;
+    componente: string | null;
+  }[]>`
+    SELECT p.id_predio, p.nombre_predio, p.area_ha,
+           ST_Y(ST_Centroid(p.geom))::numeric(10,6) AS centroid_lat,
+           ST_X(ST_Centroid(p.geom))::numeric(10,6) AS centroid_lon,
+           (
+             SELECT c.nombre
+             FROM   sgs_pro_propuesta pp
+             JOIN   sgs_com_accion    a ON a.id_accion     = pp.id_accion
+             JOIN   sgs_com_componente c ON c.id_componente = a.id_componente
+             WHERE  pp.id_predio = p.id_predio
+             LIMIT  1
+           ) AS componente
+    FROM   sgs_pre_predio p
+    WHERE  p.geom IS NOT NULL
+      AND  ST_Intersects(
+              p.geom,
+              ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326)
+            )
+    LIMIT  500;
+  `;
+  const prediosFmt = predios.map((r) => ({
+    idPredio: pgInt(r.id_predio),
+    nombre: pgText(r.nombre_predio),
+    areaHaBdr: pgNum(r.area_ha),
+    centroideLat: pgNum(r.centroid_lat),
+    centroideLon: pgNum(r.centroid_lon),
+    componente: r.componente ?? null,
+  }));
+
+  // 2) Propuestas dentro (UNION ALL en las 3 sub-tablas)
+  const propuestas = await sql<{
+    id_propuesta: number | string;
+    tipo: "punto" | "linea" | "poligono";
+    actividad: string;
+    estado: string;
+    hectareas: number | string | null;
+    longitud_m: number | string | null;
+  }[]>`
+    WITH resultados AS (
+      SELECT pp.id_propuesta, pp.tipo, pp.actividad, pp.estado,
+             pol.area_ha AS hectareas, NULL::numeric AS longitud_m,
+             pp_geom.geom
+      FROM sgs_pro_propuesta pp
+      JOIN sgs_pro_propuesta_poligono  pp_geom ON pp_geom.id_propuesta = pp.id_propuesta
+      LEFT JOIN sgs_pro_propuesta_poligono pol ON pol.id_propuesta = pp.id_propuesta
+      WHERE pp_geom.geom IS NOT NULL
+        AND ST_Intersects(pp_geom.geom, ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326))
+
+      UNION ALL
+
+      SELECT pp.id_propuesta, pp.tipo, pp.actividad, pp.estado,
+             NULL::numeric AS hectareas, pl.longitud_m,
+             pp_geom.geom
+      FROM sgs_pro_propuesta pp
+      JOIN sgs_pro_propuesta_linea     pp_geom ON pp_geom.id_propuesta = pp.id_propuesta
+      LEFT JOIN sgs_pro_propuesta_linea pl ON pl.id_propuesta = pp.id_propuesta
+      WHERE pp_geom.geom IS NOT NULL
+        AND ST_Intersects(pp_geom.geom, ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326))
+
+      UNION ALL
+
+      SELECT pp.id_propuesta, pp.tipo, pp.actividad, pp.estado,
+             NULL::numeric, NULL::numeric, pp_geom.geom
+      FROM sgs_pro_propuesta pp
+      JOIN sgs_pro_propuesta_punto     pp_geom ON pp_geom.id_propuesta = pp.id_propuesta
+      WHERE pp_geom.geom IS NOT NULL
+        AND ST_Intersects(pp_geom.geom, ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326))
+    )
+    SELECT DISTINCT ON (id_propuesta) id_propuesta, tipo, actividad, estado, hectareas, longitud_m
+    FROM resultados
+    ORDER BY id_propuesta ASC
+    LIMIT 500;
+  `;
+  const propuestasFmt = propuestas.map((r) => ({
+    idPropuesta: pgInt(r.id_propuesta),
+    tipo: r.tipo,
+    actividad: pgText(r.actividad),
+    estado: pgText(r.estado),
+    hectareas: r.hectareas == null ? null : pgNum(r.hectareas),
+    longitudM: r.longitud_m == null ? null : pgNum(r.longitud_m),
+  }));
+
+  // 3) Área del bbox (en ha, geodésico)
+  const areaRows = await sql<{ ha: number | string }[]>`
+    SELECT ST_Area(
+             ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326)::geography
+           ) / 10000 AS ha;
+  `;
+  const areaHaBbox = areaRows[0] ? pgNum(areaRows[0].ha) : null;
+
+  return {
+    bbox,
+    areaHaBbox,
+    numPredios: prediosFmt.length,
+    totalAreaPrediosHa: prediosFmt.reduce((acc, p) => acc + p.areaHaBdr, 0),
+    numPropuestas: propuestasFmt.length,
+    predios: prediosFmt,
+    propuestas: propuestasFmt,
+  };
+}
+
+// -----------------------------------------------------------------------------
 // Listado simple de propuestas para los <select> del buffer
 // -----------------------------------------------------------------------------
 

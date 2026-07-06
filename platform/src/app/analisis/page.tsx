@@ -1,10 +1,10 @@
 // =============================================================================
 // /analisis — Análisis espacial (HU-AA-02..04)
-// Server Component: lee search params para correr el buffer si los hay.
+// Server Component: lee search params para correr el buffer / bbox si los hay.
 // =============================================================================
 
 import Link from "next/link";
-import { PieChart, Droplet, Wrench, MapPin } from "lucide-react";
+import { PieChart, Droplet, Wrench, MapPin, Square } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { getCoberturaVegetal } from "@/lib/repository";
 import {
@@ -12,6 +12,8 @@ import {
   getAnalisisBuffer,
   listQuebradasFull,
   listPropuestasSimple,
+  getCoberturaPorMunicipio,
+  getIntersectPorBoundingBox,
   type BufferTarget,
   isBufferTarget,
 } from "@/lib/repository";
@@ -19,15 +21,22 @@ import { BufferForm } from "./buffer-form";
 import { BufferResults } from "./buffer-results";
 import { MatrizTable } from "./matriz-table";
 import { CoberturaSection } from "./cobertura-section";
+import { CoberturaPorMunicipio } from "./cobertura-municipio-section";
+import { IntersectionBBoxForm } from "./intersection-bbox-form";
+import { IntersectionResults } from "./intersection-results";
 import { requireRole } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Análisis Espacial — TerraSight" };
 
 type SearchParams = Promise<{
-  btipo?: string;        // 'quebrada' | 'propuesta' (evita colisión con tipo de propuesta)
+  btipo?: string;
   bid?: string;
   bdistancia?: string;
+  ibbox_minLon?: string;
+  ibbox_minLat?: string;
+  ibbox_maxLon?: string;
+  ibbox_maxLat?: string;
 }>;
 
 function parseNum(v: string | undefined): number | null {
@@ -44,11 +53,12 @@ export default async function AnalisisPage({
   await requireRole(["ADMIN", "ANALISTA"] as const);
   const sp = await searchParams;
 
-  const [quebradas, propuestas, cobertura, matriz] = await Promise.all([
+  const [quebradas, propuestas, cobertura, matriz, coberturaPorMun] = await Promise.all([
     listQuebradasFull(),
     listPropuestasSimple(200),
     getCoberturaVegetal(),
     getMatrizComponenteMunicipio(),
+    getCoberturaPorMunicipio(),
   ]);
 
   // Si hay parámetros de búsqueda, corremos el análisis buffer.
@@ -69,6 +79,32 @@ export default async function AnalisisPage({
         buffer = { kind: "ok", items, tipo, id, distanciaM };
       } catch (err) {
         buffer = { kind: "error", message: (err as Error).message };
+      }
+    }
+  }
+
+  // Intersección por bounding box (HU-AA-03)
+  let bboxInit: { minLon: string; minLat: string; maxLon: string; maxLat: string } | null = null;
+  let bboxResult: Awaited<ReturnType<typeof getIntersectPorBoundingBox>> | null = null;
+  let bboxError: string | null = null;
+  if (sp.ibbox_minLon && sp.ibbox_minLat && sp.ibbox_maxLon && sp.ibbox_maxLat) {
+    bboxInit = {
+      minLon: sp.ibbox_minLon,
+      minLat: sp.ibbox_minLat,
+      maxLon: sp.ibbox_maxLon,
+      maxLat: sp.ibbox_maxLat,
+    };
+    const minLon = parseNum(sp.ibbox_minLon);
+    const minLat = parseNum(sp.ibbox_minLat);
+    const maxLon = parseNum(sp.ibbox_maxLon);
+    const maxLat = parseNum(sp.ibbox_maxLat);
+    if (minLon == null || minLat == null || maxLon == null || maxLat == null) {
+      bboxError = "bbox inválido: todos los valores deben ser numéricos.";
+    } else {
+      try {
+        bboxResult = await getIntersectPorBoundingBox({ minLon, minLat, maxLon, maxLat });
+      } catch (err) {
+        bboxError = (err as Error).message;
       }
     }
   }
@@ -153,7 +189,7 @@ export default async function AnalisisPage({
       </section>
 
       {/* =================================================================
-          3. Cobertura vegetal (ya existía)
+          3. Cobertura vegetal (ya existía) — distribución global
           ================================================================= */}
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-2 text-title-lg font-bold text-on-surface">
@@ -165,9 +201,50 @@ export default async function AnalisisPage({
         </Card>
       </section>
 
+      {/* =================================================================
+          4. Cobertura CLC × municipio (HU-AA-03)
+          ================================================================= */}
+      <section className="mb-8">
+        <h2 className="mb-3 flex items-center gap-2 text-title-lg font-bold text-on-surface">
+          <MapPin className="size-5 text-secondary" />
+          Cobertura CLC por municipio
+        </h2>
+        <Card className="p-6">
+          <p className="mb-4 text-body-sm text-on-surface-variant">
+            Porcentaje de cada tipo de cobertura del mapa CLC (Corine Land
+            Cover) por municipio, cruzada con los predios del convenio. Útil
+            para entender el contexto territorial antes de priorizar
+            intervenciones.
+          </p>
+          <CoberturaPorMunicipio filas={coberturaPorMun} />
+        </Card>
+      </section>
+
+      {/* =================================================================
+          5. Intersección por bounding box (HU-AA-03)
+          ================================================================= */}
+      <section className="mb-8" id="bbox">
+        <h2 className="mb-3 flex items-center gap-2 text-title-lg font-bold text-on-surface">
+          <Square className="size-5 text-info" />
+          Intersección por bounding box
+        </h2>
+        <Card className="p-6">
+          <p className="mb-4 text-body-sm text-on-surface-variant">
+            Definí un rectángulo geográfico (lon/lat WGS84). El sistema
+            devuelve qué predios y propuestas caen dentro, con totales de
+            hectáreas y densidad territorial. Útil para análisis rápidos de
+            zonas específicas sin salir de la plataforma.
+          </p>
+
+          <IntersectionBBoxForm initial={bboxInit} />
+
+          <IntersectionResults result={bboxResult} error={bboxError} />
+        </Card>
+      </section>
+
       <footer className="mb-6 border-t border-outline-variant pt-4 text-[11px] text-on-surface-variant">
-        Próximas: intersección de capas por componente, área de influencia a
-        partir de un punto dibujado en mapa.
+        Próximas: dibujar polígono a mano en el mapa (en lugar de bbox) y
+        exportar los análisis a CSV/GeoJSON.
       </footer>
     </div>
   );
