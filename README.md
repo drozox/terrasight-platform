@@ -34,27 +34,40 @@ roles y auditoría (HU-AD-01..04), y los 4 reportes operativos vivos en
 
 - **Node.js 20+**
 - **Docker Desktop** (levanta Postgres/PostGIS)
-- **PowerShell 5.1+** (los scripts `db:*` y `auth:*` son PowerShell)
+- **PowerShell 5.1+** (los scripts `db:*`, `auth:*` y `setup` son PowerShell)
 
 ## Setup
 
+La forma recomendada para primera corrida o después de un `db:reset`:
+
 ```powershell
-# 1. Dependencias
 cd platform
 npm install
+npm run setup
+```
 
-# 2. Entorno — copiar template y editar
+`setup` es el orquestador: prepara `.env` (regenera `NEXTAUTH_SECRET` si está como placeholder),
+levanta Postgres/PostGIS, espera a que esté lista, aplica esquema base + esquema de **auth**
++ datos demo, y crea el primer `ADMIN`. Es idempotente — podés correrlo varias veces.
+
+Si preferís paso a paso manual (o ya tenés algo andando):
+
+```powershell
+cd platform
+npm install
 Copy-Item .env.example .env
 # Editar .env: regenerar NEXTAUTH_SECRET (ver nota abajo)
 
-# 3. Levantar Postgres/PostGIS
 npm run db:up
-
-# 4. Esquema + datos demo + primer admin
-npm run db:migrate
+npm run db:migrate        # esquema del modelo BDG (sgs_pre_*, sgs_pro_*, etc.)
+npm run db:auth-schema    # tablas de auth (sgs_adm_*) — NO se incluye en db:migrate
 npm run db:seed
 npm run auth:create-admin
 ```
+
+> **⚠️ `db:auth-schema` no se ejecuta como parte de `db:migrate`** porque vive separado
+> (se aplica después de crear el contenedor). Olvidarlo deja el login roto aunque el resto
+> del sistema funcione. Por eso existe `npm run setup`.
 
 > **NEXTAUTH_SECRET**: generar con
 > `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
@@ -67,13 +80,20 @@ npm run auth:create-admin
 | `npm run dev` | Servidor de desarrollo en `http://localhost:3000` |
 | `npm run build` | Build de producción |
 | `npm run lint` | ESLint (config `next`) |
+| `npm run setup` | **Orquestador de primera corrida / post-reset** (idempotente) |
 | `npm run db:up` / `db:down` | Levantar / detener contenedor Postgres |
 | `npm run db:reset` | Reset completo del contenedor (⚠ borra datos) |
 | `npm run db:logs` | Logs de Postgres |
 | `npm run db:psql` | Shell `psql` contra `convenio_car_wwf` |
 | `npm run db:migrate` | Aplica `db/migrations/*.sql` en orden lexicográfico |
+| `npm run db:auth-schema` | Aplica `sgs_adm_*` (tablas de auth). **No** se incluye en `db:migrate`. |
 | `npm run db:seed` | Carga datos demo del modelo BDG |
 | `npm run auth:create-admin` | Bootstrap del primer usuario `ADMIN` |
+
+> **🔀 Correr TerraSight y AeroAdmin AFM a la vez:** ambos usan `:3000` por default.
+> Si tenés AFM también abierto, arrancá TerraSight con `npm run dev -- -p 3001` y
+> en `.env` cambiá `NEXTAUTH_URL=http://localhost:3001`. Cualquier `:30xx` libre
+> sirve, pero `:3001` es el puerto que el resto del equipo espera.
 
 ## Flujo demo sugerido
 
