@@ -64,6 +64,9 @@ DOCS/**/Datos_Prueba/
 # Material de análisis/inspiración (no versionar — solo referencia local)
 geoportal-data-dashboard.zip
 
+# Resúmenes diarios personales (notas de sprint, no del repo)
+**/RESUMEN-DIARIO-*.md
+
 # Referencia visual local del geoportal de inspiración (no versionar — solo local)
 .ref-geoportal/
 
