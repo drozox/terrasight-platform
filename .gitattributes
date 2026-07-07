@@ -1,0 +1,16 @@
+# Auto-detect text files and normalize line endings to LF on commit/checkout
+* text=auto eol=lf
+
+# Force LF for files that are always text in this repo
+*.md        text eol=lf
+*.sql       text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.ps1       text eol=lf
+*.csv       text eol=lf
+
+# Lockfiles: tratar como binarios para evitar diff ruidoso por reorden
+package-lock.json -text
