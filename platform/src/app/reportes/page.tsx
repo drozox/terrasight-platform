@@ -1,6 +1,6 @@
 // =============================================================================
 // /reportes — Selector + render del reporte (HU-CO-04).
-// Server Component: cada ?tipo=R1|R3|R8|R9 corre la query apropiada.
+// Server Component: cada ?tipo=R1..R10 corre la query apropiada.
 // CSV se descarga desde /api/reportes, no acá.
 // =============================================================================
 
@@ -14,9 +14,15 @@ import {
   REPORTE_LABELS,
   REPORTE_DESCRIPCIONES,
   getReporteR1,
+  getReporteR2,
   getReporteR3,
+  getReporteR4,
+  getReporteR5,
+  getReporteR6,
+  getReporteR7,
   getReporteR8,
   getReporteR9,
+  getReporteR10,
 } from "@/lib/repository";
 import { ReporteSelector } from "./reporte-selector";
 import { ReporteViewer } from "./reporte-viewer";
@@ -25,14 +31,21 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Reportes — TerraSight" };
 
 const RENDERERS: Record<ReporteTipo, () => Promise<unknown[]>> = {
-  R1: () => getReporteR1() as unknown as Promise<unknown[]>,
-  R3: () => getReporteR3() as unknown as Promise<unknown[]>,
-  R8: () => getReporteR8() as unknown as Promise<unknown[]>,
-  R9: () => getReporteR9() as unknown as Promise<unknown[]>,
+  R1:  () => getReporteR1()  as unknown as Promise<unknown[]>,
+  R2:  () => getReporteR2()  as unknown as Promise<unknown[]>,
+  R3:  () => getReporteR3()  as unknown as Promise<unknown[]>,
+  R4:  () => getReporteR4()  as unknown as Promise<unknown[]>,
+  R5:  () => getReporteR5()  as unknown as Promise<unknown[]>,
+  R6:  () => getReporteR6()  as unknown as Promise<unknown[]>,
+  R7:  () => getReporteR7()  as unknown as Promise<unknown[]>,
+  R8:  () => getReporteR8()  as unknown as Promise<unknown[]>,
+  R9:  () => getReporteR9()  as unknown as Promise<unknown[]>,
+  R10: () => getReporteR10() as unknown as Promise<unknown[]>,
 };
 
 function isReporteTipo(s: string | undefined): s is ReporteTipo {
-  return s === "R1" || s === "R3" || s === "R8" || s === "R9";
+  return s === "R1" || s === "R2" || s === "R3" || s === "R4" || s === "R5"
+      || s === "R6" || s === "R7" || s === "R8" || s === "R9" || s === "R10";
 }
 
 export default async function ReportesPage({
@@ -101,10 +114,11 @@ export default async function ReportesPage({
       )}
 
       <footer className="mt-10 border-t border-outline-variant pt-4 text-[11px] text-on-surface-variant print:hidden">
-        Próximos reportes (DOCS/7): R2 (predios+coberturas), R4 (propuestas por
-        predio), R5 (puntos+beneficiarios), R6 (zonificaciones), R7
-        (infraestructura), R10 (área por bioma). Se pueden agregar al
-        selector sin más trabajo de UI — la pipeline CSV ya está abierta.
+        10 reportes vivos (R1..R10), basados en
+        {" "}
+        <code className="rounded bg-surface-container px-1">DOCS/7. Consultas y Vistas/Consultas_Reportes.sql</code>
+        {" — "}
+        Consultas oficiales del modelo BDG del convenio CAR-WWF-Natura.
       </footer>
     </div>
   );
