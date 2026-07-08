@@ -19,7 +19,8 @@ $InitDir = Join-Path $ProjectRoot "scripts/db/init"
 $ordered = @(
     "02-datos-ejemplo.sql",
     "03-auth-schema.sql",
-    "04-intervencion-estado.sql"
+    "04-intervencion-estado.sql",
+    "05-catalogos-unique.sql"
 )
 
 foreach ($file in $ordered) {

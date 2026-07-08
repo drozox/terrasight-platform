@@ -22,6 +22,7 @@ import {
   Filter as FilterIcon,
   RefreshCw,
   Droplet,
+  BookMarked,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TerraSightLogo } from "@/components/icons";
@@ -42,6 +43,7 @@ const ALL_ITEMS: Item[] = [
   { href: "/predios",        label: "Predios",            icon: Building2,   roles: null },
   { href: "/quebradas",      label: "Quebradas",          icon: Droplet,     roles: null },
   { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,      roles: null },
+  { href: "/catalogos",      label: "Catálogos",          icon: BookMarked,  roles: ["ADMIN"] },
   { href: "/monitoreo",      label: "Monitoreo",          icon: Activity,    roles: ["ADMIN", "GESTOR"] },
   { href: "/analisis",       label: "Análisis Espacial",  icon: PieChart,    roles: ["ADMIN", "ANALISTA"] },
   { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
