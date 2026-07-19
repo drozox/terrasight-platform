@@ -1,0 +1,149 @@
+# =============================================================================
+# CI — TerraSight (HU-CA-02/03)
+#
+# Corre en cada push a main y en cada PR contra main.
+# Pasos:
+#   1. Levanta Postgres/PostGIS como service.
+#   2. Espera a que esté listo + instala psql.
+#   3. Aplica migrations (scripts/ci-migrate.sh).
+#   4. Instala deps de Node (npm ci, cacheado).
+#   5. typecheck (tsc --noEmit).
+#   6. lint (next lint).
+#   7. unit tests (vitest run).
+#   8. e2e smoke tests (Playwright contra next dev en :3001).
+#
+# Nota: el step `Build` está comentado — Next 15 + OneDrive-stub de SWC a
+# veces bloquea builds locales con el @next/swc-win32 binary como
+# ReparsePoint. En el runner de Ubuntu no aplica, pero el build completo
+# (~3-5 min) puede activarse cuando el resto del pipeline esté verde.
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancelar runs previos en la misma rama/PR al hacer push de un commit
+# nuevo. Ahorra minutos de runner.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: typecheck + lint + test + e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Postgres (servicio de este mismo job)
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: terrasight
+      POSTGRES_PASSWORD: terrasight_dev
+      POSTGRES_DB: convenio_car_wwf
+      DATABASE_URL: postgresql://terrasight:terrasight_dev@localhost:5432/convenio_car_wwf
+      # Auth (NextAuth v5)
+      NEXTAUTH_SECRET: ci-build-only-dummy-secret-not-for-prod-do-not-use
+      NEXTAUTH_URL: http://localhost:3001
+      AUTH_TRUST_HOST: "true"
+      # Playwright
+      PLAYWRIGHT_BASE_URL: http://localhost:3001
+      CI: "true"
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: terrasight
+          POSTGRES_PASSWORD: terrasight_dev
+          POSTGRES_DB: convenio_car_wwf
+        ports:
+          - "5432:5432"
+        # Healthcheck: el job no avanza hasta que pg_isready dé OK.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 20s
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: platform/package-lock.json
+
+      # -----------------------------------------------------------------------------
+      # psql client (no viene en ubuntu-latest por defecto). Lo necesitamos para
+      # aplicar las migrations contra el servicio de Postgres del job.
+      # -----------------------------------------------------------------------------
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install deps
+        working-directory: platform
+        run: npm ci
+
+      # -----------------------------------------------------------------------------
+      # Migrations. ci-migrate.sh espera a Postgres y aplica los .sql en orden.
+      # -----------------------------------------------------------------------------
+      - name: Apply migrations
+        working-directory: platform
+        run: bash scripts/ci-migrate.sh
+
+      # -----------------------------------------------------------------------------
+      # Calidad de código
+      # -----------------------------------------------------------------------------
+      - name: Typecheck
+        working-directory: platform
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: platform
+        run: npm run lint
+
+      - name: Unit tests (Vitest)
+        working-directory: platform
+        run: npm run test
+
+      # -----------------------------------------------------------------------------
+      # Build — desactivado por ahora. Habilitarlo si el resto del pipeline
+      # queda estable. `next build` tarda 3-5 min y se siente mejor con
+      # typecheck+lint+test como gate previo.
+      # -----------------------------------------------------------------------------
+      # - name: Build
+      #   working-directory: platform
+      #   env:
+      #     AUTH_SECRET: ci-build-only-dummy
+      #   run: npm run build
+
+      # -----------------------------------------------------------------------------
+      # E2E smoke tests (Playwright). El webServer del config.ts levanta
+      # `next dev -p 3001` automáticamente cuando CI=true.
+      # -----------------------------------------------------------------------------
+      - name: Install Playwright browser
+        working-directory: platform
+        # En Linux basta con `playwright install --with-deps chromium` (sí, acá
+        # --with-deps sí funciona porque somos root via sudo). Es la única
+        # diferencia con Windows local.
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright e2e
+        working-directory: platform
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: platform/playwright-report/
+          retention-days: 7
