@@ -9,6 +9,8 @@
 # 05: catalogos-unique
 # 06: propuesta-avance
 # 07: monitoreo-punto (HU-MO-01..03)
+# 08: cat-secundarios (HU-TC-06..10: municipios, veredas, propietarios,
+#     microcuencas, beneficiarios)
 # Cualquier NN.sql futuro se puede agregar a esta lista manualmente.
 # =============================================================================
 
@@ -25,7 +27,8 @@ $ordered = @(
     "04-intervencion-estado.sql",
     "05-catalogos-unique.sql",
     "06-propuesta-avance.sql",
-    "07-monitoreo-punto.sql"
+    "07-monitoreo-punto.sql",
+    "08-cat-secundarios.sql"
 )
 
 foreach ($file in $ordered) {

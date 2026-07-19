@@ -1,19 +1,37 @@
 // =============================================================================
-// /catalogos — Gestion de catalogos del modelo BDG (HU-TC-03)
+// /catalogos — Hub de catalogos del modelo BDG (HU-TC-03 + HU-TC-06..10)
 //
-// Server Component: solo ADMIN. Carga componentes y acciones en paralelo y
-// delega a una sola vista cliente que muestra dos tablas lado a lado con
-// edicion inline y delete confirmado.
+// Server Component: solo ADMIN. Carga:
+//   - 2 catalogos principales (componentes + acciones) en paralelo
+//   - 5 catalogos secundarios en paralelo (municipios, veredas, propietarios,
+//     microcuencas, beneficiarios) para mostrar contadores en las cards
+//
+// La mitad superior mantiene las 2 tablas CRUD existentes (HU-TC-03). La
+// mitad inferior son 5 cards que linkean a sub-paginas (HU-TC-06..10).
 // =============================================================================
 
+import Link from "next/link";
+import {
+  BookMarked, AlertTriangle, Building2, Map, Users,
+  Droplet, UserCheck, ArrowRight,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { BookMarked, AlertTriangle } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-guard";
 import {
   listComponentesFull,
   listAccionesFull,
+  listMunicipiosFull,
+  listVeredasFull,
+  listPropietariosFull,
+  listMicrocuencasFull,
+  listBeneficiariosFull,
   COMPONENTES_VALIDOS,
   ACCIONES_VALIDAS,
+  type MunicipioFull,
+  type VeredaFull,
+  type PropietarioFull,
+  type MicrocuencaFull,
+  type BeneficiarioFull,
 } from "@/lib/repository";
 import { CatalogosTable } from "./catalogos-table";
 
@@ -22,12 +40,24 @@ export const metadata = { title: "Catálogos — TerraSight" };
 
 export default async function CatalogosPage() {
   await requireAdmin();
-  const [componentes, acciones] = await Promise.all([
+  const [
+    componentes,
+    acciones,
+    municipios,
+    veredas,
+    propietarios,
+    microcuencas,
+    beneficiarios,
+  ] = await Promise.all([
     listComponentesFull(),
     listAccionesFull(),
+    listMunicipiosFull(),
+    listVeredasFull(),
+    listPropietariosFull(),
+    listMicrocuencasFull(),
+    listBeneficiariosFull(),
   ]);
 
-  // Derivados utiles para el header
   const totalPropuestasEnAcciones = acciones.reduce(
     (acc, a) => acc + a.totalPropuestas,
     0,
@@ -74,11 +104,56 @@ export default async function CatalogosPage() {
           </div>
         </Card>
 
-        {/* Tablas CRUD */}
-        <CatalogosTable
-          componentes={componentes}
-          acciones={acciones}
-        />
+        {/* Componentes + Acciones (catalogos cerrados del modelo BDG) */}
+        <CatalogosTable componentes={componentes} acciones={acciones} />
+
+        {/* Catalogos secundarios: 5 cards linkeando a sub-paginas */}
+        <div>
+          <h2 className="mb-3 text-base font-bold text-on-surface">
+            Catálogos secundarios
+          </h2>
+          <p className="mb-4 text-body-sm text-on-surface-variant">
+            Gestión de las tablas base del modelo territorial. Cada card abre
+            su propia vista con CRUD completo y pre-check de dependencias.
+          </p>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <SecundarioCard
+              href="/catalogos/municipios"
+              title="Municipios"
+              description="Entidades territoriales del área de influencia"
+              icon={Building2}
+              counter={counterMunicipios(municipios)}
+            />
+            <SecundarioCard
+              href="/catalogos/veredas"
+              title="Veredas"
+              description="División territorial intermedia, agrupada por municipio"
+              icon={Map}
+              counter={counterVeredas(veredas)}
+            />
+            <SecundarioCard
+              href="/catalogos/propietarios"
+              title="Propietarios"
+              description="Dueños o razón social de los predios intervenidos"
+              icon={Users}
+              counter={counterPropietarios(propietarios)}
+            />
+            <SecundarioCard
+              href="/catalogos/microcuencas"
+              title="Microcuencas"
+              description="Unidades hidrográficas mayores del territorio"
+              icon={Droplet}
+              counter={counterMicrocuencas(microcuencas)}
+            />
+            <SecundarioCard
+              href="/catalogos/beneficiarios"
+              title="Beneficiarios"
+              description="Usuarios beneficiarios de las propuestas de tipo punto"
+              icon={UserCheck}
+              counter={counterBeneficiarios(beneficiarios)}
+            />
+          </div>
+        </div>
 
         <p className="text-center text-[11px] text-on-surface-variant">
           Solo ADMIN puede modificar catálogos. Las propuestas y reportes
@@ -87,4 +162,66 @@ export default async function CatalogosPage() {
       </div>
     </div>
   );
+}
+
+// =============================================================================
+// SecundarioCard — sub-componente server para las 5 cards de los catalogos
+// secundarios. Server-rendered, no usa estado. Es un Link con todo el estilo.
+// =============================================================================
+function SecundarioCard({
+  href, title, description, icon: Icon, counter,
+}: {
+  href: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  counter: string;
+}) {
+  return (
+    <Link href={href} className="group block">
+      <Card className="flex h-full flex-col gap-3 p-4 transition-all hover:border-primary hover:shadow-md">
+        <div className="flex items-start justify-between">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Icon className="size-5" />
+          </div>
+          <ArrowRight className="size-4 text-on-surface-variant transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-on-surface">{title}</h3>
+          <p className="mt-0.5 text-[12px] text-on-surface-variant">{description}</p>
+        </div>
+        <p className="mt-auto text-[11px] font-mono text-on-surface-variant">
+          {counter}
+        </p>
+      </Card>
+    </Link>
+  );
+}
+
+// =============================================================================
+// Helpers de KPI: contadores para las cards de catalogos secundarios.
+// Sumamos los totalXxx ya calculados por el repository (no hacen SQL extra).
+// =============================================================================
+function counterMunicipios(rows: MunicipioFull[]): string {
+  const veredas = rows.reduce((acc, r) => acc + r.totalVeredas, 0);
+  const predios = rows.reduce((acc, r) => acc + r.totalPredios, 0);
+  return `${rows.length} municipio(s) · ${veredas} veredas · ${predios} predios linkeados`;
+}
+function counterVeredas(rows: VeredaFull[]): string {
+  const predios = rows.reduce((acc, r) => acc + r.totalPredios, 0);
+  const pob = rows.reduce((acc, r) => acc + r.poblacionEstimada, 0);
+  return `${rows.length} vereda(s) · ${predios} predios · ${pob.toLocaleString("es-CO")} hab.`;
+}
+function counterPropietarios(rows: PropietarioFull[]): string {
+  const predios = rows.reduce((acc, r) => acc + r.totalPredios, 0);
+  return `${rows.length} propietario(s) · ${predios} predios asociados`;
+}
+function counterMicrocuencas(rows: MicrocuencaFull[]): string {
+  const quebradas = rows.reduce((acc, r) => acc + r.totalQuebradas, 0);
+  const area = rows.reduce((acc, r) => acc + r.area, 0);
+  return `${rows.length} microcuenca(s) · ${quebradas} quebradas · ${area.toLocaleString("es-CO", { maximumFractionDigits: 1 })} ha`;
+}
+function counterBeneficiarios(rows: BeneficiarioFull[]): string {
+  const rel = rows.reduce((acc, r) => acc + r.totalRelaciones, 0);
+  return `${rows.length} beneficiario(s) · ${rel} relacion(es) a puntos de monitoreo`;
 }

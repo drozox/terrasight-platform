@@ -164,13 +164,17 @@ export async function desasociarBeneficiarioAction(formData: FormData): Promise<
 
 // -----------------------------------------------------------------------------
 // Crear beneficiario (sgs_pre_usuario)
+//
+// HU-TC-10: ahora `crearBeneficiario` devuelve BeneficiarioFull (con
+// createdAt/updatedAt y contador de relaciones). El idUsuario se mantiene
+// compatible.
 // -----------------------------------------------------------------------------
 export async function crearBeneficiarioAction(formData: FormData): Promise<Result> {
   await requireRole(["ADMIN", "GESTOR"] as const);
 
   const parsed = safeParseForm(formData, {
     nombre:    { name: "nombre",    required: true,  type: "string", min: 2, max: 200 },
-    telefono:  { name: "telefono",  required: false, type: "string", min: 7, max: 20 },
+    telefono:  { name: "telefono",  required: true,  type: "string", min: 7, max: 20 },
     vereda:    { name: "vereda",    required: false, type: "string", max: 200 },
     municipio: { name: "municipio", required: false, type: "string", max: 200 },
   });

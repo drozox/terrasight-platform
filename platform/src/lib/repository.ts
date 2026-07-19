@@ -3339,39 +3339,860 @@ export async function desasociarBeneficiario(
   `;
 }
 
+// =============================================================================
+// Catalogos secundarios (HU-TC-06..10)
+//
+// 5 catalogos del modelo BDG con el mismo patron que /catalogos (TC-03) y
+// monitoreo (MO-01..03): whitelists, UPSERT amable con ON CONFLICT, trigger
+// updated_at, pre-check de dependencias en eliminar.
+//
+// Solo ADMIN puede escribir (validado en server actions).
+// Tablas:
+//   - bcs_lpa_municipio    (HU-TC-06)
+//   - bcs_lpa_vereda       (HU-TC-07)
+//   - sgs_pre_propietario  (HU-TC-08)
+//   - bcs_dh_microcuenca   (HU-TC-09)
+//   - sgs_pre_usuario      (HU-TC-10, beneficiarios)
+// =============================================================================
+
 // -----------------------------------------------------------------------------
-// crearBeneficiario — INSERT con whitelist de campos.
+// Regex telefono: 7-20 chars, permite digitos, espacios, guiones, + y ().
+// Coincide con el CHECK constraint (VARCHAR(20)).
 // -----------------------------------------------------------------------------
-export async function crearBeneficiario(input: {
-  nombre: string;
-  telefono?: string;
-  vereda?: string;
-  municipio?: string;
-}): Promise<BeneficiarioMini> {
-  const telefono = input.telefono ?? "";
-  const vereda   = input.vereda   ?? "";
-  const municipio= input.municipio?? "";
-  if (input.telefono !== undefined && (input.telefono.length < 7 || input.telefono.length > 20)) {
-    throw new Error("telefono debe tener entre 7 y 20 caracteres");
-  }
-  const rows = await sql<{
-    id_usuario: number | string;
-    nombre: string;
-    telefono: string;
-    vereda: string;
-    municipio: string;
-  }[]>`
-    INSERT INTO sgs_pre_usuario (nombre, telefono, vereda, municipio)
-    VALUES (${input.nombre}, ${telefono}, ${vereda}, ${municipio})
-    RETURNING id_usuario, nombre, telefono, vereda, municipio;
+export const TELEFONO_REGEX = /^[\d\s\-\+\(\)]{7,20}$/;
+
+export function isValidTelefono(t: string): boolean {
+  return TELEFONO_REGEX.test(t);
+}
+
+// =============================================================================
+// HU-TC-06: Municipios (bcs_lpa_municipio)
+// =============================================================================
+
+export type MunicipioFull = {
+  idMunicipio: number;
+  nombreMunicipio: string;
+  codigoAdministrativo: string;
+  departamento: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  /** # de veredas que dependen de este municipio (pre-check eliminar). */
+  totalVeredas: number;
+  /** # de predios indirectos via veredas (pre-check eliminar). */
+  totalPredios: number;
+};
+
+type MunicipioRow = {
+  id_municipio: number | string;
+  nombre_municipio: string;
+  codigo_administrativo: string;
+  departamento: string;
+  created_at: Date | string | null;
+  updated_at: Date | string | null;
+  total_veredas: number | string;
+  total_predios: number | string;
+};
+
+function mapMunicipioRow(r: MunicipioRow): MunicipioFull {
+  return {
+    idMunicipio: pgInt(r.id_municipio),
+    nombreMunicipio: pgText(r.nombre_municipio),
+    codigoAdministrativo: pgText(r.codigo_administrativo),
+    departamento: pgText(r.departamento),
+    createdAt: pgDate(r.created_at),
+    updatedAt: pgDate(r.updated_at),
+    totalVeredas: pgInt(r.total_veredas),
+    totalPredios: pgInt(r.total_predios),
+  };
+}
+
+export async function listMunicipiosFull(): Promise<MunicipioFull[]> {
+  return withFallback("municipiosFull", async () => {
+    const rows = await sql<MunicipioRow[]>`
+      SELECT
+        m.id_municipio,
+        m.nombre_municipio,
+        m.codigo_administrativo,
+        m.departamento,
+        m.created_at,
+        m.updated_at,
+        COALESCE(v.cnt, 0)::int AS total_veredas,
+        COALESCE(p.cnt, 0)::int AS total_predios
+      FROM   bcs_lpa_municipio m
+      LEFT JOIN (
+        SELECT id_municipio, COUNT(*) AS cnt
+        FROM   bcs_lpa_vereda
+        GROUP  BY id_municipio
+      ) v ON v.id_municipio = m.id_municipio
+      LEFT JOIN (
+        SELECT v2.id_municipio, COUNT(pr.id_predio) AS cnt
+        FROM   bcs_lpa_vereda  v2
+        JOIN   sgs_pre_predio  pr ON pr.id_vereda = v2.id_vereda
+        GROUP  BY v2.id_municipio
+      ) p ON p.id_municipio = m.id_municipio
+      ORDER  BY m.departamento, m.nombre_municipio;
+    `;
+    return rows.map(mapMunicipioRow);
+  }, []);
+}
+
+export async function getMunicipioById(id: number): Promise<MunicipioFull | null> {
+  const rows = await sql<MunicipioRow[]>`
+    SELECT
+      m.id_municipio,
+      m.nombre_municipio,
+      m.codigo_administrativo,
+      m.departamento,
+      m.created_at,
+      m.updated_at,
+      COALESCE(v.cnt, 0)::int AS total_veredas,
+      COALESCE(p.cnt, 0)::int AS total_predios
+    FROM   bcs_lpa_municipio m
+    LEFT JOIN (
+      SELECT id_municipio, COUNT(*) AS cnt
+      FROM   bcs_lpa_vereda
+      GROUP  BY id_municipio
+    ) v ON v.id_municipio = m.id_municipio
+    LEFT JOIN (
+      SELECT v2.id_municipio, COUNT(pr.id_predio) AS cnt
+      FROM   bcs_lpa_vereda  v2
+      JOIN   sgs_pre_predio  pr ON pr.id_vereda = v2.id_vereda
+      GROUP  BY v2.id_municipio
+    ) p ON p.id_municipio = m.id_municipio
+    WHERE  m.id_municipio = ${id}
+    LIMIT  1;
   `;
-  const r = rows[0];
-  if (!r) throw new Error("Insert de beneficiario no devolvió fila");
+  return rows[0] ? mapMunicipioRow(rows[0]) : null;
+}
+
+export type MunicipioInput = {
+  nombreMunicipio: string;
+  codigoAdministrativo: string;
+  departamento: string;
+};
+
+export async function crearMunicipio(input: MunicipioInput): Promise<MunicipioFull> {
+  if (input.nombreMunicipio.length < 2 || input.nombreMunicipio.length > 255) {
+    throw new Error("nombreMunicipio debe tener entre 2 y 255 caracteres");
+  }
+  if (input.codigoAdministrativo.length < 1 || input.codigoAdministrativo.length > 50) {
+    throw new Error("codigoAdministrativo debe tener entre 1 y 50 caracteres");
+  }
+  if (input.departamento.length < 2 || input.departamento.length > 100) {
+    throw new Error("departamento debe tener entre 2 y 100 caracteres");
+  }
+  const rows = await sql<{ id_municipio: number | string }[]>`
+    INSERT INTO bcs_lpa_municipio (nombre_municipio, codigo_administrativo, departamento)
+    VALUES (${input.nombreMunicipio}, ${input.codigoAdministrativo}, ${input.departamento})
+    ON CONFLICT (nombre_municipio, departamento) DO UPDATE
+      SET codigo_administrativo = EXCLUDED.codigo_administrativo
+    RETURNING id_municipio;
+  `;
+  if (!rows[0]) throw new Error("Insert/upsert de municipio fallido");
+  const fresh = await getMunicipioById(pgInt(rows[0].id_municipio));
+  if (!fresh) throw new Error("Municipio no se puede releer tras upsert");
+  return fresh;
+}
+
+export async function actualizarMunicipio(
+  id: number,
+  input: MunicipioInput,
+): Promise<void> {
+  if (input.nombreMunicipio.length < 2 || input.nombreMunicipio.length > 255) {
+    throw new Error("nombreMunicipio debe tener entre 2 y 255 caracteres");
+  }
+  if (input.codigoAdministrativo.length < 1 || input.codigoAdministrativo.length > 50) {
+    throw new Error("codigoAdministrativo debe tener entre 1 y 50 caracteres");
+  }
+  if (input.departamento.length < 2 || input.departamento.length > 100) {
+    throw new Error("departamento debe tener entre 2 y 100 caracteres");
+  }
+  await sql`
+    UPDATE bcs_lpa_municipio
+    SET    nombre_municipio      = ${input.nombreMunicipio},
+           codigo_administrativo = ${input.codigoAdministrativo},
+           departamento          = ${input.departamento}
+    WHERE  id_municipio = ${id};
+  `;
+}
+
+export async function eliminarMunicipio(id: number): Promise<void> {
+  const check = await sql<{ veredas: number | string; predios: number | string }[]>`
+    SELECT
+      (SELECT COUNT(*) FROM bcs_lpa_vereda WHERE id_municipio = ${id})::int    AS veredas,
+      (SELECT COUNT(*) FROM sgs_pre_predio
+         WHERE id_vereda IN (SELECT id_vereda FROM bcs_lpa_vereda WHERE id_municipio = ${id})
+      )::int                                                                    AS predios;
+  `;
+  const veredas = pgInt(check[0]?.veredas);
+  const predios = pgInt(check[0]?.predios);
+  if (veredas > 0) {
+    throw new Error(
+      `No se puede eliminar: el municipio tiene ${veredas} vereda(s) asociada(s). ` +
+      `Eliminá primero las veredas o reasignalas.`,
+    );
+  }
+  if (predios > 0) {
+    throw new Error(
+      `No se puede eliminar: hay ${predios} predio(s) en veredas de este municipio.`,
+    );
+  }
+  await sql`DELETE FROM bcs_lpa_municipio WHERE id_municipio = ${id};`;
+}
+
+// =============================================================================
+// HU-TC-07: Veredas (bcs_lpa_vereda)
+// =============================================================================
+
+export type VeredaFull = {
+  idVereda: number;
+  nombreVereda: string;
+  codigoAdministrativo: string;
+  poblacionEstimada: number;
+  idMunicipio: number;
+  nombreMunicipio: string | null;
+  departamento: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  /** # de predios que dependen de esta vereda (pre-check eliminar). */
+  totalPredios: number;
+};
+
+type VeredaRow = {
+  id_vereda: number | string;
+  nombre_vereda: string;
+  codigo_administrativo: string;
+  poblacion_estimada: number | string;
+  id_municipio: number | string;
+  nombre_municipio: string | null;
+  departamento: string | null;
+  created_at: Date | string | null;
+  updated_at: Date | string | null;
+  total_predios: number | string;
+};
+
+function mapVeredaRow(r: VeredaRow): VeredaFull {
+  return {
+    idVereda: pgInt(r.id_vereda),
+    nombreVereda: pgText(r.nombre_vereda),
+    codigoAdministrativo: pgText(r.codigo_administrativo),
+    poblacionEstimada: pgInt(r.poblacion_estimada),
+    idMunicipio: pgInt(r.id_municipio),
+    nombreMunicipio: r.nombre_municipio ?? null,
+    departamento: r.departamento ?? null,
+    createdAt: pgDate(r.created_at),
+    updatedAt: pgDate(r.updated_at),
+    totalPredios: pgInt(r.total_predios),
+  };
+}
+
+export async function listVeredasFull(): Promise<VeredaFull[]> {
+  return withFallback("veredasFull", async () => {
+    const rows = await sql<VeredaRow[]>`
+      SELECT
+        v.id_vereda,
+        v.nombre_vereda,
+        v.codigo_administrativo,
+        v.poblacion_estimada,
+        v.id_municipio,
+        m.nombre_municipio,
+        m.departamento,
+        v.created_at,
+        v.updated_at,
+        COALESCE(p.cnt, 0)::int AS total_predios
+      FROM   bcs_lpa_vereda     v
+      JOIN   bcs_lpa_municipio  m ON m.id_municipio = v.id_municipio
+      LEFT JOIN (
+        SELECT id_vereda, COUNT(*) AS cnt
+        FROM   sgs_pre_predio
+        GROUP  BY id_vereda
+      ) p ON p.id_vereda = v.id_vereda
+      ORDER  BY m.nombre_municipio, v.nombre_vereda;
+    `;
+    return rows.map(mapVeredaRow);
+  }, []);
+}
+
+export async function getVeredaById(id: number): Promise<VeredaFull | null> {
+  const rows = await sql<VeredaRow[]>`
+    SELECT
+      v.id_vereda,
+      v.nombre_vereda,
+      v.codigo_administrativo,
+      v.poblacion_estimada,
+      v.id_municipio,
+      m.nombre_municipio,
+      m.departamento,
+      v.created_at,
+      v.updated_at,
+      COALESCE(p.cnt, 0)::int AS total_predios
+    FROM   bcs_lpa_vereda     v
+    JOIN   bcs_lpa_municipio  m ON m.id_municipio = v.id_municipio
+    LEFT JOIN (
+      SELECT id_vereda, COUNT(*) AS cnt
+      FROM   sgs_pre_predio
+      GROUP  BY id_vereda
+    ) p ON p.id_vereda = v.id_vereda
+    WHERE  v.id_vereda = ${id}
+    LIMIT  1;
+  `;
+  return rows[0] ? mapVeredaRow(rows[0]) : null;
+}
+
+export type VeredaInput = {
+  nombreVereda: string;
+  codigoAdministrativo: string;
+  poblacionEstimada?: number;
+  idMunicipio: number;
+};
+
+export async function crearVereda(input: VeredaInput): Promise<VeredaFull> {
+  if (input.nombreVereda.length < 2 || input.nombreVereda.length > 255) {
+    throw new Error("nombreVereda debe tener entre 2 y 255 caracteres");
+  }
+  if (input.codigoAdministrativo.length < 1 || input.codigoAdministrativo.length > 50) {
+    throw new Error("codigoAdministrativo debe tener entre 1 y 50 caracteres");
+  }
+  if (input.poblacionEstimada !== undefined && input.poblacionEstimada < 0) {
+    throw new Error("poblacionEstimada debe ser >= 0");
+  }
+  const rows = await sql<{ id_vereda: number | string }[]>`
+    INSERT INTO bcs_lpa_vereda (nombre_vereda, codigo_administrativo, poblacion_estimada, id_municipio)
+    VALUES (
+      ${input.nombreVereda},
+      ${input.codigoAdministrativo},
+      ${input.poblacionEstimada ?? 0},
+      ${input.idMunicipio}
+    )
+    ON CONFLICT (id_municipio, nombre_vereda) DO UPDATE
+      SET codigo_administrativo = EXCLUDED.codigo_administrativo
+    RETURNING id_vereda;
+  `;
+  if (!rows[0]) throw new Error("Insert/upsert de vereda fallido");
+  const fresh = await getVeredaById(pgInt(rows[0].id_vereda));
+  if (!fresh) throw new Error("Vereda no se puede releer tras upsert");
+  return fresh;
+}
+
+export async function actualizarVereda(
+  id: number,
+  input: VeredaInput,
+): Promise<void> {
+  if (input.nombreVereda.length < 2 || input.nombreVereda.length > 255) {
+    throw new Error("nombreVereda debe tener entre 2 y 255 caracteres");
+  }
+  if (input.codigoAdministrativo.length < 1 || input.codigoAdministrativo.length > 50) {
+    throw new Error("codigoAdministrativo debe tener entre 1 y 50 caracteres");
+  }
+  if (input.poblacionEstimada !== undefined && input.poblacionEstimada < 0) {
+    throw new Error("poblacionEstimada debe ser >= 0");
+  }
+  await sql`
+    UPDATE bcs_lpa_vereda
+    SET    nombre_vereda          = ${input.nombreVereda},
+           codigo_administrativo  = ${input.codigoAdministrativo},
+           poblacion_estimada     = ${input.poblacionEstimada ?? 0},
+           id_municipio           = ${input.idMunicipio}
+    WHERE  id_vereda = ${id};
+  `;
+}
+
+export async function eliminarVereda(id: number): Promise<void> {
+  const check = await sql<{ predios: number | string }[]>`
+    SELECT COUNT(*)::int AS predios
+    FROM   sgs_pre_predio
+    WHERE  id_vereda = ${id};
+  `;
+  const predios = pgInt(check[0]?.predios);
+  if (predios > 0) {
+    throw new Error(
+      `No se puede eliminar: hay ${predios} predio(s) en esta vereda. ` +
+      `Reasignalos a otra vereda primero.`,
+    );
+  }
+  await sql`DELETE FROM bcs_lpa_vereda WHERE id_vereda = ${id};`;
+}
+
+// =============================================================================
+// HU-TC-08: Propietarios (sgs_pre_propietario)
+// =============================================================================
+
+export type PropietarioFull = {
+  idPropietario: number;
+  nombreRazonSocial: string;
+  telefono: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  /** # de predios que dependen de este propietario (pre-check eliminar). */
+  totalPredios: number;
+};
+
+type PropietarioRow = {
+  id_propietario: number | string;
+  nombre_razon_social: string;
+  telefono: string;
+  created_at: Date | string | null;
+  updated_at: Date | string | null;
+  total_predios: number | string;
+};
+
+function mapPropietarioRow(r: PropietarioRow): PropietarioFull {
+  return {
+    idPropietario: pgInt(r.id_propietario),
+    nombreRazonSocial: pgText(r.nombre_razon_social),
+    telefono: pgText(r.telefono),
+    createdAt: pgDate(r.created_at),
+    updatedAt: pgDate(r.updated_at),
+    totalPredios: pgInt(r.total_predios),
+  };
+}
+
+export async function listPropietariosFull(): Promise<PropietarioFull[]> {
+  return withFallback("propietariosFull", async () => {
+    const rows = await sql<PropietarioRow[]>`
+      SELECT
+        p.id_propietario,
+        p.nombre_razon_social,
+        p.telefono,
+        p.created_at,
+        p.updated_at,
+        COALESCE(pr.cnt, 0)::int AS total_predios
+      FROM   sgs_pre_propietario p
+      LEFT JOIN (
+        SELECT id_propietario, COUNT(*) AS cnt
+        FROM   sgs_pre_predio
+        GROUP  BY id_propietario
+      ) pr ON pr.id_propietario = p.id_propietario
+      ORDER  BY p.nombre_razon_social;
+    `;
+    return rows.map(mapPropietarioRow);
+  }, []);
+}
+
+export async function getPropietarioById(id: number): Promise<PropietarioFull | null> {
+  const rows = await sql<PropietarioRow[]>`
+    SELECT
+      p.id_propietario,
+      p.nombre_razon_social,
+      p.telefono,
+      p.created_at,
+      p.updated_at,
+      COALESCE(pr.cnt, 0)::int AS total_predios
+    FROM   sgs_pre_propietario p
+    LEFT JOIN (
+      SELECT id_propietario, COUNT(*) AS cnt
+      FROM   sgs_pre_predio
+      GROUP  BY id_propietario
+    ) pr ON pr.id_propietario = p.id_propietario
+    WHERE  p.id_propietario = ${id}
+    LIMIT  1;
+  `;
+  return rows[0] ? mapPropietarioRow(rows[0]) : null;
+}
+
+export type PropietarioInput = {
+  nombreRazonSocial: string;
+  telefono?: string;
+};
+
+export async function crearPropietario(input: PropietarioInput): Promise<PropietarioFull> {
+  if (input.nombreRazonSocial.length < 2 || input.nombreRazonSocial.length > 255) {
+    throw new Error("nombreRazonSocial debe tener entre 2 y 255 caracteres");
+  }
+  if (input.telefono !== undefined && input.telefono.length > 0 && !isValidTelefono(input.telefono)) {
+    throw new Error("telefono invalido (7-20 chars, permite digitos, espacios, guiones, + y ())");
+  }
+  const telefono = input.telefono ?? "";
+  const rows = await sql<{ id_propietario: number | string }[]>`
+    INSERT INTO sgs_pre_propietario (nombre_razon_social, telefono)
+    VALUES (${input.nombreRazonSocial}, ${telefono})
+    ON CONFLICT (nombre_razon_social) DO UPDATE
+      SET telefono = EXCLUDED.telefono
+    RETURNING id_propietario;
+  `;
+  if (!rows[0]) throw new Error("Insert/upsert de propietario fallido");
+  const fresh = await getPropietarioById(pgInt(rows[0].id_propietario));
+  if (!fresh) throw new Error("Propietario no se puede releer tras upsert");
+  return fresh;
+}
+
+export async function actualizarPropietario(
+  id: number,
+  input: PropietarioInput,
+): Promise<void> {
+  if (input.nombreRazonSocial.length < 2 || input.nombreRazonSocial.length > 255) {
+    throw new Error("nombreRazonSocial debe tener entre 2 y 255 caracteres");
+  }
+  if (input.telefono !== undefined && input.telefono.length > 0 && !isValidTelefono(input.telefono)) {
+    throw new Error("telefono invalido (7-20 chars, permite digitos, espacios, guiones, + y ())");
+  }
+  const telefono = input.telefono ?? "";
+  await sql`
+    UPDATE sgs_pre_propietario
+    SET    nombre_razon_social = ${input.nombreRazonSocial},
+           telefono            = ${telefono}
+    WHERE  id_propietario = ${id};
+  `;
+}
+
+export async function eliminarPropietario(id: number): Promise<void> {
+  const check = await sql<{ predios: number | string }[]>`
+    SELECT COUNT(*)::int AS predios
+    FROM   sgs_pre_predio
+    WHERE  id_propietario = ${id};
+  `;
+  const predios = pgInt(check[0]?.predios);
+  if (predios > 0) {
+    throw new Error(
+      `No se puede eliminar: hay ${predios} predio(s) asociado(s) a este propietario. ` +
+      `Reasignalos a otro propietario primero.`,
+    );
+  }
+  await sql`DELETE FROM sgs_pre_propietario WHERE id_propietario = ${id};`;
+}
+
+// =============================================================================
+// HU-TC-09: Microcuencas (bcs_dh_microcuenca)
+// =============================================================================
+
+export type MicrocuencaFull = {
+  idMicrocuenca: number;
+  nombreMicrocuenca: string;
+  codigo: string;
+  area: number;
+  latitud: number;
+  longitud: number;
+  nombreUsuarios: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  /** # de quebradas que dependen de esta microcuenca (pre-check eliminar). */
+  totalQuebradas: number;
+};
+
+type MicrocuencaRow = {
+  id_microcuenca: number | string;
+  nombre_microcuenca: string;
+  codigo: string;
+  area: number | string;
+  latitud: number | string;
+  longitud: number | string;
+  nombre_usuarios: string;
+  created_at: Date | string | null;
+  updated_at: Date | string | null;
+  total_quebradas: number | string;
+};
+
+function mapMicrocuencaRow(r: MicrocuencaRow): MicrocuencaFull {
+  return {
+    idMicrocuenca: pgInt(r.id_microcuenca),
+    nombreMicrocuenca: pgText(r.nombre_microcuenca),
+    codigo: pgText(r.codigo),
+    area: pgNum(r.area),
+    latitud: pgNum(r.latitud),
+    longitud: pgNum(r.longitud),
+    nombreUsuarios: pgText(r.nombre_usuarios),
+    createdAt: pgDate(r.created_at),
+    updatedAt: pgDate(r.updated_at),
+    totalQuebradas: pgInt(r.total_quebradas),
+  };
+}
+
+export async function listMicrocuencasFull(): Promise<MicrocuencaFull[]> {
+  return withFallback("microcuencasFull", async () => {
+    const rows = await sql<MicrocuencaRow[]>`
+      SELECT
+        mc.id_microcuenca,
+        mc.nombre_microcuenca,
+        mc.codigo,
+        mc.area,
+        mc.latitud,
+        mc.longitud,
+        mc.nombre_usuarios,
+        mc.created_at,
+        mc.updated_at,
+        COALESCE(q.cnt, 0)::int AS total_quebradas
+      FROM   bcs_dh_microcuenca mc
+      LEFT JOIN (
+        SELECT id_microcuenca, COUNT(*) AS cnt
+        FROM   bcs_dh_quebrada
+        GROUP  BY id_microcuenca
+      ) q ON q.id_microcuenca = mc.id_microcuenca
+      ORDER  BY mc.nombre_microcuenca;
+    `;
+    return rows.map(mapMicrocuencaRow);
+  }, []);
+}
+
+export async function getMicrocuencaById(id: number): Promise<MicrocuencaFull | null> {
+  const rows = await sql<MicrocuencaRow[]>`
+    SELECT
+      mc.id_microcuenca,
+      mc.nombre_microcuenca,
+      mc.codigo,
+      mc.area,
+      mc.latitud,
+      mc.longitud,
+      mc.nombre_usuarios,
+      mc.created_at,
+      mc.updated_at,
+      COALESCE(q.cnt, 0)::int AS total_quebradas
+    FROM   bcs_dh_microcuenca mc
+    LEFT JOIN (
+      SELECT id_microcuenca, COUNT(*) AS cnt
+      FROM   bcs_dh_quebrada
+      GROUP  BY id_microcuenca
+    ) q ON q.id_microcuenca = mc.id_microcuenca
+    WHERE  mc.id_microcuenca = ${id}
+    LIMIT  1;
+  `;
+  return rows[0] ? mapMicrocuencaRow(rows[0]) : null;
+}
+
+export type MicrocuencaInput = {
+  nombreMicrocuenca: string;
+  codigo: string;
+  area?: number;
+  latitud?: number;
+  longitud?: number;
+  nombreUsuarios?: string;
+};
+
+export async function crearMicrocuenca(input: MicrocuencaInput): Promise<MicrocuencaFull> {
+  if (input.nombreMicrocuenca.length < 2 || input.nombreMicrocuenca.length > 255) {
+    throw new Error("nombreMicrocuenca debe tener entre 2 y 255 caracteres");
+  }
+  if (input.codigo.length < 1 || input.codigo.length > 50) {
+    throw new Error("codigo debe tener entre 1 y 50 caracteres");
+  }
+  const rows = await sql<{ id_microcuenca: number | string }[]>`
+    INSERT INTO bcs_dh_microcuenca (nombre_microcuenca, codigo, area, latitud, longitud, nombre_usuarios)
+    VALUES (
+      ${input.nombreMicrocuenca},
+      ${input.codigo},
+      ${input.area ?? 0},
+      ${input.latitud ?? 0},
+      ${input.longitud ?? 0},
+      ${input.nombreUsuarios ?? "N/A"}
+    )
+    ON CONFLICT (codigo) DO UPDATE
+      SET nombre_microcuenca = EXCLUDED.nombre_microcuenca
+    RETURNING id_microcuenca;
+  `;
+  if (!rows[0]) throw new Error("Insert/upsert de microcuenca fallido");
+  const fresh = await getMicrocuencaById(pgInt(rows[0].id_microcuenca));
+  if (!fresh) throw new Error("Microcuenca no se puede releer tras upsert");
+  return fresh;
+}
+
+export async function actualizarMicrocuenca(
+  id: number,
+  input: MicrocuencaInput,
+): Promise<void> {
+  if (input.nombreMicrocuenca.length < 2 || input.nombreMicrocuenca.length > 255) {
+    throw new Error("nombreMicrocuenca debe tener entre 2 y 255 caracteres");
+  }
+  if (input.codigo.length < 1 || input.codigo.length > 50) {
+    throw new Error("codigo debe tener entre 1 y 50 caracteres");
+  }
+  await sql`
+    UPDATE bcs_dh_microcuenca
+    SET    nombre_microcuenca  = ${input.nombreMicrocuenca},
+           codigo              = ${input.codigo},
+           area                = ${input.area ?? 0},
+           latitud             = ${input.latitud ?? 0},
+           longitud            = ${input.longitud ?? 0},
+           nombre_usuarios     = ${input.nombreUsuarios ?? "N/A"}
+    WHERE  id_microcuenca = ${id};
+  `;
+}
+
+export async function eliminarMicrocuenca(id: number): Promise<void> {
+  const check = await sql<{ quebradas: number | string }[]>`
+    SELECT COUNT(*)::int AS quebradas
+    FROM   bcs_dh_quebrada
+    WHERE  id_microcuenca = ${id};
+  `;
+  const quebradas = pgInt(check[0]?.quebradas);
+  if (quebradas > 0) {
+    throw new Error(
+      `No se puede eliminar: hay ${quebradas} quebrada(s) asociada(s) a esta microcuenca. ` +
+      `Reasignalas a otra microcuenca primero.`,
+    );
+  }
+  await sql`DELETE FROM bcs_dh_microcuenca WHERE id_microcuenca = ${id};`;
+}
+
+// =============================================================================
+// HU-TC-10: Beneficiarios (sgs_pre_usuario)
+//
+// Cubre la ficha /catalogos (CRUD con UNIQUE amable) y reemplaza al viejo
+// crearBeneficiario() usado por el flujo de monitoreo. Ahora devuelve
+// BeneficiarioFull (con createdAt/updatedAt y contador de relaciones).
+// =============================================================================
+
+export type BeneficiarioFull = {
+  idUsuario: number;
+  nombre: string;
+  telefono: string;
+  vereda: string;
+  municipio: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  /** # de relaciones sgs_rel_propuesta_punto_usuario (pre-check eliminar). */
+  totalRelaciones: number;
+};
+
+type BeneficiarioRow = {
+  id_usuario: number | string;
+  nombre: string;
+  telefono: string;
+  vereda: string;
+  municipio: string;
+  created_at: Date | string | null;
+  updated_at: Date | string | null;
+  total_relaciones: number | string;
+};
+
+function mapBeneficiarioRow(r: BeneficiarioRow): BeneficiarioFull {
   return {
     idUsuario: pgInt(r.id_usuario),
     nombre: pgText(r.nombre),
     telefono: pgText(r.telefono),
     vereda: pgText(r.vereda),
     municipio: pgText(r.municipio),
+    createdAt: pgDate(r.created_at),
+    updatedAt: pgDate(r.updated_at),
+    totalRelaciones: pgInt(r.total_relaciones),
   };
+}
+
+export async function listBeneficiariosFull(): Promise<BeneficiarioFull[]> {
+  return withFallback("beneficiariosFull", async () => {
+    const rows = await sql<BeneficiarioRow[]>`
+      SELECT
+        u.id_usuario,
+        u.nombre,
+        u.telefono,
+        u.vereda,
+        u.municipio,
+        u.created_at,
+        u.updated_at,
+        COALESCE(r.cnt, 0)::int AS total_relaciones
+      FROM   sgs_pre_usuario u
+      LEFT JOIN (
+        SELECT id_usuario, COUNT(*) AS cnt
+        FROM   sgs_rel_propuesta_punto_usuario
+        GROUP  BY id_usuario
+      ) r ON r.id_usuario = u.id_usuario
+      ORDER  BY u.nombre;
+    `;
+    return rows.map(mapBeneficiarioRow);
+  }, []);
+}
+
+export async function getBeneficiarioById(id: number): Promise<BeneficiarioFull | null> {
+  const rows = await sql<BeneficiarioRow[]>`
+    SELECT
+      u.id_usuario,
+      u.nombre,
+      u.telefono,
+      u.vereda,
+      u.municipio,
+      u.created_at,
+      u.updated_at,
+      COALESCE(r.cnt, 0)::int AS total_relaciones
+    FROM   sgs_pre_usuario u
+    LEFT JOIN (
+      SELECT id_usuario, COUNT(*) AS cnt
+      FROM   sgs_rel_propuesta_punto_usuario
+      GROUP  BY id_usuario
+    ) r ON r.id_usuario = u.id_usuario
+    WHERE  u.id_usuario = ${id}
+    LIMIT  1;
+  `;
+  return rows[0] ? mapBeneficiarioRow(rows[0]) : null;
+}
+
+export type BeneficiarioInput = {
+  nombre: string;
+  telefono?: string;
+  vereda?: string;
+  municipio?: string;
+};
+
+/**
+ * crearBeneficiario — UPSERT amable con ON CONFLICT (nombre, telefono).
+ *
+ * IMPORTANTE: si `telefono` viene vacio, NO se puede aplicar ON CONFLICT
+ * (la PK del UNIQUE lo incluye). Devolvemos error explicito para que la
+ * UI pida un telefono no-vacio.
+ *
+ * Reemplaza la version anterior (de HU-MO) que retornaba BeneficiarioMini.
+ * Quien la use sigue recibiendo idUsuario/nombre (compatible hacia atras).
+ */
+export async function crearBeneficiario(input: BeneficiarioInput): Promise<BeneficiarioFull> {
+  if (input.nombre.length < 2 || input.nombre.length > 255) {
+    throw new Error("nombre debe tener entre 2 y 255 caracteres");
+  }
+  const telefono = input.telefono ?? "";
+  if (telefono.length > 0 && !isValidTelefono(telefono)) {
+    throw new Error("telefono invalido (7-20 chars, permite digitos, espacios, guiones, + y ())");
+  }
+  if (telefono.length === 0) {
+    throw new Error(
+      "telefono es obligatorio para beneficiario (el UNIQUE (nombre, telefono) lo requiere)",
+    );
+  }
+  const vereda = input.vereda ?? "";
+  const municipio = input.municipio ?? "";
+
+  const rows = await sql<{ id_usuario: number | string }[]>`
+    INSERT INTO sgs_pre_usuario (nombre, telefono, vereda, municipio)
+    VALUES (${input.nombre}, ${telefono}, ${vereda}, ${municipio})
+    ON CONFLICT (nombre, telefono) DO UPDATE
+      SET vereda = EXCLUDED.vereda,
+          municipio = EXCLUDED.municipio
+    RETURNING id_usuario;
+  `;
+  if (!rows[0]) throw new Error("Insert/upsert de beneficiario fallido");
+  const fresh = await getBeneficiarioById(pgInt(rows[0].id_usuario));
+  if (!fresh) throw new Error("Beneficiario no se puede releer tras upsert");
+  return fresh;
+}
+
+export async function actualizarBeneficiario(
+  id: number,
+  input: BeneficiarioInput,
+): Promise<void> {
+  if (input.nombre.length < 2 || input.nombre.length > 255) {
+    throw new Error("nombre debe tener entre 2 y 255 caracteres");
+  }
+  const telefono = input.telefono ?? "";
+  if (telefono.length > 0 && !isValidTelefono(telefono)) {
+    throw new Error("telefono invalido (7-20 chars, permite digitos, espacios, guiones, + y ())");
+  }
+  await sql`
+    UPDATE sgs_pre_usuario
+    SET    nombre    = ${input.nombre},
+           telefono  = ${telefono},
+           vereda    = ${input.vereda ?? ""},
+           municipio = ${input.municipio ?? ""}
+    WHERE  id_usuario = ${id};
+  `;
+}
+
+export async function eliminarBeneficiario(id: number): Promise<void> {
+  const check = await sql<{ relaciones: number | string }[]>`
+    SELECT COUNT(*)::int AS relaciones
+    FROM   sgs_rel_propuesta_punto_usuario
+    WHERE  id_usuario = ${id};
+  `;
+  const relaciones = pgInt(check[0]?.relaciones);
+  if (relaciones > 0) {
+    throw new Error(
+      `No se puede eliminar: el beneficiario esta asociado a ${relaciones} punto(s) de monitoreo. ` +
+      `Desasocialo primero.`,
+    );
+  }
+  await sql`DELETE FROM sgs_pre_usuario WHERE id_usuario = ${id};`;
 }
