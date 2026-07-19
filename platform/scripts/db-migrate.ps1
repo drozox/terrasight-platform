@@ -20,7 +20,8 @@ $ordered = @(
     "02-datos-ejemplo.sql",
     "03-auth-schema.sql",
     "04-intervencion-estado.sql",
-    "05-catalogos-unique.sql"
+    "05-catalogos-unique.sql",
+    "06-propuesta-avance.sql"
 )
 
 foreach ($file in $ordered) {
