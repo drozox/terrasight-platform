@@ -6,6 +6,9 @@
 # 02: datos de ejemplo
 # 03: auth-schema (admin/usuarios/auditoria)
 # 04: intervencion-estado
+# 05: catalogos-unique
+# 06: propuesta-avance
+# 07: monitoreo-punto (HU-MO-01..03)
 # Cualquier NN.sql futuro se puede agregar a esta lista manualmente.
 # =============================================================================
 
@@ -21,7 +24,8 @@ $ordered = @(
     "03-auth-schema.sql",
     "04-intervencion-estado.sql",
     "05-catalogos-unique.sql",
-    "06-propuesta-avance.sql"
+    "06-propuesta-avance.sql",
+    "07-monitoreo-punto.sql"
 )
 
 foreach ($file in $ordered) {
