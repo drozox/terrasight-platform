@@ -198,7 +198,9 @@ export function IntervencionDetail({
         <h2 className="mb-4 text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
           Histórico de avances
         </h2>
-        <Timeline avances={initial.avances} />
+        {/* Excluimos el backfill (migración 06) para no mostrar el evento
+            "Backfill inicial (migración 06)" como primera entrada. */}
+        <Timeline avances={initial.avances.filter((a) => !a.esBackfill)} />
       </Card>
     </div>
   );

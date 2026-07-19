@@ -154,17 +154,38 @@ export default async function IntervencionesPage({
                       />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-outline-variant/30">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${i.avance}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] font-mono">
-                          {formatDecimal(i.avance, 0)}%
+                      {i.avance === null || i.avance === undefined ? (
+                        <span
+                          className="inline-flex items-center rounded-full border border-dashed border-outline-variant px-2 py-0.5 text-[10px] font-mono text-on-surface-variant"
+                          title="Esta propuesta no tiene un evento de avance registrado por un gestor."
+                        >
+                          Avance no registrado
                         </span>
-                      </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2">
+                          <div
+                            className="h-1.5 w-20 overflow-hidden rounded-full bg-outline-variant/30"
+                            role="progressbar"
+                            aria-valuenow={i.avance}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                          >
+                            <div
+                              className={`h-full rounded-full ${
+                                i.avance >= 80
+                                  ? "bg-success"
+                                  : i.avance >= 50
+                                    ? "bg-primary"
+                                    : "bg-warning"
+                              }`}
+                              style={{ width: `${i.avance}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-mono">
+                            {formatDecimal(i.avance, 0)}%
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link

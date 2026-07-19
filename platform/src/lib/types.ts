@@ -39,7 +39,13 @@ export interface IntervencionReciente {
   accion: string;
   hectareas: number | null;
   longitud: number | null;
-  avance: number;
+  /**
+   * Porcentaje de avance real (0-100) o `null` si la propuesta no tiene
+   * ningún evento manual registrado. La UI muestra "Avance no registrado"
+   * cuando es `null` y una barra con color según el threshold cuando hay
+   * valor.
+   */
+  avance: number | null;
   estado: "En ejecución" | "Finalizada" | "Pendiente";
 }
 

@@ -25,17 +25,24 @@ export function AvanceForm({
   onError,
 }: {
   idPropuesta: number;
-  avanceActual: number;
+  /**
+   * Porcentaje de avance real actual, o `null` si la propuesta no tiene
+   * ningún evento manual registrado. La UI muestra "Avance no registrado"
+   * en ese caso.
+   */
+  avanceActual: number | null;
   canEdit: boolean;
   onUpdate: (msg: string) => void;
   onError: (msg: string) => void;
 }) {
-  const [pct, setPct] = React.useState<number>(avanceActual);
+  // Si no hay avance real, arrancamos el slider en 0. El plan lo dice
+  // explícitamente: "useEffect(() => setPct(avanceActual ?? 0), [avanceActual])".
+  const [pct, setPct] = React.useState<number>(avanceActual ?? 0);
   const [busy, setBusy] = React.useState(false);
 
   // Re-sincronizar el slider si la propuesta cambia de % (router.refresh).
   React.useEffect(() => {
-    setPct(avanceActual);
+    setPct(avanceActual ?? 0);
   }, [avanceActual]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -51,6 +58,8 @@ export function AvanceForm({
     else onError(res.message);
   }
 
+  const sinAvance = avanceActual === null || avanceActual === undefined;
+
   // ---- Modo lectura ----
   if (!canEdit) {
     return (
@@ -60,16 +69,32 @@ export function AvanceForm({
             <p className="text-[11px] font-bold uppercase text-on-surface-variant">
               Avance actual
             </p>
-            <p className="font-mono text-4xl font-bold text-primary">
-              {pct}%
-            </p>
+            {sinAvance ? (
+              <p className="font-mono text-2xl font-bold text-on-surface-variant">
+                Avance no registrado
+              </p>
+            ) : (
+              <p className="font-mono text-4xl font-bold text-primary">
+                {pct}%
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-1 text-[11px] text-on-surface-variant">
             <Lock className="size-3" />
             Solo lectura
           </div>
         </div>
-        <ProgressBar pct={pct} />
+        {sinAvance ? (
+          <div
+            className="h-2 w-full rounded-full border border-dashed border-outline-variant"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            title="Esta propuesta no tiene un evento de avance registrado por un gestor."
+          />
+        ) : (
+          <ProgressBar pct={pct} />
+        )}
       </div>
     );
   }
@@ -82,7 +107,13 @@ export function AvanceForm({
           <p className="text-[11px] font-bold uppercase text-on-surface-variant">
             Avance actual
           </p>
-          <p className="font-mono text-4xl font-bold text-primary">{pct}%</p>
+          {sinAvance ? (
+            <p className="font-mono text-2xl font-bold text-on-surface-variant">
+              Avance no registrado
+            </p>
+          ) : (
+            <p className="font-mono text-4xl font-bold text-primary">{pct}%</p>
+          )}
         </div>
         <div className="hidden text-right sm:block">
           <p className="text-[11px] font-bold uppercase text-on-surface-variant">
@@ -92,7 +123,14 @@ export function AvanceForm({
         </div>
       </div>
 
-      <ProgressBar pct={pct} />
+      {sinAvance ? (
+        <div
+          className="h-2 w-full rounded-full border border-dashed border-outline-variant"
+          title="Esta propuesta no tiene un evento de avance registrado por un gestor."
+        />
+      ) : (
+        <ProgressBar pct={pct} />
+      )}
 
       <label className="block">
         <span className="mb-1 block text-label-lg font-medium text-on-surface">
@@ -164,7 +202,13 @@ function ProgressBar({ pct }: { pct: number }) {
       aria-valuemax={100}
     >
       <div
-        className="h-full rounded-full bg-primary transition-[width] duration-300"
+        className={`h-full rounded-full transition-[width] duration-300 ${
+          clamped >= 80
+            ? "bg-success"
+            : clamped >= 50
+              ? "bg-primary"
+              : "bg-warning"
+        }`}
         style={{ width: `${clamped}%` }}
       />
     </div>

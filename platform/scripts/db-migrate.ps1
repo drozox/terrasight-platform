@@ -11,6 +11,8 @@
 # 07: monitoreo-punto (HU-MO-01..03)
 # 08: cat-secundarios (HU-TC-06..10: municipios, veredas, propietarios,
 #     microcuencas, beneficiarios)
+# 09: propuesta-avance-es-backfill (marca el backfill de la 06 para que las
+#     queries de "último avance real" puedan filtrarlo).
 # Cualquier NN.sql futuro se puede agregar a esta lista manualmente.
 # =============================================================================
 
@@ -28,7 +30,8 @@ $ordered = @(
     "05-catalogos-unique.sql",
     "06-propuesta-avance.sql",
     "07-monitoreo-punto.sql",
-    "08-cat-secundarios.sql"
+    "08-cat-secundarios.sql",
+    "09-propuesta-avance-es-backfill.sql"
 )
 
 foreach ($file in $ordered) {

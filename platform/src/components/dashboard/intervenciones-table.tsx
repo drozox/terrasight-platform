@@ -80,17 +80,40 @@ export function IntervencionesTable({
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-outline-variant/30">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${r.avance}%` }}
-                    />
-                  </div>
-                  <span className="mt-1 block text-[10px] text-on-surface-variant">
-                    {formatDecimal(r.avance, 0)}%
-                    {r.hectareas !== null && ` · ${formatDecimal(r.hectareas, 2)} ha`}
-                    {r.longitud !== null && ` · ${formatDecimal(r.longitud, 0)} m`}
-                  </span>
+                  {r.avance === null || r.avance === undefined ? (
+                    <span
+                      className="inline-flex items-center rounded-full border border-dashed border-outline-variant px-2 py-0.5 text-[10px] font-mono text-on-surface-variant"
+                      title="Esta propuesta no tiene un evento de avance registrado por un gestor."
+                    >
+                      Avance no registrado
+                    </span>
+                  ) : (
+                    <>
+                      <div
+                        className="h-1.5 w-full overflow-hidden rounded-full bg-outline-variant/30"
+                        role="progressbar"
+                        aria-valuenow={r.avance}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                      >
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            r.avance >= 80
+                              ? "bg-success"
+                              : r.avance >= 50
+                                ? "bg-primary"
+                                : "bg-warning"
+                          }`}
+                          style={{ width: `${r.avance}%` }}
+                        />
+                      </div>
+                      <span className="mt-1 block text-[10px] text-on-surface-variant">
+                        {formatDecimal(r.avance, 0)}%
+                        {r.hectareas !== null && ` · ${formatDecimal(r.hectareas, 2)} ha`}
+                        {r.longitud !== null && ` · ${formatDecimal(r.longitud, 0)} m`}
+                      </span>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

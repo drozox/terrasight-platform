@@ -232,12 +232,8 @@ export async function getIntervencionesRecientes(
       a.nombre                                                     AS nombre_accion,
       pol.area_ha                                                  AS hectareas,
       pl.longitud_m                                                AS longitud,
-      CASE
-        WHEN pp.tipo = 'punto'    THEN 20
-        WHEN pp.tipo = 'linea'    THEN 75
-        WHEN pp.tipo = 'poligono' THEN 100
-      END                                                          AS avance,
-      pp.estado                                                     AS estado
+      av.avance_pct                                                AS avance,
+      pp.estado                                                    AS estado
     FROM sgs_pro_propuesta pp
     JOIN sgs_pre_predio pr   ON pr.id_predio = pp.id_predio
     JOIN sgs_com_accion a    ON a.id_accion  = pp.id_accion
@@ -246,12 +242,20 @@ export async function getIntervencionesRecientes(
     LEFT JOIN bcs_lpa_municipio m  ON m.id_municipio     = v.id_municipio
     LEFT JOIN sgs_pro_propuesta_linea    pl  ON pl.id_propuesta = pp.id_propuesta
     LEFT JOIN sgs_pro_propuesta_poligono  pol ON pol.id_propuesta = pp.id_propuesta
+    LEFT JOIN LATERAL (
+      SELECT av2.avance_pct
+      FROM   sgs_pro_propuesta_avance av2
+      WHERE  av2.id_propuesta = pp.id_propuesta
+        AND  av2.es_backfill = FALSE
+      ORDER  BY av2.created_at DESC, av2.id_avance DESC
+      LIMIT  1
+    ) av ON true
     ${componente ? sql`WHERE c.nombre = ${componente}` : sql``}
     ORDER BY pp.id_propuesta ASC
     LIMIT ${limit};
   `;
   return rows.map((r) => {
-    const avance = pgInt(r.avance);
+    const avance = r.avance === null || r.avance === undefined ? null : pgInt(r.avance);
     const dbEstado = pgText(r.estado);
     const estado: EstadoIntervencion =
       dbEstado === "Pendiente" || dbEstado === "Finalizada" ? dbEstado : "En ejecución";
@@ -2478,6 +2482,13 @@ export type AvancePropuesta = {
   nota: string;
   idUsuario: number | null;
   autorEmail: string | null;
+  /**
+   * TRUE si la fila fue sembrada por el backfill de la migración 06
+   * (valores 20/75/100 derivados del tipo). Las queries de "último avance
+   * real" filtran `WHERE es_backfill = FALSE`; el Timeline oculta estas
+   * filas para no mostrar "Backfill inicial" como primer evento.
+   */
+  esBackfill: boolean;
   createdAt: Date;
 };
 
@@ -2518,7 +2529,12 @@ type IntervencionCompletaBase = {
   accion: { id: number; nombre: string; componente: string } | null;
   quebrada: { id: number; nombre: string } | null;
   // Avance (HU-IC-04)
-  avancePctActual: number;
+  /**
+   * Porcentaje de avance real del último evento manual, o `null` si la
+   * propuesta no tiene ningún evento registrado. La UI distingue ambos
+   * casos ("Avance no registrado" vs barra con %).
+   */
+  avancePctActual: number | null;
   avances: AvancePropuesta[];
 };
 
@@ -2549,11 +2565,47 @@ function parseGeoJSON<T>(raw: unknown, label: string): T | null {
   }
 }
 
-function avancePctPorTipo(tipo: string): number {
-  if (tipo === "punto") return 20;
-  if (tipo === "linea") return 75;
-  if (tipo === "poligono") return 100;
-  return 0;
+// -----------------------------------------------------------------------------
+// getUltimoAvanceReal — devuelve el último evento de avance **NO** marcado
+// como backfill para una propuesta. Devuelve `null` si la propuesta no
+// tiene ningún evento manual. Reutilizado por queries que necesitan el
+// avance real (no el ficticio del backfill de la migración 06).
+// -----------------------------------------------------------------------------
+async function getUltimoAvanceReal(
+  idPropuesta: number,
+): Promise<AvancePropuesta | null> {
+  const rows = await sql<{
+    id_avance: number | string;
+    id_propuesta: number | string;
+    avance_pct: number | string;
+    nota: string;
+    id_usuario: number | string | null;
+    autor_email: string | null;
+    es_backfill: boolean | string;
+    created_at: Date | string;
+  }[]>`
+    SELECT av.id_avance, av.id_propuesta, av.avance_pct, av.nota,
+           av.id_usuario, autor.email AS autor_email,
+           av.es_backfill, av.created_at
+    FROM   sgs_pro_propuesta_avance av
+    LEFT JOIN sgs_adm_usuario autor ON autor.id_usuario = av.id_usuario
+    WHERE  av.id_propuesta = ${idPropuesta}
+      AND  av.es_backfill = FALSE
+    ORDER  BY av.created_at DESC, av.id_avance DESC
+    LIMIT  1;
+  `;
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    idAvance: pgInt(r.id_avance),
+    idPropuesta: pgInt(r.id_propuesta),
+    avancePct: pgInt(r.avance_pct),
+    nota: pgText(r.nota),
+    idUsuario: r.id_usuario == null ? null : pgInt(r.id_usuario),
+    autorEmail: r.autor_email,
+    esBackfill: r.es_backfill === true || r.es_backfill === "t" || r.es_backfill === "true",
+    createdAt: new Date(pgText(r.created_at)),
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -2678,8 +2730,12 @@ export async function getIntervencionCompleta(
   const [avances, geomRows] = await Promise.all([avancesPromise, geomPromise]);
   const geomRow = geomRows[0] ?? null;
 
-  // Avance actual: el del último registro, o el derivado del tipo si no hay.
-  const avancePctActual = avances.length > 0 ? avances[0]!.avancePct : avancePctPorTipo(tipo);
+  // Avance actual: el del último registro (excluyendo backfill), o `null`
+  // si la propuesta no tiene ningún evento manual. Sin COALESCE: queremos
+  // que la UI distinga "no registrado" de "0%".
+  const avancesReales = avances.filter((a) => !a.esBackfill);
+  const avancePctActual =
+    avancesReales.length > 0 ? avancesReales[0]!.avancePct : null;
 
   // Armamos el sub-objeto `geom` según tipo.
   let geom: PuntoGeom | LineaGeom | PoligonoGeom | null = null;
@@ -2757,6 +2813,9 @@ export async function getIntervencionCompleta(
 
 // -----------------------------------------------------------------------------
 // listAvancesByPropuesta — histórico ordenado DESC.
+// Incluye TODAS las filas (incluyendo el backfill de la migración 06). El
+// Timeline las filtra con `!esBackfill` antes de renderizar; el resto del
+// código puede distinguirlas si lo necesita.
 // -----------------------------------------------------------------------------
 export async function listAvancesByPropuesta(id: number): Promise<AvancePropuesta[]> {
   const rows = await sql<{
@@ -2766,6 +2825,7 @@ export async function listAvancesByPropuesta(id: number): Promise<AvancePropuest
     nota: string;
     id_usuario: number | string | null;
     autor_email: string | null;
+    es_backfill: boolean | string;
     created_at: Date | string;
   }[]>`
     SELECT av.id_avance,
@@ -2774,6 +2834,7 @@ export async function listAvancesByPropuesta(id: number): Promise<AvancePropuest
            av.nota,
            av.id_usuario,
            autor.email AS autor_email,
+           av.es_backfill,
            av.created_at
     FROM   sgs_pro_propuesta_avance av
     LEFT JOIN sgs_adm_usuario autor ON autor.id_usuario = av.id_usuario
@@ -2787,6 +2848,7 @@ export async function listAvancesByPropuesta(id: number): Promise<AvancePropuest
     nota: pgText(r.nota),
     idUsuario: r.id_usuario == null ? null : pgInt(r.id_usuario),
     autorEmail: r.autor_email,
+    esBackfill: r.es_backfill === true || r.es_backfill === "t" || r.es_backfill === "true",
     createdAt: new Date(pgText(r.created_at)),
   }));
 }
@@ -2808,12 +2870,13 @@ export async function agregarAvancePropuesta(args: {
     nota: string;
     id_usuario: number | string | null;
     autor_email: string | null;
+    es_backfill: boolean | string;
     created_at: Date | string;
   }[]>`
     WITH inserted AS (
       INSERT INTO sgs_pro_propuesta_avance (id_propuesta, avance_pct, nota, id_usuario)
       VALUES (${args.idPropuesta}, ${args.avancePct}, ${args.nota}, ${args.idUsuario})
-      RETURNING id_avance, id_propuesta, avance_pct, nota, id_usuario, created_at
+      RETURNING id_avance, id_propuesta, avance_pct, nota, id_usuario, es_backfill, created_at
     )
     SELECT i.id_avance,
            i.id_propuesta,
@@ -2821,6 +2884,7 @@ export async function agregarAvancePropuesta(args: {
            i.nota,
            i.id_usuario,
            autor.email AS autor_email,
+           i.es_backfill,
            i.created_at
     FROM   inserted i
     LEFT JOIN sgs_adm_usuario autor ON autor.id_usuario = i.id_usuario;
@@ -2848,6 +2912,7 @@ export async function agregarAvancePropuesta(args: {
     nota: pgText(r.nota),
     idUsuario: r.id_usuario == null ? null : pgInt(r.id_usuario),
     autorEmail: r.autor_email,
+    esBackfill: r.es_backfill === true || r.es_backfill === "t" || r.es_backfill === "true",
     createdAt: new Date(pgText(r.created_at)),
   };
 }
