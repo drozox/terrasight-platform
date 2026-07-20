@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // Dropdown inline para editar el estado de una intervención (HU-TC-04).
@@ -9,7 +9,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { cambiarEstadoIntervencionAction } from "./actions";
-import type { EstadoIntervencion } from "@/lib/repository";
+import type { EstadoIntervencion } from "@/lib/types";
 
 const ESTADOS: EstadoIntervencion[] = ["Pendiente", "En ejecución", "Finalizada"];
 

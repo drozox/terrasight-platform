@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import type { ComponenteFull, AccionFull } from "@/lib/repository";
+import type { ComponenteFull, AccionFull } from "@/lib/types";
 import { ComponentesPanel, AccionesPanel } from "./catalogos-panels";
 
 type Flash = { tipo: "ok" | "error"; msg: string };

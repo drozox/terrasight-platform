@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // PropietariosView — wrapper cliente para el catalogo de propietarios
@@ -8,7 +8,7 @@
 
 import { Users } from "lucide-react";
 import { CatalogoGenerico } from "../catalogo-generico";
-import type { PropietarioFull } from "@/lib/repository";
+import type { PropietarioFull } from "@/lib/types";
 
 type Actions = {
   onCreate: (fd: FormData) => Promise<{ ok: boolean; message: string }>;

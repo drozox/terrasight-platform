@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // MunicipiosView — wrapper cliente para el catalogo de municipios (HU-TC-06).
@@ -9,7 +9,7 @@
 
 import { Building2 } from "lucide-react";
 import { CatalogoGenerico } from "../catalogo-generico";
-import type { MunicipioFull } from "@/lib/repository";
+import type { MunicipioFull } from "@/lib/types";
 
 type Actions = {
   onCreate: (fd: FormData) => Promise<{ ok: boolean; message: string }>;

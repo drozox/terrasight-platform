@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // Mapa mini para la ficha de intervención (HU-IC-03).
@@ -24,7 +24,7 @@ import {
   Marker,
 } from "react-leaflet";
 import { MapPin, Loader2 } from "lucide-react";
-import type { IntervencionCompleta, GeoJSONLineString, GeoJSONPolygon } from "@/lib/repository";
+import type { IntervencionCompleta, GeoJSONLineString, GeoJSONPolygon } from "@/lib/types";
 
 // -----------------------------------------------------------------------------
 // Centroid por tipo de geometría

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // BeneficiariosView — wrapper cliente para el catalogo de beneficiarios
@@ -9,7 +9,7 @@
 
 import { UserCheck } from "lucide-react";
 import { CatalogoGenerico } from "../catalogo-generico";
-import type { BeneficiarioFull } from "@/lib/repository";
+import type { BeneficiarioFull } from "@/lib/types";
 
 type Actions = {
   onCreate: (fd: FormData) => Promise<{ ok: boolean; message: string }>;

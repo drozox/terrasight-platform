@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // Tabla admin/usuarios — Client Component.
@@ -18,7 +18,7 @@ import { Pencil, KeyRound, Power, UserPlus, Loader2, CheckCircle2, AlertCircle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { RolSistema } from "@/lib/auth";
-import type { UsuarioAdmin } from "@/lib/repository";
+import type { UsuarioAdmin } from "@/lib/types";
 import {
   crearUsuarioAction,
   actualizarUsuarioAction,

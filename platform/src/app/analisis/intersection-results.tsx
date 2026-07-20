@@ -1,11 +1,11 @@
-// =============================================================================
+﻿// =============================================================================
 // Resultado de intersección por bounding box (HU-AA-03) — Server Component.
 // Renderiza el IntersectionResult devuelto por el repo.
 // =============================================================================
 
 import { Card } from "@/components/ui/card";
 import { formatDecimal, formatInt } from "@/lib/utils";
-import type { IntersectionResult } from "@/lib/repository";
+import type { IntersectionResult } from "@/lib/types";
 
 export function IntersectionResults({
   result,

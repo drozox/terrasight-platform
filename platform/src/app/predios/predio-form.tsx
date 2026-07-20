@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // Form compartido: alta + edición de predios.
@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { PredioFull, PropietarioMini, VeredaMini } from "@/lib/repository";
+import type { PredioFull, PropietarioMini, VeredaMini } from "@/lib/types";
 import {
   crearPredioAction,
   actualizarPredioAction,

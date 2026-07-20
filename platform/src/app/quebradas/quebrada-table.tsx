@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // Tabla de quebradas + acciones inline. Mismo patrón que predios.
@@ -11,7 +11,7 @@ import {
   actualizarQuebradaAction,
   eliminarQuebradaAction,
 } from "./actions";
-import type { QuebradaFull, MunicipioMini } from "@/lib/repository";
+import type { QuebradaFull, MunicipioMini } from "@/lib/types";
 
 export function QuebradaTable({
   quebradas,

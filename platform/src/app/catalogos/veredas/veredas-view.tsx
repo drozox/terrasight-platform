@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // VeredasView — wrapper cliente para el catalogo de veredas (HU-TC-07).
@@ -8,7 +8,7 @@
 
 import { Map } from "lucide-react";
 import { CatalogoGenerico } from "../catalogo-generico";
-import type { VeredaFull, MunicipioMini } from "@/lib/repository";
+import type { VeredaFull, MunicipioMini } from "@/lib/types";
 
 type Actions = {
   onCreate: (fd: FormData) => Promise<{ ok: boolean; message: string }>;

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // MicrocuencasView — wrapper cliente para el catalogo de microcuencas
@@ -8,7 +8,7 @@
 
 import { Droplet } from "lucide-react";
 import { CatalogoGenerico } from "../catalogo-generico";
-import type { MicrocuencaFull } from "@/lib/repository";
+import type { MicrocuencaFull } from "@/lib/types";
 
 type Actions = {
   onCreate: (fd: FormData) => Promise<{ ok: boolean; message: string }>;

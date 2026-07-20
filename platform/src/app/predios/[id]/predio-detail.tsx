@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // Vista interactiva del predio (HU-TC-01):
@@ -9,7 +9,7 @@
 import * as React from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { PredioFull, PropietarioMini, VeredaMini } from "@/lib/repository";
+import type { PredioFull, PropietarioMini, VeredaMini } from "@/lib/types";
 import type { MapFeature } from "@/lib/types";
 import { PredioForm } from "../predio-form";
 

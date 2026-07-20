@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // Timeline histórico de avances de la intervención (HU-IC-04).
 // Componente presentacional — no tiene estado.
 //
@@ -9,7 +9,7 @@
 import * as React from "react";
 import { Clock, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { AvancePropuesta } from "@/lib/repository";
+import type { AvancePropuesta } from "@/lib/types";
 
 const FMT_FECHA = new Intl.DateTimeFormat("es-CO", {
   day: "2-digit",

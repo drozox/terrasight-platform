@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2, PackageOpen, Link2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { ComponenteFull, AccionFull } from "@/lib/repository";
+import type { ComponenteFull, AccionFull } from "@/lib/types";
 import {
   eliminarComponenteAction, eliminarAccionAction,
   actualizarComponenteAction, actualizarAccionAction,

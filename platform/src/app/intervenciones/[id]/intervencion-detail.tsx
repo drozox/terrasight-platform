@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // Vista interactiva de la ficha de intervención (HU-IC-01..04).
@@ -27,7 +27,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import type { IntervencionCompleta } from "@/lib/repository";
+import type { IntervencionCompleta } from "@/lib/types";
 import { EstadoIntervencionDropdown } from "../estado-dropdown";
 import { IntervencionMapa } from "./mapa-mini";
 import { AvanceForm } from "./avance-form";

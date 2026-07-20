@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // ReporteViewer — render server del reporte elegido.
 //
 // Cada "tipo" define su propia lista de columnas; evitamos `any`.
@@ -6,7 +6,7 @@
 
 import { formatInt, formatDecimal } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import type { ReporteTipo } from "@/lib/repository";
+import type { ReporteTipo } from "@/lib/types";
 
 type Column = { key: string; label: string; align?: "left" | "right" | "center" };
 

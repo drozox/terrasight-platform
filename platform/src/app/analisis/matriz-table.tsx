@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // Matriz cruzada componente × municipio (HU-AA-04).
 // Server Component: rows vienen de getMatrizComponenteMunicipio().
 // =============================================================================
@@ -6,7 +6,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatInt, formatDecimal } from "@/lib/utils";
-import type { MatrizFila } from "@/lib/repository";
+import type { MatrizFila } from "@/lib/types";
 
 const C_COLORS = {
   C1: "primary",

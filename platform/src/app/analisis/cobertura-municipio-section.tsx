@@ -1,11 +1,11 @@
-// =============================================================================
+﻿// =============================================================================
 // Cobertura CLC × municipio (HU-AA-03) — Server Component.
 // Muestra desglose de cobertura vegetal por municipio con porcentaje.
 // =============================================================================
 
 import { Card } from "@/components/ui/card";
 import { formatDecimal, formatInt } from "@/lib/utils";
-import type { CoberturaMunicipioFila } from "@/lib/repository";
+import type { CoberturaMunicipioFila } from "@/lib/types";
 
 const COLOR_BY_NAME: Record<string, string> = {
   "Bosque Natural":      "bg-primary/15 text-primary",

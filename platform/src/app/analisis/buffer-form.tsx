@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // =============================================================================
 // Form de análisis buffer (HU-AA-02). Submit = GET a search params para que la
@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { PropuestaSimple, QuebradaFull, BufferTarget } from "@/lib/repository";
+import type { PropuestaSimple, QuebradaFull, BufferTarget } from "@/lib/types";
 
 type Initial = {
   tipo: string;
