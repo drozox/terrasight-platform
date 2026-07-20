@@ -1,8 +1,8 @@
-import { Card } from "@/components/ui/card";
+﻿import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wrench, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { getIntervencionesRecientes, getComponentes } from "@/lib/repository";
+import { getIntervencionesRecientes, getComponentes } from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
 import { formatDecimal, formatInt } from "@/lib/utils";
 import { EstadoIntervencionDropdown } from "./estado-dropdown";

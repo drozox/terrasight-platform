@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /predios/[id] — Ficha del predio.
 // Server Component que carga y delega a la vista interactiva.
 // =============================================================================
@@ -13,7 +13,7 @@ import {
   getPrediosGeoJSON,
   listPropietarios,
   listVeredas,
-} from "@/lib/repository";
+} from "@/lib/repos";
 import { PredioDetail } from "./predio-detail";
 
 export const dynamic = "force-dynamic";

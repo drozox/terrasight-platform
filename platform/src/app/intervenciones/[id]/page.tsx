@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /intervenciones/[id] — Ficha de intervención (HU-IC-01..04).
 // Server Component que carga la propuesta completa y delega a la vista
 // interactiva. Mismo patrón que /predios/[id].
@@ -10,7 +10,7 @@ import { ArrowLeft, Wrench } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth-guard";
-import { getIntervencionCompleta } from "@/lib/repository";
+import { getIntervencionCompleta } from "@/lib/repos";
 import { IntervencionDetail } from "./intervencion-detail";
 
 export const dynamic = "force-dynamic";

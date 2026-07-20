@@ -1,11 +1,11 @@
-import { LeafletMap } from "@/components/map/leaflet-map";
+﻿import { LeafletMap } from "@/components/map/leaflet-map";
 import { MapLegend } from "@/components/map/map-legend";
 import {
   getPrediosMini,
   getQuebradasMini,
   getPrediosGeoJSON,
   getComponentes,
-} from "@/lib/repository";
+} from "@/lib/repos";
 
 export const dynamic = "force-dynamic";
 

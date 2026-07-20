@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
-import { getAlertas } from "@/lib/repository";
+import { getAlertas } from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
 
 export const metadata: Metadata = {

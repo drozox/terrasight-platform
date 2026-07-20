@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 // =============================================================================
 // Server Actions para /predios (HU-TC-01)
@@ -16,8 +16,8 @@ import {
   crearPredio,
   actualizarPredio,
   eliminarPredio,
-  type PredioFull,
-} from "@/lib/repository";
+} from "@/lib/repos";
+import type { PredioFull } from "@/lib/types";
 
 type Result =
   | { ok: true; message: string; idPredio?: number }

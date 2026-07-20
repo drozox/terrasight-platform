@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /reportes — Selector + render del reporte (HU-CO-04).
 // Server Component: cada ?tipo=R1..R10 corre la query apropiada.
 // CSV se descarga desde /api/reportes, no acá.
@@ -9,10 +9,9 @@ import { FileText, FileDown, Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth-guard";
+import { REPORTE_LABELS, REPORTE_DESCRIPCIONES } from "@/lib/constants";
+import type { ReporteTipo } from "@/lib/types";
 import {
-  type ReporteTipo,
-  REPORTE_LABELS,
-  REPORTE_DESCRIPCIONES,
   getReporteR1,
   getReporteR2,
   getReporteR3,
@@ -23,7 +22,7 @@ import {
   getReporteR8,
   getReporteR9,
   getReporteR10,
-} from "@/lib/repository";
+} from "@/lib/repos";
 import { ReporteSelector } from "./reporte-selector";
 import { ReporteViewer } from "./reporte-viewer";
 

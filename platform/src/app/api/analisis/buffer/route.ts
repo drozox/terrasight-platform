@@ -11,7 +11,9 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth-guard";
-import { getAnalisisBuffer, isBufferTarget, type BufferTarget } from "@/lib/repository";
+import { getAnalisisBuffer } from "@/lib/repos";
+import { isBufferTarget } from "@/lib/constants";
+import type { BufferTarget } from "@/lib/types";
 
 export const runtime = "nodejs";
 

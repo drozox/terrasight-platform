@@ -11,7 +11,8 @@
 
 import { Activity } from "lucide-react";
 import { requireRole } from "@/lib/auth-guard";
-import { getMonitoreoKPIs, listMonitoreoPuntos, isTipoPunto } from "@/lib/repository";
+import { getMonitoreoKPIs, listMonitoreoPuntos } from "@/lib/repos";
+import { isTipoPunto } from "@/lib/constants";
 import { MonitoreoView } from "./monitoreo-view";
 import { formatInt } from "@/lib/utils";
 

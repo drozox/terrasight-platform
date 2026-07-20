@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 // =============================================================================
 // Server Actions para /catalogos (HU-TC-03 y HU-TC-06..10)
@@ -17,11 +17,9 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth-guard";
 import { safeParseForm } from "@/lib/validation";
+import { COMPONENTES_VALIDOS, ACCIONES_VALIDAS } from "@/lib/constants";
+import type { ComponenteValido, AccionValida } from "@/lib/types";
 import {
-  COMPONENTES_VALIDOS,
-  ACCIONES_VALIDAS,
-  type ComponenteValido,
-  type AccionValida,
   crearComponente,
   actualizarComponente,
   eliminarComponente,
@@ -44,7 +42,7 @@ import {
   crearBeneficiario,
   actualizarBeneficiario,
   eliminarBeneficiario,
-} from "@/lib/repository";
+} from "@/lib/repos";
 
 type Result =
   | { ok: true; message: string; id?: number; idComponente?: number; idAccion?: number }

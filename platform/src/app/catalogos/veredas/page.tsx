@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /catalogos/veredas — CRUD de veredas (HU-TC-07)
 //
 // Server Component: requireAdmin + listVeredasFull (con contador de predios).
@@ -9,7 +9,7 @@
 import { Card } from "@/components/ui/card";
 import { BookMarked } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-guard";
-import { listVeredasFull, listMunicipios } from "@/lib/repository";
+import { listVeredasFull, listMunicipios } from "@/lib/repos";
 import {
   crearVeredaAction,
   actualizarVeredaAction,

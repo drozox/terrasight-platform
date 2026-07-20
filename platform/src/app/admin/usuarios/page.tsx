@@ -1,10 +1,10 @@
-// =============================================================================
+﻿// =============================================================================
 // Página /admin/usuarios (HU-AD-02) — solo ADMIN.
 // Server Component: requireAdmin + fetch + render del cliente.
 // =============================================================================
 
 import { requireAdmin } from "@/lib/auth-guard";
-import { listUsuarios, listRoles } from "@/lib/repository";
+import { listUsuarios, listRoles } from "@/lib/repos";
 import { AdminUsuariosTable } from "./usuarios-table";
 
 export const metadata = { title: "Gestión de usuarios — TerraSight" };

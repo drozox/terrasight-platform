@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 // =============================================================================
 // Server Actions para /intervenciones (HU-TC-04, HU-IC-04)
@@ -11,10 +11,10 @@ import { safeParseForm } from "@/lib/validation";
 import { requireRole, getCurrentUser } from "@/lib/auth-guard";
 import {
   setIntervencionEstado,
-  isEstadoIntervencion,
   agregarAvancePropuesta,
-  type EstadoIntervencion,
-} from "@/lib/repository";
+} from "@/lib/repos";
+import { isEstadoIntervencion } from "@/lib/constants";
+import type { EstadoIntervencion } from "@/lib/types";
 
 type Result =
   | { ok: true; message: string }

@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 // =============================================================================
 // Server Actions para /monitoreo (HU-MO-01..03)
@@ -16,15 +16,15 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth-guard";
 import { safeParseForm } from "@/lib/validation";
 import {
-  TIPOS_PUNTO,
   actualizarPunto,
   asociarBeneficiario,
   desasociarBeneficiario,
   crearBeneficiario,
   listBeneficiariosByPunto,
   listBeneficiariosDisponiblesByPunto,
-  type BeneficiarioMini,
-} from "@/lib/repository";
+} from "@/lib/repos";
+import { TIPOS_PUNTO } from "@/lib/constants";
+import type { BeneficiarioMini } from "@/lib/types";
 
 type Result =
   | { ok: true; message: string; id?: number }

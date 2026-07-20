@@ -1,10 +1,10 @@
-import { Card } from "@/components/ui/card";
+﻿import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Building2, Search, MapPin, Filter } from "lucide-react";
 import Link from "next/link";
-import { getPrediosGeoJSON } from "@/lib/repository";
+import { getPrediosGeoJSON } from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
 import { formatDecimal } from "@/lib/utils";
 

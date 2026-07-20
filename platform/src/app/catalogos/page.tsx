@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /catalogos — Hub de catalogos del modelo BDG (HU-TC-03 + HU-TC-06..10)
 //
 // Server Component: solo ADMIN. Carga:
@@ -25,14 +25,15 @@ import {
   listPropietariosFull,
   listMicrocuencasFull,
   listBeneficiariosFull,
-  COMPONENTES_VALIDOS,
-  ACCIONES_VALIDAS,
-  type MunicipioFull,
-  type VeredaFull,
-  type PropietarioFull,
-  type MicrocuencaFull,
-  type BeneficiarioFull,
-} from "@/lib/repository";
+} from "@/lib/repos";
+import { COMPONENTES_VALIDOS, ACCIONES_VALIDAS } from "@/lib/constants";
+import type {
+  MunicipioFull,
+  VeredaFull,
+  PropietarioFull,
+  MicrocuencaFull,
+  BeneficiarioFull,
+} from "@/lib/types";
 import { CatalogosTable } from "./catalogos-table";
 
 export const dynamic = "force-dynamic";

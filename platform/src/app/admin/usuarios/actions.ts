@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 // =============================================================================
 // Server Actions para /admin/usuarios (HU-AD-02)
@@ -18,7 +18,7 @@ import {
   actualizarUsuario,
   resetPasswordUsuario,
   setUsuarioActivo,
-} from "@/lib/repository";
+} from "@/lib/repos";
 import type { RolSistema } from "@/lib/auth";
 
 type Result<TData = Record<string, unknown>> =

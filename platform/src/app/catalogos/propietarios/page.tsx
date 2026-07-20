@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /catalogos/propietarios — CRUD de propietarios (HU-TC-08)
 //
 // Server Component: requireAdmin + listPropietariosFull (con contador de
@@ -8,7 +8,7 @@
 import { Card } from "@/components/ui/card";
 import { BookMarked } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-guard";
-import { listPropietariosFull } from "@/lib/repository";
+import { listPropietariosFull } from "@/lib/repos";
 import {
   crearPropietarioAction,
   actualizarPropietarioAction,

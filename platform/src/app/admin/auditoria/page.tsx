@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // Página /admin/auditoria (HU-AD-04) — solo ADMIN.
 // Tabla paginada con filtros básicos vía searchParams.
 // =============================================================================
@@ -9,9 +9,8 @@ import { requireAdmin } from "@/lib/auth-guard";
 import {
   listAuditEventos,
   listEventTypes,
-  type AuditEvento,
-  type AuditFiltros,
-} from "@/lib/repository";
+} from "@/lib/repos";
+import type { AuditEvento, AuditFiltros } from "@/lib/types";
 
 export const metadata = { title: "Auditoría de accesos — TerraSight" };
 

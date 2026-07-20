@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /quebradas — Listado de quebradas (HU-TC-02)
 // Server Component: requiere sesión + lista quebradas + municipio lookup.
 // =============================================================================
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Droplet, Search } from "lucide-react";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth-guard";
-import { listQuebradasFull, listMunicipios } from "@/lib/repository";
+import { listQuebradasFull, listMunicipios } from "@/lib/repos";
 import { QuebradaTable } from "./quebrada-table";
 
 export const dynamic = "force-dynamic";

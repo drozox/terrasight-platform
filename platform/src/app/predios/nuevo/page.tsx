@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /predios/nuevo — Alta de predio (HU-TC-01)
 // Server Component: requireRole ADMIN|GESTOR + carga de lookups.
 // =============================================================================
@@ -7,7 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth-guard";
-import { listPropietarios, listVeredas } from "@/lib/repository";
+import { listPropietarios, listVeredas } from "@/lib/repos";
 import { PredioForm } from "../predio-form";
 
 export const metadata = { title: "Nuevo predio — TerraSight" };

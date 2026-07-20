@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /catalogos/beneficiarios — CRUD de beneficiarios (HU-TC-10)
 //
 // Server Component: requireAdmin + listBeneficiariosFull (con contador de
@@ -9,7 +9,7 @@
 import { Card } from "@/components/ui/card";
 import { BookMarked } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-guard";
-import { listBeneficiariosFull } from "@/lib/repository";
+import { listBeneficiariosFull } from "@/lib/repos";
 import {
   crearBeneficiarioCatalogosAction,
   actualizarBeneficiarioAction,

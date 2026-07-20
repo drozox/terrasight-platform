@@ -1,4 +1,4 @@
-import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
+﻿import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
 import { ImportPanel } from "@/components/dashboard/import-panel";
 import { RightPanel } from "@/components/dashboard/right-panel";
 import { BottomSections, SummaryBar } from "@/components/dashboard/bottom-sections";
@@ -17,7 +17,7 @@ import {
   getPrediosPorMunicipio,
   getPropuestasPorComponente,
   pingDb,
-} from "@/lib/repository";
+} from "@/lib/repos";
 
 export const dynamic = "force-dynamic";
 

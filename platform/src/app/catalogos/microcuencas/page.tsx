@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /catalogos/microcuencas — CRUD de microcuencas (HU-TC-09)
 //
 // Server Component: requireAdmin + listMicrocuencasFull (con contador de
@@ -8,7 +8,7 @@
 import { Card } from "@/components/ui/card";
 import { BookMarked } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-guard";
-import { listMicrocuencasFull } from "@/lib/repository";
+import { listMicrocuencasFull } from "@/lib/repos";
 import {
   crearMicrocuencaAction,
   actualizarMicrocuencaAction,

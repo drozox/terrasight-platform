@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // GET /api/reportes?tipo=R1
 //
 // Devuelve el reporte elegido como CSV descargable.
@@ -19,9 +19,9 @@ import {
   getReporteR8,
   getReporteR9,
   getReporteR10,
-  type ReporteTipo,
-  REPORTE_LABELS,
-} from "@/lib/repository";
+} from "@/lib/repos";
+import { REPORTE_LABELS } from "@/lib/constants";
+import type { ReporteTipo } from "@/lib/types";
 import { toCsv, slugFilename, type CsvCell } from "@/lib/csv";
 
 export const runtime = "nodejs";

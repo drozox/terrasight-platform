@@ -1,9 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Bell, AlertTriangle, AlertCircle, Info, MapPin, CheckCircle2, Filter, X, MapPinned } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getAlertas, getPrediosGeoJSON } from "@/lib/repository";
+import { getAlertas, getPrediosGeoJSON } from "@/lib/repos";
 import { requireRole } from "@/lib/auth-guard";
 import { cn } from "@/lib/utils";
 

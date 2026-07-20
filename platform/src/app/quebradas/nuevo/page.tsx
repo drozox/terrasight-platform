@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /quebradas/nuevo — Alta de quebrada (HU-TC-02)
 // =============================================================================
 
@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { requireRole } from "@/lib/auth-guard";
-import { listMunicipios } from "@/lib/repository";
+import { listMunicipios } from "@/lib/repos";
 import { crearQuebradaAction } from "../actions";
 
 export const metadata = { title: "Nueva quebrada — TerraSight" };

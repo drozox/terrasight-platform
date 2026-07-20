@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /analisis — Análisis espacial (HU-AA-02..04)
 // Server Component: lee search params para correr el buffer / bbox si los hay.
 // =============================================================================
@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { PieChart, Droplet, Wrench, MapPin, Square } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { getCoberturaVegetal } from "@/lib/repository";
+import { getCoberturaVegetal } from "@/lib/repos";
 import {
   getMatrizComponenteMunicipio,
   getAnalisisBuffer,
@@ -14,9 +14,9 @@ import {
   listPropuestasSimple,
   getCoberturaPorMunicipio,
   getIntersectPorBoundingBox,
-  type BufferTarget,
-  isBufferTarget,
-} from "@/lib/repository";
+} from "@/lib/repos";
+import { isBufferTarget } from "@/lib/constants";
+import type { BufferTarget } from "@/lib/types";
 import { BufferForm } from "./buffer-form";
 import { BufferResults } from "./buffer-results";
 import { MatrizTable } from "./matriz-table";

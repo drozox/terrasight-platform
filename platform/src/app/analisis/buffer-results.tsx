@@ -1,15 +1,15 @@
-// =============================================================================
+﻿// =============================================================================
 // Resultados del buffer (Server): tabla ordenable visualmente + descarga CSV.
 // Sin estado de cliente (es server-rendered a partir de props).
 // =============================================================================
 
 import { Card } from "@/components/ui/card";
-import {
-  type BufferResultItem,
-  type BufferTarget,
-  type QuebradaFull,
-  type PropuestaSimple,
-} from "@/lib/repository";
+import type {
+  BufferResultItem,
+  BufferTarget,
+  QuebradaFull,
+  PropuestaSimple,
+} from "@/lib/types";
 import { RESULT_LABEL } from "./_types";
 
 function fmtDist(m: number | null): string {

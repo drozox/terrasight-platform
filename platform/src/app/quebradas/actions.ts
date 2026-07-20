@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 // =============================================================================
 // Server Actions para /quebradas (HU-TC-02)
@@ -14,8 +14,8 @@ import {
   crearQuebrada,
   actualizarQuebrada,
   eliminarQuebrada,
-  type QuebradaFull,
-} from "@/lib/repository";
+} from "@/lib/repos";
+import type { QuebradaFull } from "@/lib/types";
 
 type Result =
   | { ok: true; message: string; idQuebrada?: number }

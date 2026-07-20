@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // /catalogos/municipios — CRUD de municipios (HU-TC-06)
 //
 // Server Component: requireAdmin + listMunicipiosFull (con contadores de
@@ -8,7 +8,7 @@
 import { Card } from "@/components/ui/card";
 import { BookMarked } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-guard";
-import { listMunicipiosFull } from "@/lib/repository";
+import { listMunicipiosFull } from "@/lib/repos";
 import {
   crearMunicipioAction,
   actualizarMunicipioAction,
