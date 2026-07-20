@@ -14,7 +14,8 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2, MapPin, Inbox } from "lucide-react";
-import { TIPO_PUNTO_LABEL, TIPO_PUNTO_COLOR, type MonitoreoPunto } from "@/lib/repository";
+import { TIPO_PUNTO_LABEL, TIPO_PUNTO_COLOR } from "@/lib/constants";
+import type { MonitoreoPunto } from "@/lib/types";
 import { PuntoDetalle } from "./punto-detalle";
 
 export function PuntosTable({

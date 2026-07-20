@@ -1,8 +1,8 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import type { ComponenteFull, AccionFull } from "@/lib/repository";
-import { COMPONENTES_VALIDOS, ACCIONES_VALIDAS } from "@/lib/repository";
+import type { ComponenteFull, AccionFull } from "@/lib/types";
+import { COMPONENTES_VALIDOS, ACCIONES_VALIDAS } from "@/lib/constants";
 
 const INPUT_CLS =
   "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-highest px-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";

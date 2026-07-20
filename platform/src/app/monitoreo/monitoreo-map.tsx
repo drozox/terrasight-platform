@@ -20,7 +20,8 @@ import {
   ZoomControl,
 } from "react-leaflet";
 import { Loader2, MapPin } from "lucide-react";
-import { TIPO_PUNTO_LABEL, type MonitoreoPunto, type TipoPunto } from "@/lib/repository";
+import { TIPO_PUNTO_LABEL } from "@/lib/constants";
+import type { MonitoreoPunto, TipoPunto } from "@/lib/types";
 
 // -----------------------------------------------------------------------------
 // Constantes y helpers

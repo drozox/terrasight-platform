@@ -15,14 +15,8 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Filter, List, MapIcon, Search } from "lucide-react";
-import {
-  TIPOS_PUNTO,
-  TIPO_PUNTO_LABEL,
-  TIPO_PUNTO_COLOR,
-  type TipoPunto,
-  type MonitoreoKpis,
-  type MonitoreoPunto,
-} from "@/lib/repository";
+import { TIPOS_PUNTO, TIPO_PUNTO_LABEL, TIPO_PUNTO_COLOR } from "@/lib/constants";
+import type { TipoPunto, MonitoreoKpis, MonitoreoPunto } from "@/lib/types";
 import { PuntosTable } from "./puntos-table";
 import { MonitoreoMap } from "./monitoreo-map";
 

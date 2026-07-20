@@ -31,16 +31,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  TIPOS_PUNTO,
-  TIPO_PUNTO_LABEL,
-  TIPO_PUNTO_COLOR,
-  isEstadoIntervencion,
-  type MonitoreoPunto,
-  type BeneficiarioMini,
-  type TipoPunto,
-  type EstadoIntervencion,
-} from "@/lib/repository";
+import { TIPOS_PUNTO, TIPO_PUNTO_LABEL, TIPO_PUNTO_COLOR, isEstadoIntervencion } from "@/lib/constants";
+import type { MonitoreoPunto, BeneficiarioMini, TipoPunto, EstadoIntervencion } from "@/lib/types";
 import {
   actualizarPuntoAction,
   asociarBeneficiarioAction,

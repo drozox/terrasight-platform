@@ -7,10 +7,8 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import {
-  REPORTE_LABELS,
-  type ReporteTipo,
-} from "@/lib/repository";
+import { REPORTE_LABELS } from "@/lib/constants";
+import type { ReporteTipo } from "@/lib/types";
 
 export function ReporteSelector({ tipoInicial }: { tipoInicial: ReporteTipo }) {
   const router = useRouter();
