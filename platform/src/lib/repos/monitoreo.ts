@@ -121,8 +121,6 @@ const MONITOREO_BASE_SELECT = sql`
     pp.codigo_caj,
     pp.este,
     pp.norte,
-    ST_X(pp.geom::geometry) AS lon,
-    ST_Y(pp.geom::geometry) AS lat,
     pp.id_quebrada,
     q.nombre_quebrada,
     p.id_predio,
