@@ -6,7 +6,7 @@
 // ADMIN | GESTOR pueden editar.
 // =============================================================================
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { safeParseForm } from "@/lib/validation";
 import { requireRole, getCurrentUser } from "@/lib/auth-guard";
 import {
@@ -38,6 +38,8 @@ export async function cambiarEstadoIntervencionAction(formData: FormData): Promi
 
   try {
     await setIntervencionEstado(idPropuesta, estadoStr as EstadoIntervencion);
+    revalidateTag("intervenciones");
+    revalidateTag("dashboard");
     revalidatePath("/intervenciones");
     revalidatePath(`/intervenciones/${idPropuesta}`);
     return { ok: true, message: `Estado actualizado a "${estadoStr}".` };
@@ -74,6 +76,8 @@ export async function actualizarAvanceIntervencionAction(formData: FormData): Pr
       nota,
       idUsuario: user.idUsuario,
     });
+    revalidateTag("intervenciones");
+    revalidateTag("dashboard");
     revalidatePath("/intervenciones");
     revalidatePath(`/intervenciones/${idPropuesta}`);
     return {
@@ -120,6 +124,7 @@ export async function agregarNotaAvanceAction(formData: FormData): Promise<Resul
       nota,
       idUsuario: user.idUsuario,
     });
+    revalidateTag("intervenciones");
     revalidatePath("/intervenciones");
     revalidatePath(`/intervenciones/${idPropuesta}`);
     return { ok: true, message: "Nota agregada al histórico." };

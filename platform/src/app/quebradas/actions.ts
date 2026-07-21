@@ -6,7 +6,7 @@
 // Role: ADMIN | GESTOR pueden escribir. ANALISTA es read-only.
 // =============================================================================
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { safeParseForm } from "@/lib/validation";
 import { requireRole } from "@/lib/auth-guard";
@@ -50,6 +50,10 @@ export async function crearQuebradaAction(formData: FormData): Promise<Result> {
 
   try {
     const fresh = await crearQuebrada(input);
+    revalidateTag("quebradas");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
+    revalidateTag("reportes");
     revalidatePath("/quebradas");
     return { ok: true, message: `Quebrada ${fresh.nombreQuebrada} creada.`, idQuebrada: fresh.idQuebrada };
   } catch (err) {
@@ -87,6 +91,10 @@ export async function actualizarQuebradaAction(formData: FormData): Promise<Resu
       idMunicipio:    data.idMunicipio == null ? null : Number(data.idMunicipio),
       idMicrocuenca:  data.idMicrocuenca == null ? null : Number(data.idMicrocuenca),
     });
+    revalidateTag("quebradas");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
+    revalidateTag("reportes");
     revalidatePath("/quebradas");
     revalidatePath(`/quebradas/${idQuebrada}`);
     return { ok: true, message: "Quebrada actualizada.", idQuebrada };
@@ -109,6 +117,10 @@ export async function eliminarQuebradaAction(formData: FormData): Promise<Result
   const idQuebrada = Number((parsed.data as Record<string, unknown>).idQuebrada);
   try {
     await eliminarQuebrada(idQuebrada);
+    revalidateTag("quebradas");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
+    revalidateTag("reportes");
     revalidatePath("/quebradas");
     return { ok: true, message: "Quebrada eliminada." };
   } catch (err) {

@@ -10,6 +10,7 @@
 
 import { sql, pgInt, pgNum, pgText, pgDate } from "../db";
 import { withFallback, isValidTelefono } from "./_helpers";
+import { cached } from "./_cache";
 import type {
   PredioFull,
   PropietarioMini,
@@ -79,7 +80,7 @@ export async function getPredioById(id: number): Promise<PredioFull | null> {
   return rows[0] ? mapPredioRow(rows[0]) : null;
 }
 
-export async function listPropietarios(): Promise<PropietarioMini[]> {
+const listPropietariosImpl = async (): Promise<PropietarioMini[]> => {
   const rows = await sql<{ id_propietario: number | string; nombre_razon_social: string }[]>`
     SELECT id_propietario, nombre_razon_social
     FROM   sgs_pre_propietario
@@ -89,9 +90,13 @@ export async function listPropietarios(): Promise<PropietarioMini[]> {
     idPropietario: pgInt(r.id_propietario),
     nombreRazonSocial: pgText(r.nombre_razon_social),
   }));
-}
+};
+export const listPropietarios = cached(listPropietariosImpl, {
+  tags: ["catalogos:lookup"],
+  ttl: 300,
+});
 
-export async function listVeredas(): Promise<VeredaMini[]> {
+const listVeredasImpl = async (): Promise<VeredaMini[]> => {
   const rows = await sql<{
     id_vereda: number | string;
     nombre_vereda: string;
@@ -109,7 +114,11 @@ export async function listVeredas(): Promise<VeredaMini[]> {
     idMunicipio: pgInt(r.id_municipio),
     nombreMunicipio: pgText(r.nombre_municipio),
   }));
-}
+};
+export const listVeredas = cached(listVeredasImpl, {
+  tags: ["catalogos:lookup"],
+  ttl: 300,
+});
 
 export async function crearPredio(input: Omit<PredioFull, "idPredio">): Promise<PredioFull> {
   const rows = await sql<{ id_predio: number | string }[]>`
@@ -193,7 +202,7 @@ function mapPropietarioRow(r: PropietarioRow): PropietarioFull {
   };
 }
 
-export async function listPropietariosFull(): Promise<PropietarioFull[]> {
+const listPropietariosFullImpl = async (): Promise<PropietarioFull[]> => {
   return withFallback("propietariosFull", async () => {
     const rows = await sql<PropietarioRow[]>`
       SELECT
@@ -213,7 +222,11 @@ export async function listPropietariosFull(): Promise<PropietarioFull[]> {
     `;
     return rows.map(mapPropietarioRow);
   }, []);
-}
+};
+export const listPropietariosFull = cached(listPropietariosFullImpl, {
+  tags: ["catalogos:full"],
+  ttl: 300,
+});
 
 export async function getPropietarioById(id: number): Promise<PropietarioFull | null> {
   const rows = await sql<PropietarioRow[]>`
@@ -324,7 +337,7 @@ function mapVeredaRow(r: VeredaRow): VeredaFull {
   };
 }
 
-export async function listVeredasFull(): Promise<VeredaFull[]> {
+const listVeredasFullImpl = async (): Promise<VeredaFull[]> => {
   return withFallback("veredasFull", async () => {
     const rows = await sql<VeredaRow[]>`
       SELECT
@@ -349,7 +362,11 @@ export async function listVeredasFull(): Promise<VeredaFull[]> {
     `;
     return rows.map(mapVeredaRow);
   }, []);
-}
+};
+export const listVeredasFull = cached(listVeredasFullImpl, {
+  tags: ["catalogos:full"],
+  ttl: 300,
+});
 
 export async function getVeredaById(id: number): Promise<VeredaFull | null> {
   const rows = await sql<VeredaRow[]>`

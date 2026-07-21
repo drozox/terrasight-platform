@@ -21,6 +21,7 @@
 
 import { sql, pgInt, pgNum, pgText, pgDate } from "../db";
 import { withFallback, isValidTelefono } from "./_helpers";
+import { cached } from "./_cache";
 import { TIPOS_PUNTO, isTipoPunto } from "../constants";
 import type {
   MonitoreoPunto,
@@ -155,7 +156,7 @@ const MONITOREO_BASE_SELECT = sql`
 // =============================================================================
 // getMonitoreoKPIs — totales por tipo, por componente, beneficiarios unicos.
 // =============================================================================
-export async function getMonitoreoKPIs(): Promise<MonitoreoKpis> {
+const getMonitoreoKPIsImpl = async (): Promise<MonitoreoKpis> => {
   return withFallback("monitoreoKPIs", async () => {
     const [porTipoRows, porCompRows, totalBenefRows] = await Promise.all([
       sql<{ tipo_punto: string; cnt: number | string }[]>`
@@ -218,19 +219,23 @@ export async function getMonitoreoKPIs(): Promise<MonitoreoKpis> {
     totalBeneficiarios: 0,
     porComponente: {},
   });
-}
+};
+export const getMonitoreoKPIs = cached(getMonitoreoKPIsImpl, {
+  tags: ["monitoreo"],
+  ttl: 60,
+});
 
 // =============================================================================
 // listMonitoreoPuntos — listado paginado con todos los joins + filtros.
 // =============================================================================
-export async function listMonitoreoPuntos(
+const listMonitoreoPuntosImpl = async (
   opts: {
     tipo?: MonitoreoPunto["tipoPunto"] | null;
     componente?: string | null;
     q?: string | null;
     limit?: number;
   } = {},
-): Promise<MonitoreoPunto[]> {
+): Promise<MonitoreoPunto[]> => {
   return withFallback("monitoreoPuntos", async () => {
     const whereParts: ReturnType<typeof sql>[] = [];
     if (opts.tipo) whereParts.push(sql`pp.tipo_punto = ${opts.tipo}`);
@@ -254,7 +259,11 @@ export async function listMonitoreoPuntos(
     `;
     return rows.map(mapMonitoreoRow);
   }, []);
-}
+};
+export const listMonitoreoPuntos = cached(listMonitoreoPuntosImpl, {
+  tags: ["monitoreo"],
+  ttl: 60,
+});
 
 // =============================================================================
 // getMonitoreoPuntoById — ficha detallada (sin fallback, debe fallar duro).
@@ -443,7 +452,7 @@ function mapBeneficiarioRow(r: BeneficiarioRow): BeneficiarioFull {
   };
 }
 
-export async function listBeneficiariosFull(): Promise<BeneficiarioFull[]> {
+const listBeneficiariosFullImpl = async (): Promise<BeneficiarioFull[]> => {
   return withFallback("beneficiariosFull", async () => {
     const rows = await sql<BeneficiarioRow[]>`
       SELECT
@@ -465,7 +474,11 @@ export async function listBeneficiariosFull(): Promise<BeneficiarioFull[]> {
     `;
     return rows.map(mapBeneficiarioRow);
   }, []);
-}
+};
+export const listBeneficiariosFull = cached(listBeneficiariosFullImpl, {
+  tags: ["catalogos:full", "monitoreo"],
+  ttl: 300,
+});
 
 export async function getBeneficiarioById(id: number): Promise<BeneficiarioFull | null> {
   const rows = await sql<BeneficiarioRow[]>`
