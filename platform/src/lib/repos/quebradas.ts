@@ -104,7 +104,7 @@ export async function eliminarQuebrada(id: number): Promise<void> {
   await sql`DELETE FROM bcs_dh_quebrada WHERE id_quebrada = ${id};`;
 }
 
-export async function listMunicipios(): Promise<MunicipioMini[]> {
+const listMunicipiosImpl = async (): Promise<MunicipioMini[]> => {
   const rows = await sql<{ id_municipio: number | string; nombre_municipio: string }[]>`
     SELECT id_municipio, nombre_municipio
     FROM   bcs_lpa_municipio
@@ -114,7 +114,11 @@ export async function listMunicipios(): Promise<MunicipioMini[]> {
     idMunicipio: pgInt(r.id_municipio),
     nombreMunicipio: pgText(r.nombre_municipio),
   }));
-}
+};
+export const listMunicipios = cached(listMunicipiosImpl, {
+  tags: ["catalogos:lookup"],
+  ttl: 300,
+});
 
 // =============================================================================
 // HU-TC-06: Municipios (bcs_lpa_municipio) — CRUD

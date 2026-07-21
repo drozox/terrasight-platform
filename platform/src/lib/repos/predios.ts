@@ -80,7 +80,7 @@ export async function getPredioById(id: number): Promise<PredioFull | null> {
   return rows[0] ? mapPredioRow(rows[0]) : null;
 }
 
-export async function listPropietarios(): Promise<PropietarioMini[]> {
+const listPropietariosImpl = async (): Promise<PropietarioMini[]> => {
   const rows = await sql<{ id_propietario: number | string; nombre_razon_social: string }[]>`
     SELECT id_propietario, nombre_razon_social
     FROM   sgs_pre_propietario
@@ -90,9 +90,13 @@ export async function listPropietarios(): Promise<PropietarioMini[]> {
     idPropietario: pgInt(r.id_propietario),
     nombreRazonSocial: pgText(r.nombre_razon_social),
   }));
-}
+};
+export const listPropietarios = cached(listPropietariosImpl, {
+  tags: ["catalogos:lookup"],
+  ttl: 300,
+});
 
-export async function listVeredas(): Promise<VeredaMini[]> {
+const listVeredasImpl = async (): Promise<VeredaMini[]> => {
   const rows = await sql<{
     id_vereda: number | string;
     nombre_vereda: string;
@@ -110,7 +114,11 @@ export async function listVeredas(): Promise<VeredaMini[]> {
     idMunicipio: pgInt(r.id_municipio),
     nombreMunicipio: pgText(r.nombre_municipio),
   }));
-}
+};
+export const listVeredas = cached(listVeredasImpl, {
+  tags: ["catalogos:lookup"],
+  ttl: 300,
+});
 
 export async function crearPredio(input: Omit<PredioFull, "idPredio">): Promise<PredioFull> {
   const rows = await sql<{ id_predio: number | string }[]>`

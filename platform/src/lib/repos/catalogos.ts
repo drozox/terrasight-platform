@@ -27,7 +27,7 @@ import type {
 // Lookup: Componentes y Acciones (TC-03 catálogo, lectura)
 // =============================================================================
 
-export async function listComponentesLookup(): Promise<ComponenteLookup[]> {
+const listComponentesLookupImpl = async (): Promise<ComponenteLookup[]> => {
   const rows = await sql<{ id_componente: number | string; nombre: string }[]>`
     SELECT id_componente, nombre FROM sgs_com_componente ORDER BY nombre;
   `;
@@ -35,9 +35,13 @@ export async function listComponentesLookup(): Promise<ComponenteLookup[]> {
     idComponente: pgInt(r.id_componente),
     nombre: pgText(r.nombre),
   }));
-}
+};
+export const listComponentesLookup = cached(listComponentesLookupImpl, {
+  tags: ["catalogos:lookup"],
+  ttl: 300,
+});
 
-export async function listAccionesLookup(): Promise<AccionLookup[]> {
+const listAccionesLookupImpl = async (): Promise<AccionLookup[]> => {
   const rows = await sql<{
     id_accion: number | string; nombre: string;
     id_componente: number | string; nombre_componente: string;
@@ -53,7 +57,11 @@ export async function listAccionesLookup(): Promise<AccionLookup[]> {
     idComponente: pgInt(r.id_componente),
     nombreComponente: pgText(r.nombre_componente),
   }));
-}
+};
+export const listAccionesLookup = cached(listAccionesLookupImpl, {
+  tags: ["catalogos:lookup"],
+  ttl: 300,
+});
 
 // =============================================================================
 // CRUD de catalogos (HU-TC-03)
