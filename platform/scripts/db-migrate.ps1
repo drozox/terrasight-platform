@@ -18,10 +18,18 @@
 
 $ErrorActionPreference = "Stop"
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ProjectRoot = Split-Path -Parent (Split-Path -Parent $ScriptDir)
+# DEBT-2: $MyInvocation.MyCommand.Path devuelve $null cuando se invoca
+# desde npm (`npm run db:migrate`). $PSScriptRoot y $PSCommandPath son
+# automáticas de PowerShell (>=3.0) y siempre apuntan al script actual.
+# NOTA: el script vive en `platform/scripts/`, no en `platform/scripts/db/`.
+#       Antes hacía `Split-Path -Parent` dos veces, lo cual era incorrecto.
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } elseif ($PSCommandPath) { Split-Path -Parent $PSCommandPath } else { throw "No se pudo determinar el directorio del script. Use PowerShell 3.0+ o ejecute con la ruta completa." }
+$ProjectRoot = Split-Path -Parent $ScriptDir
 
 $InitDir = Join-Path $ProjectRoot "scripts/db/init"
+if (-not (Test-Path $InitDir)) {
+    throw "Directorio de migrations no encontrado: $InitDir (ScriptDir='$ScriptDir', ProjectRoot='$ProjectRoot')"
+}
 
 $ordered = @(
     "02-datos-ejemplo.sql",
