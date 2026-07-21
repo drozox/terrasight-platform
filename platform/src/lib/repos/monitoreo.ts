@@ -156,7 +156,7 @@ const MONITOREO_BASE_SELECT = sql`
 // =============================================================================
 // getMonitoreoKPIs — totales por tipo, por componente, beneficiarios unicos.
 // =============================================================================
-export async function getMonitoreoKPIs(): Promise<MonitoreoKpis> {
+const getMonitoreoKPIsImpl = async (): Promise<MonitoreoKpis> => {
   return withFallback("monitoreoKPIs", async () => {
     const [porTipoRows, porCompRows, totalBenefRows] = await Promise.all([
       sql<{ tipo_punto: string; cnt: number | string }[]>`
@@ -219,19 +219,23 @@ export async function getMonitoreoKPIs(): Promise<MonitoreoKpis> {
     totalBeneficiarios: 0,
     porComponente: {},
   });
-}
+};
+export const getMonitoreoKPIs = cached(getMonitoreoKPIsImpl, {
+  tags: ["monitoreo"],
+  ttl: 60,
+});
 
 // =============================================================================
 // listMonitoreoPuntos — listado paginado con todos los joins + filtros.
 // =============================================================================
-export async function listMonitoreoPuntos(
+const listMonitoreoPuntosImpl = async (
   opts: {
     tipo?: MonitoreoPunto["tipoPunto"] | null;
     componente?: string | null;
     q?: string | null;
     limit?: number;
   } = {},
-): Promise<MonitoreoPunto[]> {
+): Promise<MonitoreoPunto[]> => {
   return withFallback("monitoreoPuntos", async () => {
     const whereParts: ReturnType<typeof sql>[] = [];
     if (opts.tipo) whereParts.push(sql`pp.tipo_punto = ${opts.tipo}`);
@@ -255,7 +259,11 @@ export async function listMonitoreoPuntos(
     `;
     return rows.map(mapMonitoreoRow);
   }, []);
-}
+};
+export const listMonitoreoPuntos = cached(listMonitoreoPuntosImpl, {
+  tags: ["monitoreo"],
+  ttl: 60,
+});
 
 // =============================================================================
 // getMonitoreoPuntoById — ficha detallada (sin fallback, debe fallar duro).
