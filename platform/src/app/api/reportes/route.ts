@@ -80,6 +80,7 @@ const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
     { key: "accion",            header: "Acción" },
     { key: "nombreQuebrada",    header: "Quebrada" },
     { key: "detalleEspecifico", header: "Detalle específico" },
+    { key: "avancePct",         header: "Avance %" },
   ],
   R5: [
     { key: "idPropPunto",            header: "ID Punto" },
@@ -90,6 +91,7 @@ const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
     { key: "nombreQuebrada",          header: "Quebrada" },
     { key: "usuariosBeneficiarios",   header: "Beneficiarios" },
     { key: "totalUsuarios",           header: "# Beneficiarios" },
+    { key: "avancePct",                header: "Avance %" },
   ],
   R6: [
     { key: "idPredio",           header: "ID" },

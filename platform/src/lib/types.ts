@@ -525,6 +525,8 @@ export type ReporteR4Fila = {
   accion: string;
   nombreQuebrada: string;
   detalleEspecifico: string;
+  /** % de avance real (0-100) o `null` si la propuesta no tiene evento manual. */
+  avancePct: number | null;
 }
 
 export type ReporteR5Fila = {
@@ -536,6 +538,8 @@ export type ReporteR5Fila = {
   nombreQuebrada: string;
   usuariosBeneficiarios: string;
   totalUsuarios: number;
+  /** % de avance real (0-100) o `null` si la propuesta no tiene evento manual. */
+  avancePct: number | null;
 }
 
 export type ReporteR6Fila = {

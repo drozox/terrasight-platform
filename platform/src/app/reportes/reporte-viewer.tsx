@@ -51,6 +51,7 @@ const COLUMNAS: Record<ReporteTipo, Column[]> = {
     { key: "accion",            label: "Acción" },
     { key: "nombreQuebrada",    label: "Quebrada" },
     { key: "detalleEspecifico", label: "Detalle" },
+    { key: "avancePct",         label: "Avance %", align: "right" },
   ],
   R5: [
     { key: "idPropPunto",           label: "ID" },
@@ -61,6 +62,7 @@ const COLUMNAS: Record<ReporteTipo, Column[]> = {
     { key: "nombreQuebrada",        label: "Quebrada" },
     { key: "usuariosBeneficiarios", label: "Beneficiarios" },
     { key: "totalUsuarios",         label: "# Ben.",    align: "right" },
+    { key: "avancePct",             label: "Avance %",   align: "right" },
   ],
   R6: [
     { key: "idPredio",          label: "ID" },

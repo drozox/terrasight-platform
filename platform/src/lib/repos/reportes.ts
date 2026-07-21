@@ -156,6 +156,7 @@ export async function getReporteR4(): Promise<ReporteR4Fila[]> {
     accion: string;
     nombre_quebrada: string | null;
     detalle_especifico: string | null;
+    avance_pct: number | string | null;
   }[]>`
     SELECT p.id_predio, p.nombre_predio,
            prop.id_propuesta, prop.tipo, prop.actividad,
@@ -167,12 +168,21 @@ export async function getReporteR4(): Promise<ReporteR4Fila[]> {
              WHEN prop.tipo = 'poligono' THEN (SELECT (area_ha)::TEXT     FROM sgs_pro_propuesta_poligono WHERE id_propuesta = prop.id_propuesta) || ' ha'
              WHEN prop.tipo = 'punto'    THEN (SELECT tipo_punto             FROM sgs_pro_propuesta_punto    WHERE id_propuesta = prop.id_propuesta)
              ELSE 'N/A'
-           END AS detalle_especifico
+           END AS detalle_especifico,
+           av.avance_pct
     FROM   sgs_pre_predio p
     JOIN   sgs_pro_propuesta prop ON p.id_predio = prop.id_predio
     JOIN   sgs_com_accion     acc  ON prop.id_accion     = acc.id_accion
     JOIN   sgs_com_componente comp ON acc.id_componente = comp.id_componente
     LEFT JOIN bcs_dh_quebrada q   ON prop.id_quebrada   = q.id_quebrada
+    LEFT JOIN LATERAL (
+      SELECT av2.avance_pct
+      FROM   sgs_pro_propuesta_avance av2
+      WHERE  av2.id_propuesta = prop.id_propuesta
+        AND  av2.es_backfill = FALSE
+      ORDER  BY av2.created_at DESC, av2.id_avance DESC
+      LIMIT  1
+    ) av ON true
     ORDER  BY p.nombre_predio, prop.id_propuesta;
   `;
   return rows.map((r) => ({
@@ -185,6 +195,7 @@ export async function getReporteR4(): Promise<ReporteR4Fila[]> {
     accion: pgText(r.accion),
     nombreQuebrada: r.nombre_quebrada ?? "",
     detalleEspecifico: r.detalle_especifico ?? "N/A",
+    avancePct: r.avance_pct == null ? null : pgInt(r.avance_pct),
   }));
 }
 
@@ -201,18 +212,28 @@ export async function getReporteR5(): Promise<ReporteR5Fila[]> {
     nombre_quebrada: string | null;
     usuarios_beneficiarios: string | null;
     total_usuarios: number | string | null;
+    avance_pct: number | string | null;
   }[]>`
     SELECT pp.id_prop_punto, pp.actividad, pp.tipo_punto,
            pp.este, pp.norte,
            q.nombre_quebrada,
            STRING_AGG(u.nombre, ', ' ORDER BY u.nombre) AS usuarios_beneficiarios,
-           COUNT(u.id_usuario)::int                     AS total_usuarios
+           COUNT(u.id_usuario)::int                     AS total_usuarios,
+           av.avance_pct
     FROM   sgs_pro_propuesta_punto pp
     JOIN   sgs_pro_propuesta           prop ON pp.id_propuesta = prop.id_propuesta
     LEFT JOIN bcs_dh_quebrada          q    ON pp.id_quebrada   = q.id_quebrada
     LEFT JOIN sgs_rel_propuesta_punto_usuario rpu ON pp.id_prop_punto = rpu.id_prop_punto
     LEFT JOIN sgs_pre_usuario          u    ON rpu.id_usuario   = u.id_usuario
-    GROUP  BY pp.id_prop_punto, pp.actividad, pp.tipo_punto, pp.este, pp.norte, q.nombre_quebrada
+    LEFT JOIN LATERAL (
+      SELECT av2.avance_pct
+      FROM   sgs_pro_propuesta_avance av2
+      WHERE  av2.id_propuesta = prop.id_propuesta
+        AND  av2.es_backfill = FALSE
+      ORDER  BY av2.created_at DESC, av2.id_avance DESC
+      LIMIT  1
+    ) av ON true
+    GROUP  BY pp.id_prop_punto, pp.actividad, pp.tipo_punto, pp.este, pp.norte, q.nombre_quebrada, av.avance_pct
     ORDER  BY pp.tipo_punto, pp.actividad;
   `;
   return rows.map((r) => ({
@@ -224,6 +245,7 @@ export async function getReporteR5(): Promise<ReporteR5Fila[]> {
     nombreQuebrada: r.nombre_quebrada ?? "",
     usuariosBeneficiarios: r.usuarios_beneficiarios ?? "",
     totalUsuarios: pgInt(r.total_usuarios ?? 0),
+    avancePct: r.avance_pct == null ? null : pgInt(r.avance_pct),
   }));
 }
 
