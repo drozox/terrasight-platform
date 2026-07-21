@@ -618,8 +618,8 @@ export async function getAnalisisBuffer(args: {
       SELECT p.id_predio, p.nombre_predio,
              ST_Distance(p.geom::geography, q.geom::geography)::numeric(12,2) AS distancia_m,
              p.area_ha,
-             ST_Y(ST_Centroid(p.geom))::numeric(10,6) AS centroid_lat,
-             ST_X(ST_Centroid(p.geom))::numeric(10,6) AS centroid_lon
+             p.latitud_centroide AS centroid_lat,
+             p.longitud_centroide AS centroid_lon
       FROM   sgs_pre_predio p,
              bcs_dh_quebrada  q
       WHERE  q.id_quebrada = ${args.id}
@@ -652,8 +652,8 @@ export async function getAnalisisBuffer(args: {
   }[]>`
     SELECT q.id_quebrada, q.nombre_quebrada,
            ST_Distance(q.geom::geography, pp_geom.geom::geography)::numeric(12,2) AS distancia_m,
-           ST_Y(q.geom)::numeric(10,6) AS centroid_lat,
-           ST_X(q.geom)::numeric(10,6) AS centroid_lon
+           q.latitud AS centroid_lat,
+           q.longitud AS centroid_lon
     FROM   bcs_dh_quebrada q,
            (
              SELECT geom FROM sgs_pro_propuesta_punto    WHERE id_propuesta = ${args.id} AND geom IS NOT NULL
@@ -816,8 +816,8 @@ export async function getIntersectPorBoundingBox(
     componente: string | null;
   }[]>`
     SELECT p.id_predio, p.nombre_predio, p.area_ha,
-           ST_Y(ST_Centroid(p.geom))::numeric(10,6) AS centroid_lat,
-           ST_X(ST_Centroid(p.geom))::numeric(10,6) AS centroid_lon,
+           p.latitud_centroide AS centroid_lat,
+           p.longitud_centroide AS centroid_lon,
            (
              SELECT c.nombre
              FROM   sgs_pro_propuesta pp
