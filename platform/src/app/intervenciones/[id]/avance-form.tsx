@@ -35,14 +35,19 @@ export function AvanceForm({
   onUpdate: (msg: string) => void;
   onError: (msg: string) => void;
 }) {
-  // Si no hay avance real, arrancamos el slider en 0. El plan lo dice
-  // explícitamente: "useEffect(() => setPct(avanceActual ?? 0), [avanceActual])".
-  const [pct, setPct] = React.useState<number>(avanceActual ?? 0);
+  // DEBT-8: separamos el "valor inicial" del "valor actual del form".
+  // - `initialPct` es el último avance registrado (o null si no hay).
+  // - `pct` es lo que el usuario está editando (null hasta que interactúe).
+  // Esto evita que "0" se confunda entre "el avance real es 0%" y
+  // "no hay avance registrado".
+  const [pct, setPct] = React.useState<number | null>(avanceActual);
+  const [touched, setTouched] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   // Re-sincronizar el slider si la propuesta cambia de % (router.refresh).
   React.useEffect(() => {
-    setPct(avanceActual ?? 0);
+    setPct(avanceActual);
+    setTouched(false);
   }, [avanceActual]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -51,7 +56,13 @@ export function AvanceForm({
     setBusy(true);
     const fd = new FormData(e.currentTarget);
     fd.set("idPropuesta", String(idPropuesta));
-    fd.set("avancePct", String(pct));
+    // DEBT-7: si el usuario no tocó el slider y no había avance previo,
+    // registramos explícitamente 0 (con nota) para que quede traza en el
+    // histórico. Antes se podía registrar 0% sin querer.
+    fd.set("avancePct", String(pct ?? 0));
+    if (pct === null && avanceActual === null) {
+      fd.set("nota", "Registro inicial de avance (0% — pendiente de medición real)");
+    }
     const res = await actualizarAvanceIntervencionAction(fd);
     setBusy(false);
     if (res.ok) onUpdate(res.message);
@@ -59,6 +70,8 @@ export function AvanceForm({
   }
 
   const sinAvance = avanceActual === null || avanceActual === undefined;
+  // DEBT-7: mostrar warning si va a registrar 0% por primera vez.
+  const vaARegistrarCeroInicial = pct === 0 && avanceActual === null;
 
   // ---- Modo lectura ----
   if (!canEdit) {
@@ -93,7 +106,7 @@ export function AvanceForm({
             title="Esta propuesta no tiene un evento de avance registrado por un gestor."
           />
         ) : (
-          <ProgressBar pct={pct} />
+          <ProgressBar pct={pct ?? 0} />
         )}
       </div>
     );
@@ -112,14 +125,14 @@ export function AvanceForm({
               Avance no registrado
             </p>
           ) : (
-            <p className="font-mono text-4xl font-bold text-primary">{pct}%</p>
+            <p className="font-mono text-4xl font-bold text-primary">{pct ?? 0}%</p>
           )}
         </div>
         <div className="hidden text-right sm:block">
           <p className="text-[11px] font-bold uppercase text-on-surface-variant">
             Nuevo valor
           </p>
-          <p className="font-mono text-2xl font-bold text-on-surface">{pct}%</p>
+          <p className="font-mono text-2xl font-bold text-on-surface">{pct ?? 0}%</p>
         </div>
       </div>
 
@@ -129,7 +142,21 @@ export function AvanceForm({
           title="Esta propuesta no tiene un evento de avance registrado por un gestor."
         />
       ) : (
-        <ProgressBar pct={pct} />
+        <ProgressBar pct={pct ?? 0} />
+      )}
+
+      {vaARegistrarCeroInicial && (
+        <div
+          role="alert"
+          className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-body-sm text-on-surface"
+        >
+          <p className="font-semibold text-warning">Vas a registrar 0% como primer evento de avance.</p>
+          <p className="text-on-surface-variant">
+            Si la propuesta aún no tiene trabajo en campo, podés usar la nota para explicar
+            por qué (ej. "pendiente de visita de campo"). Si ya hay avance real, mové el
+            slider al % correcto antes de guardar.
+          </p>
+        </div>
       )}
 
       <label className="block">
@@ -141,8 +168,11 @@ export function AvanceForm({
           min={0}
           max={100}
           step={5}
-          value={pct}
-          onChange={(e) => setPct(Number(e.target.value))}
+          value={pct ?? 0}
+          onChange={(e) => {
+            setPct(Number(e.target.value));
+            setTouched(true);
+          }}
           className="h-2 w-full cursor-pointer appearance-none rounded-full bg-outline-variant/40 accent-primary"
           aria-label="Porcentaje de avance"
         />
