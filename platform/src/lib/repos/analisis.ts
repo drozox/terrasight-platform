@@ -353,9 +353,9 @@ export const getPrediosGeoJSON = cached(getPrediosGeoJSONImpl, {
   ttl: 60,
 });
 
-export async function getPrediosMini(
-  componente?: string | null,
-): Promise<PredioMini[]> {
+const getPrediosMiniImpl = async (
+  componente: string | null = null,
+): Promise<PredioMini[]> => {
   return withFallback("prediosMini", async () => {
     const rows = componente
       ? await sql<
@@ -384,11 +384,15 @@ export async function getPrediosMini(
     }));
   }, DEMO_PREDIOS);
 }
+export const getPrediosMini = cached(getPrediosMiniImpl, {
+  tags: ["mapa"],
+  ttl: 300,
+});
 
 // =============================================================================
 // Quebradas para el mapa (capa hidrografía)
 // =============================================================================
-export async function getQuebradasMini() {
+const getQuebradasMiniImpl = async (): Promise<{ id: number; nombre: string; lon: number; lat: number }[]> => {
   return withFallback("quebradasMini", async () => {
     const rows = await sql<
       { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
@@ -405,6 +409,10 @@ export async function getQuebradasMini() {
     }));
   }, DEMO_QUEBRADAS);
 }
+export const getQuebradasMini = cached(getQuebradasMiniImpl, {
+  tags: ["mapa", "dashboard"],
+  ttl: 300,
+});
 
 // =============================================================================
 // Alertas (DEBT-5: lee de sgs_amb_alerta, tabla real con FK y CHECKs).
@@ -700,7 +708,7 @@ export async function getAnalisisBuffer(args: {
 // =============================================================================
 // Matriz componente × municipio (HU-AA-04)
 // =============================================================================
-export async function getMatrizComponenteMunicipio(): Promise<MatrizFila[]> {
+const getMatrizComponenteMunicipioImpl = async (): Promise<MatrizFila[]> => {
   const rows = await sql<{
     municipio: string;
     nombre_componente: string;
@@ -752,11 +760,15 @@ export async function getMatrizComponenteMunicipio(): Promise<MatrizFila[]> {
     a.municipio.localeCompare(b.municipio, "es"),
   );
 }
+export const getMatrizComponenteMunicipio = cached(getMatrizComponenteMunicipioImpl, {
+  tags: ["analisis"],
+  ttl: 300,
+});
 
 // =============================================================================
 // Cobertura CLC × municipio (HU-AA-03)
 // =============================================================================
-export async function getCoberturaPorMunicipio(): Promise<CoberturaMunicipioFila[]> {
+const getCoberturaPorMunicipioImpl = async (): Promise<CoberturaMunicipioFila[]> => {
   const rows = await sql<{
     municipio: string;
     nombre_cobertura: string;
@@ -803,9 +815,13 @@ export async function getCoberturaPorMunicipio(): Promise<CoberturaMunicipioFila
   }
   return list.sort((a, b) => a.municipio.localeCompare(b.municipio, "es"));
 }
+export const getCoberturaPorMunicipio = cached(getCoberturaPorMunicipioImpl, {
+  tags: ["analisis"],
+  ttl: 300,
+});
 
 // =============================================================================
-// Intersección por bounding box (HU-AA-03)
+// Intersección por bounding box (HU-AA-03) — NO cacheada (query espacial pesada)
 // =============================================================================
 export async function getIntersectPorBoundingBox(
   bbox: BoundingBox,
