@@ -386,58 +386,43 @@ export async function getQuebradasMini() {
 }
 
 // =============================================================================
-// Alertas (panel derecho del Stitch — placeholder hasta tener tabla real)
+// Alertas (DEBT-5: lee de sgs_amb_alerta, tabla real con FK y CHECKs).
+// La migration 10 puebla la tabla con 5 alertas demo si está vacía.
 // =============================================================================
 export async function getAlertas(limit = 50): Promise<Alerta[]> {
   return withFallback("alertas", async () => {
-    // En el esquema actual no hay tabla `alertas` propia. Devolvemos un set
-    // curado de alertas con contexto real del territorio (Cundinamarca,
-    // predios cargados al sistema) hasta que el cliente defina la tabla
-    // fuente. Las prioridades: error = crítica, warning = preventiva,
-    // info = informativa.
-    const demo: Alerta[] = [
-      {
-        id: 1,
-        tipo: "error",
-        titulo: "Deforestación Crítica",
-        descripcion:
-          "Detección de tala ilegal en sector San Rafael, Guasca — pérdida de cobertura boscosa >0.5 ha en 7 días.",
-        fecha: "Hoy",
-      },
-      {
-        id: 2,
-        tipo: "warning",
-        titulo: "Nivel Hídrico Bajo",
-        descripcion:
-          "Estación hidrométrica Río Negro (Est. 04) reporta caudal 18% bajo el promedio histórico para el mes.",
-        fecha: "14/05",
-      },
-      {
-        id: 3,
-        tipo: "warning",
-        titulo: "Propuestas con Avance Bajo",
-        descripcion:
-          "3 propuestas de tipo punto en finca El Edén (Guasca) llevan más de 30 días con avance <25%.",
-        fecha: "12/05",
-      },
-      {
-        id: 4,
-        tipo: "info",
-        titulo: "Nueva Fuente Hídrica Registrada",
-        descripcion:
-          "Se incorporó la quebrada La Parada al inventario — microcuenca Río Bogotá alto, municipio Cogua.",
-        fecha: "08/05",
-      },
-      {
-        id: 5,
-        tipo: "info",
-        titulo: "Reporte Mensual Disponible",
-        descripcion:
-          "Reporte de monitoreo correspondiente a abril 2026 listo para descarga. 3 predios intervenidos, 2.3 ha.",
-        fecha: "01/05",
-      },
-    ];
-    return demo.slice(0, limit);
+    const rows = await sql<{
+      id_alerta: number | string;
+      tipo: string;
+      titulo: string;
+      descripcion: string;
+      fecha: Date | string;
+    }[]>`
+      SELECT id_alerta, tipo, titulo, descripcion, fecha
+      FROM   sgs_amb_alerta
+      WHERE  estado = 'activa'
+      ORDER  BY fecha DESC
+      LIMIT  ${limit};
+    `;
+    return rows.map((r) => {
+      const d = r.fecha instanceof Date ? r.fecha : new Date(pgText(r.fecha));
+      const ahora = new Date();
+      const diffMs = ahora.getTime() - d.getTime();
+      const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      let fechaStr: string;
+      if (diffDias === 0) fechaStr = "Hoy";
+      else if (diffDias === 1) fechaStr = "Ayer";
+      else if (diffDias < 7) fechaStr = `Hace ${diffDias} días`;
+      else if (diffDias < 30) fechaStr = `Hace ${Math.floor(diffDias / 7)} sem`;
+      else fechaStr = d.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
+      return {
+        id: pgInt(r.id_alerta),
+        tipo: pgText(r.tipo) as "error" | "warning" | "info",
+        titulo: pgText(r.titulo),
+        descripcion: pgText(r.descripcion),
+        fecha: fechaStr,
+      };
+    });
   }, DEMO_ALERTAS.slice(0, limit));
 }
 

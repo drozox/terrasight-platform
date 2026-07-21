@@ -39,7 +39,8 @@ $ordered = @(
     "06-propuesta-avance.sql",
     "07-monitoreo-punto.sql",
     "08-cat-secundarios.sql",
-    "09-propuesta-avance-es-backfill.sql"
+    "09-propuesta-avance-es-backfill.sql",
+    "10-sgs-amb-alerta.sql"
 )
 
 foreach ($file in $ordered) {
