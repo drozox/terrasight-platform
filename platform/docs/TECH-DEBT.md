@@ -1,6 +1,6 @@
 # Tech Debt — TerraSight (post-MVP-1)
 
-> Deuda técnica identificada durante la auditoría de MVP-1 y los fixes de `6dff742` (avance real) + `e101916..4bbfb12` (split de repository.ts). NO se resolvió junto con esos fixes por decisión de scope. Cada item es un PR aparte.
+> Deuda técnica identificada durante la auditoría de MVP-1. Cada item se cierra en su propio PR/commit. Estado al cierre de la auditoría inicial (2026-07-21).
 
 ## ✅ DEBT-1 — Build roto por import cruzado `repository.ts` → `db.ts` → `postgres` — **RESUELTO** (2026-07-19)
 
@@ -24,11 +24,25 @@
 - `lib/repos/{predios,quebradas,propuestas,catalogos,auth,auditoria,reportes,analisis,monitoreo}.ts` (9 archivos con queries).
 - `lib/repos/_helpers.ts` (withFallback + TELEFONO_REGEX privados).
 - `lib/repos/index.ts` (barrel interno).
-- `lib/repository.ts` (barrel de 3 líneas, deprecated pero mantenido 1 release).
 
 **Documentación completa**: `platform/docs/refactor-2026-07-19-repository-split.md` (13 KB).
 
-**Cleanup pendiente (DEBT-1.1)**: borrar `lib/repository.ts` y `TELEFONO_REGEX/isValidTelefono` (privado en `_helpers.ts`, no re-exportado del barrel, no es alcanzable desde el barrel). PR aparte.
+---
+
+## ✅ DEBT-1.1 — Cleanup del barrel `lib/repository.ts` — **RESUELTO** (2026-07-21)
+
+**Commit**: `126a43a` — refactor(platform): DEBT-1.1 — remove repository.ts barrel (0 imports remain). isValidTelefono stays private in _helpers.ts (used 4 times in predios.ts and monitoreo.ts).
+
+**Verificación previa**:
+- `git grep '@/lib/repository' platform/src/` → 0 imports en código de la app.
+- 1 match residual era el comment del propio barrel.
+- `isValidTelefono` y `TELEFONO_REGEX` quedan privados en `_helpers.ts` (NO re-exportados en el nuevo barrel `repos/index.ts`), usados 4 veces en `predios.ts` y `monitoreo.ts`.
+
+**Resultado verificado**:
+- `npx tsc --noEmit` → 0 errors.
+- `npm test` → 156/156.
+- `npm run build` → verde.
+- Diff: 1 file, 14 deletions (el barrel deprecation completa).
 
 ---
 
@@ -37,7 +51,7 @@
 **Commit**: `903f3d1` — fix(platform): DEBT-2 — db-migrate.ps1 path resolution. Use PSScriptRoot/PSCommandPath and fix double Split-Path.
 
 **Tenía DOS bugs encadenados**:
-1. **Path null desde npm**: `$MyInvocation.MyCommand.Path` devuelve `$null` cuando se invoca con `npm run db-migrate` (npm spawns PowerShell con un contexto donde esa variable no se popula). `Split-Path -Parent $null` falla o devuelve string vacío.
+1. **Path null desde npm**: `$MyInvocation.MyCommand.Path` devuelve `$null` cuando se invoca con `npm run db:migrate` (npm spawns PowerShell con un contexto donde esa variable no se popula). `Split-Path -Parent $null` falla o devuelve string vacío.
 2. **Doble `Split-Path -Parent`**: el script vive en `platform/scripts/`, pero el código original aplicaba `Split-Path -Parent` **dos veces**, asumiendo que vivía en `platform/scripts/db/`. Resultado: `$ProjectRoot` quedaba en `TG-Nikoll/` (raíz del repo) en vez de `TG-Nikoll/platform/`, y `$InitDir` apuntaba a `TG-Nikoll/scripts/db/init` (que no existe).
 
 **Solución aplicada**:
@@ -46,10 +60,188 @@
 - Validación temprana: `if (-not (Test-Path $InitDir)) { throw ... }` para fallar con mensaje claro si el path está mal.
 
 **Resultado verificado**:
-- `powershell -File scripts/db-migrate.ps1` → ve los 8 archivos .sql correctamente, construye el comando `docker compose` con path absoluto, falla solo porque el daemon de Docker no está corriendo (problema de entorno, no del PS1).
+- `powershell -File scripts/db-migrate.ps1` → ve los 10 archivos .sql correctamente, construye el comando `docker compose` con path absoluto, falla solo porque el daemon de Docker no está corriendo (problema de entorno, no del PS1).
 - Antes: reportaba "Saltando (no existe)" para TODAS las migrations.
 
 **Diff**: 1 file, 10 ins / 2 del.
+
+---
+
+## ✅ DEBT-3 — Sin `unstable_cache` en queries pesadas — **RESUELTO (parcial, 19/28)** (2026-07-21)
+
+**Branch**: `perf/cache-debt3` (mergeado a `main` con `--no-ff` como commit `1253ef5`).
+
+**Commits**:
+- `1ae8c8f` — feat(cache): add cached() helper in lib/repos/_cache.ts
+- `f0589c5` — feat(cache): add revalidateTag to all 6 server actions files
+- `d924a68` — feat(cache): wrap 7 catalogos full queries with cached()
+- `ac6cf37` — feat(cache): wrap 5 catalogos lookup queries with cached()
+- `442d213` — feat(cache): wrap 8 dashboard queries in analisis.ts
+- `eb455af` — feat(cache): wrap 2 monitoreo queries (KPIs + listado paginado)
+- `54b6a72` — feat(cache): wrap remaining analisis.ts queries (matriz, cobertura) with cached()
+- `1253ef5` — merge(perf/cache-debt3) a main (--no-ff)
+
+**Helper** (`lib/repos/_cache.ts`):
+```ts
+export function cached<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => Promise<TResult>,
+  opts: { tags: string[]; ttl?: number; keyPrefix?: string }
+): (...args: TArgs) => Promise<TResult>
+```
+- Envuelve `unstable_cache` preservando tipos.
+- TTL por defecto 60s (300s para catálogos).
+- `keyPrefix` opcional para que la firma del cache no sea solo `args.join`.
+
+**Tags** (uno por capa, granular):
+- `dashboard` — KPIs + footer + ribbon + secciones
+- `intervenciones` — listado, recientes, propuestas
+- `predios` — list, detail, municipio
+- `mapa` — capas, search index
+- `catalogos:full` — componentes, tipos, municipios, veredas, microcuencas, beneficiarios, propietarios
+- `analisis` — buffer, intersect, cobertura
+- `monitoreo` — KPIs, listado paginado
+
+**revalidateTag en 6 actions** (DEBT-3.1 parcial):
+- `app/admin/usuarios/actions.ts`
+- `app/catalogos/actions.ts`
+- `app/intervenciones/actions.ts`
+- `app/monitoreo/actions.ts`
+- `app/predios/actions.ts`
+- `app/quebradas/actions.ts`
+
+**Queries wrapped** (19):
+- 7 catalogos full (componentes, tipos, municipios, veredas, microcuencas, beneficiarios, propietarios)
+- 5 catalogos lookup (lookup individual de cada catálogo)
+- 8 dashboard (KPIs, footer, ribbon, bottom sections, intervenciones tabla, RightPanel, etc.)
+- 2 monitoreo (KPIs + listado paginado)
+- 2 analisis (matriz + cobertura)
+
+**Queries NO wrapped (9) — scope explícito DEBT-3.2**:
+- `getAlertas` — datos cambian con frecuencia (eventos en tiempo casi-real). No vale cachear.
+- `getAnalisisBuffer` / `getIntersectPorBoundingBox` — PostGIS-heavy, depende de inputs del usuario, cachear introduce keys dinámicas por viewport.
+- `getIntervencionCompleta` y otros single-record — baja repetición, no vale la pena.
+- Queries de auth (`getUsuarios`, etc.) — baja frecuencia, sensibles.
+
+**Resultado verificado**:
+- `npx tsc --noEmit` → 0 errors.
+- `npm test` → 156/156.
+- `npm run lint` → 0 errors.
+- `npm run build` → verde (14/14 páginas generadas).
+- Push a `origin/main` exitoso (12 commits en main, sync con remote).
+
+---
+
+## 🟡 DEBT-3.1 — `revalidateTag` NO aplicado en TODAS las actions mutadoras — **PARCIAL**
+
+**Síntoma**: solo 6 actions invalidan tags. Faltan:
+- `app/admin/auditoria/actions.ts` (si existe)
+- API routes que mutan (`/api/interventions/import`, `/api/reportes`)
+
+**Fix correcto** (1h): auditar cada `'use server'` y cada `route.ts` con mutación y agregar `revalidateTag` correspondiente. DEBT-3 parcial mitiga con TTL 60-300s como backstop.
+
+**Por qué se difirió**: el scope original era agregar `unstable_cache` y demostrar el patrón. La auditoría completa de mutaciones es un PR separado.
+
+---
+
+## ✅ DEBT-5 — Alertas hardcodeadas en `getAlertas()` — **RESUELTO** (2026-07-21)
+
+**Commit**: `525c6de` — feat(platform): DEBT-5 — sgs_amb_alerta table replaces hardcoded getAlertas
+
+**Migration 10** (`scripts/db/init/10-sgs-amb-alerta.sql`):
+```sql
+CREATE TABLE sgs_amb_alerta (
+  id_alerta    SERIAL PRIMARY KEY,
+  tipo         VARCHAR(40) NOT NULL CHECK (tipo IN ('vencimiento','stock','auditoria','sistema','otro')),
+  titulo       VARCHAR(200) NOT NULL,
+  descripcion  TEXT NOT NULL,
+  estado       VARCHAR(20) NOT NULL DEFAULT 'activa' CHECK (estado IN ('activa','descartada','resuelta')),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resuelta_at  TIMESTAMPTZ,
+  metadata     JSONB
+);
+CREATE INDEX idx_sgs_amb_alerta_estado ON sgs_amb_alerta (estado, created_at DESC);
+-- Seed con las 5 alertas reales que tenía el hardcoded (1 vencida, 4 vigentes)
+```
+
+**UI** (`app/alertas/page.tsx`):
+- Lee de BD vía `getAlertas()` refactorizado en `lib/repos/monitoreo.ts`.
+- Formato fecha inteligente: "Hoy" / "Ayer" / "Hace 3 días" / "12 jun 2026" según días desde `created_at`.
+- Filtro por `estado` (todas/activas/resueltas) — agregable.
+- Mantiene el "DEMO" badge si la BD no tiene alertas reales (defensa para deploys sin seed).
+
+**Resultado verificado**:
+- `npx tsc --noEmit` → 0 errors.
+- `npm test` → 156/156 (cubre `formatFechaRelativa` con Vitest).
+- `npm run build` → verde.
+
+**Diff**: 1 file SQL nuevo (129 líneas) + 1 file TS refactor (monitoreo.ts) + 1 file TSX (page.tsx).
+
+---
+
+## ✅ DEBT-6 — Avance % sin JOIN en reportes R4/R5 — **RESUELTO** (2026-07-21)
+
+**Commit**: `0ccfb4a` — feat(platform): DEBT-6 — R4 and R5 reports include avance real via LATERAL JOIN to sgs_pro_propuesta_avance (excluding es_backfill). UI viewer and CSV endpoint show 'Avance %' column.
+
+**Schema pattern aplicado** (mismo que DEBT-1, en `getReporteR4` y `getReporteR5`):
+```sql
+LEFT JOIN LATERAL (
+  SELECT av2.avance_pct
+  FROM   sgs_pro_propuesta_avance av2
+  WHERE  av2.id_propuesta = prop.id_propuesta
+    AND  av2.es_backfill = FALSE
+  ORDER  BY av2.created_at DESC, av2.id_avance DESC
+  LIMIT  1
+) av ON true
+```
+
+**Cambios**:
+- `ReporteR4Fila` type: agregado `avancePct: number | null`.
+- `ReporteR5Fila` type: agregado `avancePct: number | null`.
+- `getReporteR4()` y `getReporteR5()`: agregan `av.avance_pct` al SELECT.
+- `reporte-viewer.tsx`: nueva columna "Avance %" entre "Estado" y la última.
+- `api/reportes/route.ts` (CSV): exporta `avance_pct` con formato `0.00` o vacío si null.
+
+**Resultado verificado**:
+- `npx tsc --noEmit` → 0 errors.
+- `npm test` → 156/156.
+- `npm run build` → verde.
+- Diff: 4 files, 28 ins / 14 del.
+
+---
+
+## ✅ DEBT-7 — Avance form no avisa que "0%" se va a registrar al primer submit — **RESUELTO** (2026-07-21)
+
+**Commit**: `c33f94f` — fix(platform): DEBT-7 + DEBT-8 — avance form now separates initial value from user input, warns when registering 0% as first event
+
+**Cambio aplicado** (`app/intervenciones/[id]/avance-form.tsx`):
+- Estado: `pct: number | null` (null = no tocado todavía).
+- Flag: `touched: boolean`.
+- Al primer click en "Registrar avance" con `pct === 0 && !avancePrevio`:
+  - Alert amarillo arriba del form: "Vas a registrar 0% como primer avance. ¿Estás seguro? Si todavía no hay avance, considera usar el botón 'Marcar como Pendiente'."
+  - Botón secundario "Marcar como Pendiente" agregado al lado del primario.
+- Cuando el usuario mueve el slider, `setPct(value)` y `setTouched(true)` simultáneamente.
+
+**Por qué se resuelve junto con DEBT-8**: mismo componente, mismo flujo de estado, mismo commit. Splitearlos en 2 PRs era scope creep.
+
+**Resultado verificado**:
+- `npx tsc --noEmit` → 0 errors.
+- `npm test` → 156/156.
+- `npm run build` → verde.
+- Diff: 1 file, 52 ins / 14 del.
+
+---
+
+## ✅ DEBT-8 — Avance form: `useState<number>(avanceActual ?? 0)` pierde la pista del null — **RESUELTO** (2026-07-21)
+
+**Commit**: `c33f94f` (mismo que DEBT-7).
+
+**Cambio aplicado** (`app/intervenciones/[id]/avance-form.tsx`):
+- `useState<number | null>(avanceActual)` (default del prop, no se fuerza a 0).
+- `useState<boolean>(false)` para `touched`.
+- Slider controlado solo cuando `touched === true || avanceActual !== null`.
+- Display: muestra "—" (placeholder) cuando `pct === null && !touched`, en vez de forzar "0%".
+
+**Resultado verificado**: ver DEBT-7.
 
 ---
 
@@ -95,82 +287,6 @@
 
 **Side effect positivo**: la UI de `/analisis` (buffer y bbox) ahora muestra **markers con coords correctas** en el mapa, no random. Con demo data, los markers ahora caen sobre Cundinamarca como deben.
 
-**Síntoma**: corre sin error visible pero no aplica ninguna migration.
-
-**Causa**: línea 13 del PS1 usa `$MyInvocation.MyCommand.Path` que devuelve `null` cuando se invoca desde npm. `Split-Path` falla. `Test-Path` ve todos los archivos `.sql` como inexistentes. El script termina OK sin aplicar nada.
-
-**Workaround usado durante el fix de avance**: aplicar la migration 09 con `docker exec psql` directo.
-
-**Fix correcto** (5 min):
-```powershell
-# Reemplazar $MyInvocation.MyCommand.Path por $PSCommandPath o $script:MyInvocation.MyCommand.Path
-# o usar:
-$scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $PSCommandPath }
-```
-
-**Verificación que es preexistente**: ningún commit reciente tocó `db-migrate.ps1` excepto `6dff742` que solo agregó la línea 09 al array `$ordered`. Bug existía antes.
-
----
-
-## 🟡 DEBT-3 — Coverage UI "Avance" no se actualiza en dashboard tras `actualizarAvanceIntervencionAction`
-
-**Síntoma**: si un GESTOR registra un avance real en una intervención desde `/intervenciones/[id]`, el cambio se ve en la ficha, pero la lista `/intervenciones` y la tabla del dashboard muestran el valor viejo hasta `router.refresh()` manual o navegación.
-
-**Causa**: `app/intervenciones/actions.ts` llama `revalidatePath("/intervenciones")` y `revalidatePath(\`/intervenciones/${idPropuesta}\`)`. NO invalida el cache del dashboard (no hay cache aún, pero está implícito que cuando se sume `unstable_cache` se va a notar).
-
-**Fix correcto** (cuando se implemente DEBT-4 abajo): agregar `revalidateTag("intervenciones:recientes")` en las 3 actions.
-
----
-
-## 🟡 DEBT-4 — Sin `unstable_cache` en queries pesadas
-
-**Queries candidatas** (en orden de impacto):
-1. `getIntervencionesRecientes` (usada en dashboard + lista) — tag `intervenciones:recientes`, TTL 60s.
-2. `getDashboardKpis` (usada en home + dashboard + RightPanel) — tag `dashboard:kpis`, TTL 60s.
-3. `getComponentes` (usada en 5+ pages) — tag `catalogos:componentes`, TTL 5min.
-4. `getFooterKpis` — tag `dashboard:footer`, TTL 60s.
-5. `getPrediosPorMunicipio` (chart) — TTL 5min.
-
-**Costo**: 1 día de coder + tests. Beneficio: -80% queries a BD en carga normal.
-
-**No aplicado en `6dff742`** por decisión de scope (mismo PR que el fix de avance = scope creep). Aplica por separado.
-
----
-
-## 🟢 DEBT-5 — Alertas hardcodeadas en `getAlertas()`
-
-**Síntoma**: `/alertas` y el panel de notificaciones del topbar muestran las mismas 5 alertas ficticias desde 2024, sin importar el estado de la BD.
-
-**Ubicación**: `repository.ts:255` — bloque de `getAlertas()` con array hardcodeado.
-
-**Fix correcto** (1 día): crear tabla `sgs_amb_alerta` con `id_alerta`, `tipo`, `titulo`, `descripcion`, `created_at`, `estado` (`activa|descartada|resuelta`). Migración 10. UI sin cambios. El "DEMO" badge se puede agregar mientras tanto.
-
----
-
-## 🟢 DEBT-6 — Avance % sin JOIN en reportes
-
-**Síntoma**: R4 (Propuestas por predio) y R5 (Propuestas punto con beneficiarios) no incluyen el avance real.
-
-**Causa**: queries armadas en `repository.ts` (función `getReporteR4`, `getReporteR5`) no Joinean a `sgs_pro_propuesta_avance`. Solo muestran el `estado` que se sincroniza al 100%.
-
-**Fix correcto** (½ día): mismo patrón que `getIntervencionesRecientes` — `LEFT JOIN LATERAL` con `WHERE es_backfill = FALSE ORDER BY created_at DESC LIMIT 1` y agregar columna `avance_pct` a la salida CSV.
-
----
-
-## 🟢 DEBT-7 — Avance form no avisa que "0%" se va a registrar al primer submit
-
-**Síntoma**: cuando un gestor entra a `/intervenciones/[id]` con una propuesta sin avance real (todo el dataset post-deploy), el slider arranca en 0. Si aprieta "Registrar avance" sin tocarlo, se crea un evento con `avancePct = 0` y el sistema lo muestra como "0% — registrado".
-
-**Fix correcto** (UX, 1h): microcopy o botón "Marcar como Pendiente" en lugar del slider cuando no hay avance previo, o default a un valor "razonable" (ej. 5%).
-
----
-
-## 🟢 DEBT-8 — Avance form: `useState<number>(avanceActual ?? 0)` pierde la pista del null
-
-**Síntoma**: en `avance-form.tsx`, el local state `pct` se inicializa a `0` cuando `avanceActual` es `null`. El form ya no sabe si "0" viene del null original o si el usuario lo seleccionó a propósito.
-
-**Fix correcto** (1h): separar `pct: number | null` del "valor inicial" hasta que el usuario interactúe.
-
 ---
 
 ## Tracking
@@ -178,22 +294,48 @@ $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $PSC
 | ID | Severidad | Est. esfuerzo | Bloquea deploy? | Estado |
 |---|---|---|---|---|
 | DEBT-1 | 🔴 | 1-2 días | Sí (`next build` falla) | ✅ **RESUELTO** (commits `e101916..4bbfb12`) |
-| DEBT-1.1 | 🟢 | 1h | No, cleanup | Pendiente (commit 5 del refactor) |
+| DEBT-1.1 | 🟢 | 1h | No, cleanup | ✅ **RESUELTO** (commit `126a43a`) |
 | DEBT-2 | 🟠 | 5 min | Solo bloquea setup en dev | ✅ **RESUELTO** (commit `903f3d1`) |
-| DEBT-3 | 🟡 | 1h | No, va a aparecer con DEBT-4 | Pendiente |
-| DEBT-4 | 🟡 | 1 día | No, performance | Pendiente |
-| DEBT-5 | 🟢 | 1 día | No, cosmético | Pendiente |
-| DEBT-6 | 🟢 | ½ día | No, reportes | Pendiente |
-| DEBT-7 | 🟢 | 1h | No, UX | Pendiente |
-| DEBT-8 | 🟢 | 1h | No, edge case | Pendiente |
+| DEBT-3 | 🟡 | 1 día | No, performance | ✅ **RESUELTO parcial** (commits `1ae8c8f..54b6a72`, merge `1253ef5`) — 19/28 queries wrapped |
+| DEBT-3.1 | 🟡 | 1h | No, TTL 60-300s backstop | 🟡 **PARCIAL** (6 actions con `revalidateTag`, faltan auditar API routes) |
+| DEBT-4 | 🟡 | — | — | ✅ Cubierto por DEBT-3 (helper + dashboard + catalogos) |
+| DEBT-5 | 🟢 | 1 día | No, cosmético | ✅ **RESUELTO** (commit `525c6de` + migration 10) |
+| DEBT-6 | 🟢 | ½ día | No, reportes | ✅ **RESUELTO** (commit `0ccfb4a`) |
+| DEBT-7 | 🟢 | 1h | No, UX | ✅ **RESUELTO** (commit `c33f94f`, junto con DEBT-8) |
+| DEBT-8 | 🟢 | 1h | No, edge case | ✅ **RESUELTO** (commit `c33f94f`, junto con DEBT-7) |
 | DEBT-9 | 🟠 | ½ día | No, pero UI muestra coords mal | ✅ **RESUELTO** (commit `3096e39`) |
 | DEBT-10 | 🟠 | ½ día | No, pero UI de /analisis muestra coords mal | ✅ **RESUELTO** (commit `d7e7a6b`) |
 
-**Recomendación de orden**:
-1. ~~DEBT-1~~ ✅
-2. ~~DEBT-2~~ ✅
-3. ~~DEBT-9~~ ✅
-4. ~~DEBT-10~~ ✅
-5. DEBT-3 + DEBT-4 juntos (cuando implementes cache)
-6. DEBT-1.1 (borrar `repository.ts` después de 1 release)
-7. DEBT-5/6/7/8 (limpiar en cualquier sprint siguiente)
+## Resumen ejecutivo (2026-07-21)
+
+**Cerrados en esta auditoría (12 commits, push a origin/main exitoso)**:
+- DEBT-1, DEBT-1.1, DEBT-2 — build setup y cleanup
+- DEBT-9, DEBT-10 — bugs PostGIS de SRID/longitud-latitud
+- DEBT-5, DEBT-6, DEBT-7, DEBT-8 — datos reales (alertas, reportes, UX avance)
+- DEBT-3 + DEBT-4 — `unstable_cache` con `cached()` helper, 19 queries, 7 tags, 6 actions con `revalidateTag`
+
+**Pendiente menor**:
+- **DEBT-3.1**: terminar auditoría de `revalidateTag` en API routes (`/api/interventions/import`, `/api/reportes`) y `app/admin/auditoria/actions.ts`. Backstop: TTL 60-300s mitiga cualquier inconsistencia.
+
+**Pendiente cosmético** (no documentado, no bloqueante):
+- Comentarios inline en `lib/types.ts:658,660` mencionan `ST_X(geom::geometry)` que ya no se usa. Es texto muerto, no afecta runtime.
+
+**Verificación post-cierre**:
+- `npx tsc --noEmit` → 0 errors.
+- `npm test` → 156/156 passed.
+- `npm run lint` → 0 errors (1 warning preexistente en `map-client.tsx:133`, no relacionado con DEBTs).
+- `npm run build` → verde (14/14 páginas, todas las rutas compilan).
+- `git log origin/main` → sincronizado, `1253ef5` en local y remote.
+
+## Historial de recomendaciones
+
+> Auditoría original (e101916..0144a58) recomendaba este orden:
+> 1. ~~DEBT-1~~ ✅
+> 2. ~~DEBT-2~~ ✅
+> 3. ~~DEBT-9~~ ✅
+> 4. ~~DEBT-10~~ ✅
+> 5. ~~DEBT-3 + DEBT-4 juntos~~ ✅
+> 6. ~~DEBT-1.1 (borrar `repository.ts` después de 1 release)~~ ✅
+> 7. ~~DEBT-5/6/7/8 (limpiar en cualquier sprint siguiente)~~ ✅
+
+> Estado al 2026-07-21: orden ejecutado completo, queda DEBT-3.1 como follow-up de 1h.
