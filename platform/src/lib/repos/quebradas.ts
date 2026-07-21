@@ -9,6 +9,7 @@
 
 import { sql, pgInt, pgNum, pgText, pgDate } from "../db";
 import { withFallback } from "./_helpers";
+import { cached } from "./_cache";
 import type {
   QuebradaFull,
   MunicipioMini,
@@ -143,7 +144,7 @@ function mapMunicipioRow(r: MunicipioRow): MunicipioFull {
   };
 }
 
-export async function listMunicipiosFull(): Promise<MunicipioFull[]> {
+const listMunicipiosFullImpl = async (): Promise<MunicipioFull[]> => {
   return withFallback("municipiosFull", async () => {
     const rows = await sql<MunicipioRow[]>`
       SELECT
@@ -171,7 +172,11 @@ export async function listMunicipiosFull(): Promise<MunicipioFull[]> {
     `;
     return rows.map(mapMunicipioRow);
   }, []);
-}
+};
+export const listMunicipiosFull = cached(listMunicipiosFullImpl, {
+  tags: ["catalogos:full"],
+  ttl: 300,
+});
 
 export async function getMunicipioById(id: number): Promise<MunicipioFull | null> {
   const rows = await sql<MunicipioRow[]>`
@@ -303,7 +308,7 @@ function mapMicrocuencaRow(r: MicrocuencaRow): MicrocuencaFull {
   };
 }
 
-export async function listMicrocuencasFull(): Promise<MicrocuencaFull[]> {
+const listMicrocuencasFullImpl = async (): Promise<MicrocuencaFull[]> => {
   return withFallback("microcuencasFull", async () => {
     const rows = await sql<MicrocuencaRow[]>`
       SELECT
@@ -327,7 +332,11 @@ export async function listMicrocuencasFull(): Promise<MicrocuencaFull[]> {
     `;
     return rows.map(mapMicrocuencaRow);
   }, []);
-}
+};
+export const listMicrocuencasFull = cached(listMicrocuencasFullImpl, {
+  tags: ["catalogos:full"],
+  ttl: 300,
+});
 
 export async function getMicrocuencaById(id: number): Promise<MicrocuencaFull | null> {
   const rows = await sql<MicrocuencaRow[]>`

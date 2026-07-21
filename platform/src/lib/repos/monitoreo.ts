@@ -21,6 +21,7 @@
 
 import { sql, pgInt, pgNum, pgText, pgDate } from "../db";
 import { withFallback, isValidTelefono } from "./_helpers";
+import { cached } from "./_cache";
 import { TIPOS_PUNTO, isTipoPunto } from "../constants";
 import type {
   MonitoreoPunto,
@@ -443,7 +444,7 @@ function mapBeneficiarioRow(r: BeneficiarioRow): BeneficiarioFull {
   };
 }
 
-export async function listBeneficiariosFull(): Promise<BeneficiarioFull[]> {
+const listBeneficiariosFullImpl = async (): Promise<BeneficiarioFull[]> => {
   return withFallback("beneficiariosFull", async () => {
     const rows = await sql<BeneficiarioRow[]>`
       SELECT
@@ -465,7 +466,11 @@ export async function listBeneficiariosFull(): Promise<BeneficiarioFull[]> {
     `;
     return rows.map(mapBeneficiarioRow);
   }, []);
-}
+};
+export const listBeneficiariosFull = cached(listBeneficiariosFullImpl, {
+  tags: ["catalogos:full", "monitoreo"],
+  ttl: 300,
+});
 
 export async function getBeneficiarioById(id: number): Promise<BeneficiarioFull | null> {
   const rows = await sql<BeneficiarioRow[]>`

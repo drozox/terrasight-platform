@@ -13,6 +13,7 @@
 
 import { sql, pgInt, pgText, pgDate } from "../db";
 import { COMPONENTES_VALIDOS, ACCIONES_VALIDAS } from "../constants";
+import { cached } from "./_cache";
 import type {
   ComponenteLookup,
   AccionLookup,
@@ -70,7 +71,7 @@ export async function listAccionesLookup(): Promise<AccionLookup[]> {
 // Usado por /catalogos (server) y por la UI para mostrar dependencias antes
 // de borrar.
 // -----------------------------------------------------------------------------
-export async function listComponentesFull(): Promise<ComponenteFull[]> {
+const listComponentesFullImpl = async (): Promise<ComponenteFull[]> => {
   const rows = await sql<{
     id_componente: number | string;
     nombre: string;
@@ -109,13 +110,17 @@ export async function listComponentesFull(): Promise<ComponenteFull[]> {
     totalAcciones: pgInt(r.total_acciones),
     totalPropuestas: pgInt(r.total_propuestas),
   }));
-}
+};
+export const listComponentesFull = cached(listComponentesFullImpl, {
+  tags: ["catalogos:full"],
+  ttl: 300,
+});
 
 // -----------------------------------------------------------------------------
 // Listado de acciones con contador de propuestas. JOIN a componente para
 // mostrar nombre legible en la UI.
 // -----------------------------------------------------------------------------
-export async function listAccionesFull(): Promise<AccionFull[]> {
+const listAccionesFullImpl = async (): Promise<AccionFull[]> => {
   const rows = await sql<{
     id_accion: number | string;
     nombre: string;
@@ -151,7 +156,11 @@ export async function listAccionesFull(): Promise<AccionFull[]> {
     updatedAt: pgDate(r.updated_at),
     totalPropuestas: pgInt(r.total_propuestas),
   }));
-}
+};
+export const listAccionesFull = cached(listAccionesFullImpl, {
+  tags: ["catalogos:full"],
+  ttl: 300,
+});
 
 // -----------------------------------------------------------------------------
 // Helpers byId (para futuro /catalogos/[id] si lo piden; hoy la pagina es
