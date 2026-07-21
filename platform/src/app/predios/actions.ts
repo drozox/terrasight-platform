@@ -8,7 +8,7 @@
 // Validación: safeParseForm con schema declarativo.
 // =============================================================================
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { safeParseForm } from "@/lib/validation";
 import { requireRole } from "@/lib/auth-guard";
@@ -62,6 +62,12 @@ export async function crearPredioAction(formData: FormData): Promise<Result> {
 
   try {
     const fresh = await crearPredio(input);
+    revalidateTag("predios");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
+    revalidateTag("analisis");
+    revalidateTag("reportes");
+    revalidateTag("catalogos:lookup");
     revalidatePath("/predios");
     return { ok: true, message: `Predio ${fresh.nombrePredio} creado.`, idPredio: fresh.idPredio };
   } catch (err) {
@@ -125,6 +131,11 @@ export async function actualizarPredioAction(formData: FormData): Promise<Result
       perimetro:         data.perimetro == null ? 0 : Number(data.perimetro),
       observaciones:     data.observaciones == null ? "" : String(data.observaciones),
     });
+    revalidateTag("predios");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
+    revalidateTag("analisis");
+    revalidateTag("reportes");
     revalidatePath("/predios");
     revalidatePath(`/predios/${idPredio}`);
     return { ok: true, message: "Predio actualizado.", idPredio };
@@ -147,6 +158,11 @@ export async function eliminarPredioAction(formData: FormData): Promise<Result> 
   const idPredio = Number((parsed.data as Record<string, unknown>).idPredio);
   try {
     await eliminarPredio(idPredio);
+    revalidateTag("predios");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
+    revalidateTag("analisis");
+    revalidateTag("reportes");
     revalidatePath("/predios");
     return { ok: true, message: "Predio eliminado." };
   } catch (err) {

@@ -12,7 +12,7 @@
 // repository.ts (TIPOS_PUNTO) para doble red.
 // =============================================================================
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireRole } from "@/lib/auth-guard";
 import { safeParseForm } from "@/lib/validation";
 import {
@@ -102,6 +102,8 @@ export async function actualizarPuntoAction(formData: FormData): Promise<Result>
       codTipo:            data.codTipo            == null ? ""  : String(data.codTipo),
       codigoCaj:          data.codigoCaj          == null ? ""  : String(data.codigoCaj),
     });
+    revalidateTag("monitoreo");
+    revalidateTag("dashboard");
     revalidatePath("/monitoreo");
     return { ok: true, message: "Punto de monitoreo actualizado.", id: idPropPunto };
   } catch (err) {
@@ -129,6 +131,7 @@ export async function asociarBeneficiarioAction(formData: FormData): Promise<Res
   const data = parsed.data as { idPropPunto: number; idUsuario: number };
   try {
     await asociarBeneficiario(data.idPropPunto, data.idUsuario);
+    revalidateTag("monitoreo");
     revalidatePath("/monitoreo");
     return { ok: true, message: "Beneficiario asociado." };
   } catch (err) {
@@ -155,6 +158,7 @@ export async function desasociarBeneficiarioAction(formData: FormData): Promise<
   const data = parsed.data as { idPropPunto: number; idUsuario: number };
   try {
     await desasociarBeneficiario(data.idPropPunto, data.idUsuario);
+    revalidateTag("monitoreo");
     revalidatePath("/monitoreo");
     return { ok: true, message: "Beneficiario desasociado." };
   } catch (err) {
@@ -188,6 +192,8 @@ export async function crearBeneficiarioAction(formData: FormData): Promise<Resul
       vereda:    data.vereda    == null ? undefined : String(data.vereda),
       municipio: data.municipio == null ? undefined : String(data.municipio),
     });
+    revalidateTag("monitoreo");
+    revalidateTag("catalogos:full");
     revalidatePath("/monitoreo");
     return { ok: true, message: `Beneficiario ${fresh.nombre} creado.`, id: fresh.idUsuario };
   } catch (err) {

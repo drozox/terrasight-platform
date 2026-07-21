@@ -10,7 +10,7 @@
 //   4. Devuelve {ok, message} tipado.
 // =============================================================================
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { safeParseForm } from "@/lib/validation";
 import { requireAdmin } from "@/lib/auth-guard";
 import {
@@ -53,6 +53,7 @@ export async function crearUsuarioAction(formData: FormData): Promise<Result> {
       password: parsed.data.password as string,
       rol:      parsed.data.rol as RolSistema,
     });
+    revalidateTag("usuarios");
     revalidatePath("/admin/usuarios");
     return { ok: true, message: `Usuario ${u.email} creado.`, data: { idUsuario: u.idUsuario } };
   } catch (err) {
@@ -86,6 +87,7 @@ export async function actualizarUsuarioAction(formData: FormData): Promise<Resul
       rol:       parsed.data.rol as RolSistema,
       activo:    parsed.data.activo as boolean,
     });
+    revalidateTag("usuarios");
     revalidatePath("/admin/usuarios");
     return { ok: true, message: "Usuario actualizado." };
   } catch (err) {
@@ -111,6 +113,7 @@ export async function resetPasswordAction(formData: FormData): Promise<Result> {
       idUsuario: parsed.data.idUsuario as number,
       password:  parsed.data.password as string,
     });
+    revalidateTag("usuarios");
     revalidatePath("/admin/usuarios");
     return { ok: true, message: "Contraseña actualizada." };
   } catch (err) {
@@ -136,6 +139,7 @@ export async function toggleActivoAction(formData: FormData): Promise<Result> {
       idUsuario: parsed.data.idUsuario as number,
       activo:    parsed.data.activo as boolean,
     });
+    revalidateTag("usuarios");
     revalidatePath("/admin/usuarios");
     return { ok: true, message: parsed.data.activo ? "Usuario activado." : "Usuario desactivado." };
   } catch (err) {

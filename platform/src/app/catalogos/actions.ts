@@ -14,7 +14,7 @@
 //     dependencias en deletes via el repository.
 // =============================================================================
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/auth-guard";
 import { safeParseForm } from "@/lib/validation";
 import { COMPONENTES_VALIDOS, ACCIONES_VALIDAS } from "@/lib/constants";
@@ -67,6 +67,10 @@ export async function crearComponenteAction(formData: FormData): Promise<Result>
   const nombre = (parsed.data as { nombre: string }).nombre as ComponenteValido;
   try {
     const fresh = await crearComponente(nombre);
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
+    revalidateTag("intervenciones");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return {
       ok: true,
@@ -101,6 +105,10 @@ export async function actualizarComponenteAction(formData: FormData): Promise<Re
   const data = parsed.data as { idComponente: number; nombre: string };
   try {
     await actualizarComponente(data.idComponente, data.nombre as ComponenteValido);
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
+    revalidateTag("intervenciones");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return {
       ok: true,
@@ -135,6 +143,10 @@ export async function eliminarComponenteAction(formData: FormData): Promise<Resu
   const idComponente = (parsed.data as { idComponente: number }).idComponente;
   try {
     await eliminarComponente(idComponente);
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
+    revalidateTag("intervenciones");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return { ok: true, message: "Componente eliminado." };
   } catch (err) {
@@ -166,6 +178,10 @@ export async function crearAccionAction(formData: FormData): Promise<Result> {
   const data = parsed.data as { nombre: string; idComponente: number };
   try {
     const fresh = await crearAccion(data.nombre as AccionValida, data.idComponente);
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
+    revalidateTag("intervenciones");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return {
       ok: true,
@@ -206,6 +222,10 @@ export async function actualizarAccionAction(formData: FormData): Promise<Result
   const data = parsed.data as { idAccion: number; nombre: string; idComponente: number };
   try {
     await actualizarAccion(data.idAccion, data.nombre as AccionValida, data.idComponente);
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
+    revalidateTag("intervenciones");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return {
       ok: true,
@@ -246,6 +266,10 @@ export async function eliminarAccionAction(formData: FormData): Promise<Result> 
   const idAccion = (parsed.data as { idAccion: number }).idAccion;
   try {
     await eliminarAccion(idAccion);
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
+    revalidateTag("intervenciones");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return { ok: true, message: "Accion eliminada." };
   } catch (err) {
@@ -284,6 +308,10 @@ export async function crearMunicipioAction(formData: FormData): Promise<Result> 
   const data = parsed.data as { nombreMunicipio: string; codigoAdministrativo: string; departamento: string };
   try {
     const fresh = await crearMunicipio(data);
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return { ok: true, message: `Municipio ${fresh.nombreMunicipio} registrado.`, id: fresh.idMunicipio };
   } catch (err) {
@@ -311,6 +339,10 @@ export async function actualizarMunicipioAction(formData: FormData): Promise<Res
       codigoAdministrativo: data.codigoAdministrativo,
       departamento: data.departamento,
     });
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return { ok: true, message: `Municipio actualizado.`, id: data.idMunicipio };
   } catch (err) {
@@ -336,6 +368,10 @@ export async function eliminarMunicipioAction(formData: FormData): Promise<Resul
   const idMunicipio = (parsed.data as { idMunicipio: number }).idMunicipio;
   try {
     await eliminarMunicipio(idMunicipio);
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
+    revalidateTag("reportes");
     revalidatePath("/catalogos");
     return { ok: true, message: "Municipio eliminado." };
   } catch (err) {
@@ -369,6 +405,10 @@ export async function crearVeredaAction(formData: FormData): Promise<Result> {
       poblacionEstimada: data.poblacionEstimada,
       idMunicipio: data.idMunicipio,
     });
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
     revalidatePath("/catalogos");
     return { ok: true, message: `Vereda ${fresh.nombreVereda} registrada.`, id: fresh.idVereda };
   } catch (err) {
@@ -406,6 +446,10 @@ export async function actualizarVeredaAction(formData: FormData): Promise<Result
       poblacionEstimada: data.poblacionEstimada,
       idMunicipio: data.idMunicipio,
     });
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
     revalidatePath("/catalogos");
     return { ok: true, message: "Vereda actualizada.", id: data.idVereda };
   } catch (err) {
@@ -431,6 +475,10 @@ export async function eliminarVeredaAction(formData: FormData): Promise<Result> 
   const idVereda = (parsed.data as { idVereda: number }).idVereda;
   try {
     await eliminarVereda(idVereda);
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
     revalidatePath("/catalogos");
     return { ok: true, message: "Vereda eliminada." };
   } catch (err) {
@@ -457,6 +505,9 @@ export async function crearPropietarioAction(formData: FormData): Promise<Result
       nombreRazonSocial: data.nombreRazonSocial,
       telefono: data.telefono,
     });
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
     revalidatePath("/catalogos");
     return { ok: true, message: `Propietario ${fresh.nombreRazonSocial} registrado.`, id: fresh.idPropietario };
   } catch (err) {
@@ -484,6 +535,9 @@ export async function actualizarPropietarioAction(formData: FormData): Promise<R
       nombreRazonSocial: data.nombreRazonSocial,
       telefono: data.telefono,
     });
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
     revalidatePath("/catalogos");
     return { ok: true, message: "Propietario actualizado.", id: data.idPropietario };
   } catch (err) {
@@ -506,6 +560,9 @@ export async function eliminarPropietarioAction(formData: FormData): Promise<Res
   const idPropietario = (parsed.data as { idPropietario: number }).idPropietario;
   try {
     await eliminarPropietario(idPropietario);
+    revalidateTag("catalogos:full");
+    revalidateTag("catalogos:lookup");
+    revalidateTag("dashboard");
     revalidatePath("/catalogos");
     return { ok: true, message: "Propietario eliminado." };
   } catch (err) {
@@ -536,6 +593,8 @@ export async function crearMicrocuencaAction(formData: FormData): Promise<Result
   };
   try {
     const fresh = await crearMicrocuenca(data);
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
     revalidatePath("/catalogos");
     return { ok: true, message: `Microcuenca ${fresh.nombreMicrocuenca} registrada.`, id: fresh.idMicrocuenca };
   } catch (err) {
@@ -574,6 +633,8 @@ export async function actualizarMicrocuencaAction(formData: FormData): Promise<R
       longitud: data.longitud,
       nombreUsuarios: data.nombreUsuarios,
     });
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
     revalidatePath("/catalogos");
     return { ok: true, message: "Microcuenca actualizada.", id: data.idMicrocuenca };
   } catch (err) {
@@ -596,6 +657,8 @@ export async function eliminarMicrocuencaAction(formData: FormData): Promise<Res
   const idMicrocuenca = (parsed.data as { idMicrocuenca: number }).idMicrocuenca;
   try {
     await eliminarMicrocuenca(idMicrocuenca);
+    revalidateTag("catalogos:full");
+    revalidateTag("dashboard");
     revalidatePath("/catalogos");
     return { ok: true, message: "Microcuenca eliminada." };
   } catch (err) {
@@ -625,6 +688,8 @@ export async function crearBeneficiarioCatalogosAction(formData: FormData): Prom
   const data = parsed.data as { nombre: string; telefono: string; vereda?: string; municipio?: string };
   try {
     const fresh = await crearBeneficiario(data);
+    revalidateTag("catalogos:full");
+    revalidateTag("monitoreo");
     revalidatePath("/catalogos");
     return { ok: true, message: `Beneficiario ${fresh.nombre} registrado.`, id: fresh.idUsuario };
   } catch (err) {
@@ -658,6 +723,8 @@ export async function actualizarBeneficiarioAction(formData: FormData): Promise<
       vereda: data.vereda,
       municipio: data.municipio,
     });
+    revalidateTag("catalogos:full");
+    revalidateTag("monitoreo");
     revalidatePath("/catalogos");
     return { ok: true, message: "Beneficiario actualizado.", id: data.idUsuario };
   } catch (err) {
@@ -676,6 +743,8 @@ export async function eliminarBeneficiarioAction(formData: FormData): Promise<Re
   const idUsuario = (parsed.data as { idUsuario: number }).idUsuario;
   try {
     await eliminarBeneficiario(idUsuario);
+    revalidateTag("catalogos:full");
+    revalidateTag("monitoreo");
     revalidatePath("/catalogos");
     return { ok: true, message: "Beneficiario eliminado." };
   } catch (err) {
