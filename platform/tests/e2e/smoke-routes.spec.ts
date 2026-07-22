@@ -26,6 +26,34 @@ const BASE = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001";
 const ADMIN_EMAIL = "admin@car.gov.co";
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "Admin123!";
 
+// --------------------------------------------------------------------
+// /login — DEBT-3.3 (siguiendo el hilo de DEBT-3.2): sin sesión, el
+// layout NO debe renderizar sidebar ni topbar. Solo el form centrado.
+// --------------------------------------------------------------------
+test.describe("DEBT-3.3 — Layout condicional en /login", () => {
+  test("GET /login sin sesión renderiza SOLO el form (sin sidebar)", async ({ request }) => {
+    const r = await request.get("/login", { failOnStatusCode: false });
+    expect(r.status()).toBe(200);
+    const body = await r.text();
+    // El sidebar contiene estos items; el layout condicional debe haberlo
+    // ocultado por completo.
+    expect(body, "no debe haber item de sidebar 'Inicio'").not.toMatch(/>Inicio</);
+    expect(body, "no debe haber item de sidebar 'Mapa 2D'").not.toMatch(/Mapa 2D/);
+    expect(body, "no debe haber item de sidebar 'Dashboard'").not.toMatch(/Dashboard</);
+    expect(body, "no debe haber item de sidebar 'Reportes'").not.toMatch(/>Reportes</);
+    // El form SÍ debe estar
+    expect(body).toMatch(/Iniciar sesión/);
+    expect(body).toMatch(/Correo electr[oó]nico/);
+    expect(body).toMatch(/Contrase[ñn]a/);
+  });
+
+  test("GET /dashboard sin sesión redirige a /login (middleware)", async ({ request }) => {
+    const r = await request.get("/dashboard", { maxRedirects: 0, failOnStatusCode: false });
+    expect([302, 307]).toContain(r.status());
+    expect(r.headers().location).toMatch(/\/login/);
+  });
+});
+
 async function loginAsAdmin(request: APIRequestContext): Promise<void> {
   // NextAuth v5: CSRF + callback/credentials con form-urlencoded
   const csrfResp = await request.get("/api/auth/csrf");
