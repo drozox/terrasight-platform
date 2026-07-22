@@ -718,15 +718,18 @@ const getMatrizComponenteMunicipioImpl = async (): Promise<MatrizFila[]> => {
     SELECT m.nombre_municipio                          AS municipio,
            c.nombre                                    AS nombre_componente,
            COUNT(DISTINCT pp.id_propuesta)::int        AS num_propuestas,
-           COALESCE(SUM(DISTINCT ON (pp.id_propuesta) pol.area_ha), 0)::numeric
-                                                       AS hectareas
+           COALESCE(SUM((
+             SELECT pol.area_ha
+             FROM   sgs_pro_propuesta_poligono pol
+             WHERE  pol.id_propuesta = pp.id_propuesta
+             LIMIT  1
+           )), 0)::numeric                             AS hectareas
     FROM   bcs_lpa_municipio m
     LEFT JOIN bcs_lpa_vereda    v ON v.id_municipio  = m.id_municipio
     LEFT JOIN sgs_pre_predio    pr ON pr.id_vereda    = v.id_vereda
     LEFT JOIN sgs_pro_propuesta pp ON pp.id_predio    = pr.id_predio
     LEFT JOIN sgs_com_accion    a ON a.id_accion     = pp.id_accion
     LEFT JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-    LEFT JOIN sgs_pro_propuesta_poligono pol ON pol.id_propuesta = pp.id_propuesta
     GROUP BY m.nombre_municipio, c.nombre
     ORDER BY m.nombre_municipio, c.nombre;
   `;
