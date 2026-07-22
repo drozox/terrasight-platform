@@ -25,6 +25,7 @@ import {
 } from "@/lib/repos";
 import { ReporteSelector } from "./reporte-selector";
 import { ReporteViewer } from "./reporte-viewer";
+import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Reportes — TerraSight" };
@@ -101,10 +102,10 @@ export default async function ReportesPage({
                   Descargar CSV
                 </a>
               </Button>
-              <Button onClick={() => window.print()} variant="outline">
+              <PrintButton variant="outline">
                 <Printer className="size-4" />
                 Imprimir / PDF
-              </Button>
+              </PrintButton>
             </div>
           </header>
 
