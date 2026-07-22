@@ -21,13 +21,28 @@ export default async function RootLayout({
     getAlertas(5),
     getCurrentUser(),
   ]);
+
+  // Sin sesión: NO renderizamos sidebar ni topbar. El middleware redirige a
+  // /login cuando la ruta lo requiere, pero durante esa redirección el
+  // layout todavía se evalúa y mostraba el sidebar+topbar sobre un form
+  // que está pensado para ocupar la pantalla completa (ver /login/page.tsx).
+  // Renderizar solo children hace que el form de login tenga el ancho
+  // correcto y no aparezca la navegación.
+  if (!usuario) {
+    return (
+      <html lang="es" className="light">
+        <body className="min-h-screen bg-background text-on-surface">
+          <AuthSessionProvider>{children}</AuthSessionProvider>
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="es" className="light">
       <body className="flex h-screen overflow-hidden bg-background text-on-surface">
         <AuthSessionProvider>
-          {/* Si no hay sesión el middleware redirige a /login; dejamos
-              renderizar el sidebar igual para no romper el layout. */}
-          <Sidebar rol={usuario?.rol ?? null} />
+          <Sidebar rol={usuario.rol} />
           <main className="flex h-screen flex-1 flex-col overflow-hidden">
             <TopBar alertas={alertas} usuario={usuario} />
             <div className="flex-1 overflow-hidden">{children}</div>
