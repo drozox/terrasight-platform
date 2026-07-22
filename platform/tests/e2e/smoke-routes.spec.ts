@@ -54,6 +54,36 @@ test.describe("DEBT-3.3 — Layout condicional en /login", () => {
   });
 });
 
+// --------------------------------------------------------------------
+// /login — DEBT-3.4: CSS computado. Antes del fix, max-w-md se computaba
+// como 12px (porque --spacing-md estaba redefinido a 0.75rem y Tailwind
+// v4 lo usaba como fallback para max-w-{md,lg,sm}). El test verifica
+// que las utilities críticas de Tailwind renderizan con su valor real.
+// Sin este test, el bug visual de "form colapsado a 1 char de ancho"
+// pasaba el status 200 + no-digest pero rompía la UI.
+// --------------------------------------------------------------------
+test.describe("DEBT-3.4 — CSS computed (Tailwind v4 spacing)", () => {
+  test("/login: max-w-md renderiza como 448px (no 12px)", async ({ page }) => {
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    // El card de login usa <main> > <div> con className="w-full max-w-md ...".
+    const card = page.locator("main > div").first();
+    await card.waitFor({ state: "attached" });
+    const maxWidth = await card.evaluate((el) => getComputedStyle(el).maxWidth);
+    // 28rem = 448px a 16px base. Antes del fix era 12px (var(--spacing-md)).
+    expect(maxWidth, "max-w-md debe computar como 448px, no como 12px").toBe("448px");
+    const width = await card.evaluate((el) => el.getBoundingClientRect().width);
+    expect(width, "el card debe tener ancho visible, no colapsado").toBeGreaterThan(200);
+  });
+
+  test("/login: inputs tienen w-full (ancho completo del card)", async ({ page }) => {
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    const email = page.locator('input[name="email"]');
+    await email.waitFor({ state: "attached" });
+    const w = await email.evaluate((el) => el.getBoundingClientRect().width);
+    expect(w, "input email debe tener ancho visible (>=200px)").toBeGreaterThan(200);
+  });
+});
+
 async function loginAsAdmin(request: APIRequestContext): Promise<void> {
   // NextAuth v5: CSRF + callback/credentials con form-urlencoded
   const csrfResp = await request.get("/api/auth/csrf");
