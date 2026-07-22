@@ -131,15 +131,40 @@ export function cached<TArgs extends unknown[], TResult>(
 
 ---
 
-## 🟡 DEBT-3.1 — `revalidateTag` NO aplicado en TODAS las actions mutadoras — **PARCIAL**
+## ✅ DEBT-3.1 — `revalidateTag` NO aplicado en TODAS las actions mutadoras — **RESUELTO** (2026-07-22)
 
-**Síntoma**: solo 6 actions invalidan tags. Faltan:
-- `app/admin/auditoria/actions.ts` (si existe)
-- API routes que mutan (`/api/interventions/import`, `/api/reportes`)
+**Commit**: `abe23b8` — fix(platform): DEBT-3.1 — revalidateTag in /api/interventions/import POST.
 
-**Fix correcto** (1h): auditar cada `'use server'` y cada `route.ts` con mutación y agregar `revalidateTag` correspondiente. DEBT-3 parcial mitiga con TTL 60-300s como backstop.
+**Auditoría completa de mutaciones**:
 
-**Por qué se difirió**: el scope original era agregar `unstable_cache` y demostrar el patrón. La auditoría completa de mutaciones es un PR separado.
+| Archivo | Tipo | Mutación | Acción |
+|---|---|---|---|
+| `app/api/interventions/import/route.ts` POST | Route | INSERT en `sgs_pro_propuesta` + sub-tabla | ✅ **Agregado** — invalida `intervenciones`, `dashboard`, `mapa`, `reportes`, `analisis` |
+| `app/api/analisis/buffer/route.ts` POST | Route | PostGIS query (read) | ❌ No muta, no necesita |
+| `app/api/reportes/route.ts` GET | Route | CSV download (read) | ❌ No muta, no necesita |
+| `app/api/auth/[...nextauth]/route.ts` | Route | NextAuth handler | ❌ Tags no aplican (no toca cache de UI) |
+| `app/admin/auditoria/page.tsx` | Page | read-only | ❌ No tiene `actions.ts` ni mutaciones |
+| `app/admin/usuarios/actions.ts` | Actions | CRUD usuarios | ✅ 4 mutaciones con `revalidateTag("usuarios")` (en `f0589c5`) |
+| `app/catalogos/actions.ts` | Actions | CRUD catálogos | ✅ 15 mutaciones con tags catalog + dashboard + intervenciones + reportes (en `f0589c5`) |
+| `app/intervenciones/actions.ts` | Actions | CRUD intervenciones | ✅ 3 mutaciones con tags (en `f0589c5`) |
+| `app/monitoreo/actions.ts` | Actions | CRUD puntos | ✅ 4 mutaciones con tags (en `f0589c5`) |
+| `app/predios/actions.ts` | Actions | CRUD predios | ✅ 3 mutaciones con tags (en `f0589c5`) |
+| `app/quebradas/actions.ts` | Actions | CRUD quebradas | ✅ 3 mutaciones con tags (en `f0589c5`) |
+
+**Por qué el endpoint de import necesita revalidar 5 tags**:
+- `intervenciones` — listado y recientes se actualizan con las nuevas propuestas.
+- `dashboard` — KPIs cambian (total de propuestas).
+- `mapa` — las propuestas se renderizan como capa en el mapa.
+- `reportes` — R3/R4/R5/R8 incluyen propuestas.
+- `analisis` — buffer/intersect/cobertura usan las propuestas en queries PostGIS.
+
+**Resultado verificado**:
+- `npx tsc --noEmit` → 0 errors.
+- `npm test` → 156/156.
+- `npm run build` → verde (14/14 páginas).
+- Diff: 1 file, 10 insertions (1 import + 5 revalidateTag + 4 líneas de comment).
+
+**Por qué se difirió originalmente**: scope del DEBT-3 era agregar `unstable_cache` y demostrar el patrón. La auditoría completa de mutaciones es un PR separado. **Resuelto en commit aparte `abe23b8` para mantener trazabilidad**.
 
 ---
 
@@ -297,7 +322,7 @@ LEFT JOIN LATERAL (
 | DEBT-1.1 | 🟢 | 1h | No, cleanup | ✅ **RESUELTO** (commit `126a43a`) |
 | DEBT-2 | 🟠 | 5 min | Solo bloquea setup en dev | ✅ **RESUELTO** (commit `903f3d1`) |
 | DEBT-3 | 🟡 | 1 día | No, performance | ✅ **RESUELTO parcial** (commits `1ae8c8f..54b6a72`, merge `1253ef5`) — 19/28 queries wrapped |
-| DEBT-3.1 | 🟡 | 1h | No, TTL 60-300s backstop | 🟡 **PARCIAL** (6 actions con `revalidateTag`, faltan auditar API routes) |
+| DEBT-3.1 | 🟡 | 1h | No, TTL 60-300s backstop | ✅ **RESUELTO** (commit `abe23b8` — `/api/interventions/import` POST con 5 tags) |
 | DEBT-4 | 🟡 | — | — | ✅ Cubierto por DEBT-3 (helper + dashboard + catalogos) |
 | DEBT-5 | 🟢 | 1 día | No, cosmético | ✅ **RESUELTO** (commit `525c6de` + migration 10) |
 | DEBT-6 | 🟢 | ½ día | No, reportes | ✅ **RESUELTO** (commit `0ccfb4a`) |
@@ -315,7 +340,7 @@ LEFT JOIN LATERAL (
 - DEBT-3 + DEBT-4 — `unstable_cache` con `cached()` helper, 19 queries, 7 tags, 6 actions con `revalidateTag`
 
 **Pendiente menor**:
-- **DEBT-3.1**: terminar auditoría de `revalidateTag` en API routes (`/api/interventions/import`, `/api/reportes`) y `app/admin/auditoria/actions.ts`. Backstop: TTL 60-300s mitiga cualquier inconsistencia.
+- ~~**DEBT-3.1**: terminar auditoría de `revalidateTag` en API routes (`/api/interventions/import`, `/api/reportes`) y `app/admin/auditoria/actions.ts`. Backstop: TTL 60-300s mitiga cualquier inconsistencia.~~ ✅ **Cerrado en commit `abe23b8` (2026-07-22)**.
 
 **Pendiente cosmético** (no documentado, no bloqueante):
 - Comentarios inline en `lib/types.ts:658,660` mencionan `ST_X(geom::geometry)` que ya no se usa. Es texto muerto, no afecta runtime.
@@ -338,4 +363,4 @@ LEFT JOIN LATERAL (
 > 6. ~~DEBT-1.1 (borrar `repository.ts` después de 1 release)~~ ✅
 > 7. ~~DEBT-5/6/7/8 (limpiar en cualquier sprint siguiente)~~ ✅
 
-> Estado al 2026-07-21: orden ejecutado completo, queda DEBT-3.1 como follow-up de 1h.
+> Estado al 2026-07-22: orden ejecutado completo. DEBT-3.1 cerrado en commit `abe23b8`. **Cero DEBTs abiertos.**
