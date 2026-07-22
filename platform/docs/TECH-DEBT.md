@@ -219,6 +219,36 @@ export function cached<TArgs extends unknown[], TResult>(
 
 **Lección operativa (la más importante del audit)**: `tsc` + `next build` + `npm test` (unit) son **insuficientes** para garantizar que una app server-rendered con BD real funcione. Necesitamos un test E2E con sesión real y BD prendida para cerrar el loop. Sin este test, los 3 bugs hubiesen llegado a producción.
 
+---
+
+## ✅ DEBT-3.3 — Layout rota /login: sidebar visible + form colapsado — **RESUELTO** (2026-07-22)
+
+**Hallazgo**: tras cerrar DEBT-3.2, el user probó la app manualmente. La página `/login` mostraba:
+- Sidebar completa con items de navegación (Inicio, Mapa 2D/3D, Dashboard, etc.) — incorrecto, no hay sesión.
+- TopBar con botón "Iniciar sesión" (redundante, estás en /login).
+- El form de login colapsado en una columna de ~1 carácter de ancho, con "Iniciar sesión" escrito carácter por línea.
+
+**Causa raíz**: `app/layout.tsx` siempre renderizaba el wrapper `<Sidebar> + <main> + <TopBar>`, incluso cuando `getCurrentUser()` devolvía `null`. El comentario original decía "para no romper el layout". El form de login (`app/login/page.tsx`) está diseñado para ocupar toda la viewport con `className="flex h-screen w-full items-center justify-center"` — pero el layout padre lo metía en un `flex-1` dentro de un flex container, colapsando su ancho a una columna minúscula.
+
+**Fix** (`platform/src/app/layout.tsx`):
+- Si `getCurrentUser()` devuelve `null` → renderizar solo `<body className="min-h-screen">{children}</body>` con el `AuthSessionProvider`. Sin sidebar, sin topbar, sin main wrapper. El form de login recupera su viewport completa.
+- Si hay usuario → layout completo como antes.
+
+El middleware sigue redirigiendo rutas protegidas a `/login`. Este fix es sobre qué se renderiza **durante** esa redirección (y en `/login` mismo).
+
+**Commits**:
+- `d6c598e` — fix layout condicional
+- `5a97be8` — test E2E que verifica ausencia de sidebar en `/login` + redirect de `/dashboard` a `/login` sin sesión
+
+**Aserciones del test nuevo**:
+- `GET /login` (sin sesión) → 200, body NO contiene `>Inicio<`, `Mapa 2D`, `Dashboard<`, `>Reportes<`.
+- Body SÍ contiene "Iniciar sesión", "Correo electrónico", "Contraseña".
+- `GET /dashboard` (sin sesión) → 302/307 con `Location: /login`.
+
+**Lección adicional**: el test E2E anterior solo validaba status + ausencia de digest. Eso no atrapa bugs de layout/UI. **Regla para auditorías futuras**: además de "no error en body", validar la **estructura** esperada (qué elementos deben/no deben estar).
+
+**Resultado**: 21/21 tests E2E pasan (19 anteriores + 2 nuevos).
+
 **Patrón seguro para auditorías futuras**:
 1. Cargar BD real (docker compose up).
 2. Arrancar dev server.
@@ -384,6 +414,7 @@ LEFT JOIN LATERAL (
 | DEBT-3 | 🟡 | 1 día | No, performance | ✅ **RESUELTO parcial** (commits `1ae8c8f..54b6a72`, merge `1253ef5`) — 19/28 queries wrapped |
 | DEBT-3.1 | 🟡 | 1h | No, TTL 60-300s backstop | ✅ **RESUELTO** (commit `abe23b8` — `/api/interventions/import` POST con 5 tags) |
 | DEBT-3.2 | 🔴 | 2h | Sí, 3 rutas devuelven 500 en runtime | ✅ **RESUELTO** (commits `abcd177`, `9738cce`, `4113432`, `873dc57`) |
+| DEBT-3.3 | 🟠 | 30 min | No, pero login UI rota | ✅ **RESUELTO** (commits `d6c598e`, `5a97be8`) |
 | DEBT-4 | 🟡 | — | — | ✅ Cubierto por DEBT-3 (helper + dashboard + catalogos) |
 | DEBT-5 | 🟢 | 1 día | No, cosmético | ✅ **RESUELTO** (commit `525c6de` + migration 10) |
 | DEBT-6 | 🟢 | ½ día | No, reportes | ✅ **RESUELTO** (commit `0ccfb4a`) |
