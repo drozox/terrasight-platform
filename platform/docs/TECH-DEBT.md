@@ -168,6 +168,66 @@ export function cached<TArgs extends unknown[], TResult>(
 
 ---
 
+## ✅ DEBT-3.2 — 3 bugs de runtime que escaparon al audit (2026-07-22)
+
+**Hallazgo**: tras cerrar DEBT-1..10 + 3.1, el user probó la app manualmente y 3 rutas devuelven **500** con sesión real. El audit los pasó porque `tsc --noEmit`, `next build` y los 156 unit tests NO ejecutan SQL ni renderizan páginas autenticadas.
+
+**Commits**:
+- `abcd177` — DEBT-3.2.1 — fix SQL `SUM(DISTINCT ON ())` en `getMatrizComponenteMunicipioImpl`
+- `9738cce` — DEBT-3.2.2 — split `monitoreo-map.tsx` en wrapper + `monitoreo-map-client.tsx`
+- `4113432` — DEBT-3.2.3 — extract `PrintButton` (client component) para `window.print()`
+- `873dc57` — DEBT-3.2 — Playwright E2E smoke test con sesión real (19 tests)
+
+### Bug 1: `SUM(DISTINCT ON ())` no es SQL estándar
+- **Archivo**: `lib/repos/analisis.ts:720` (función `getMatrizComponenteMunicipioImpl`).
+- **Error runtime**: `PostgresError: syntax error at or near "ON"`.
+- **Causa**: `DISTINCT ON` solo es válido en `SELECT`, no dentro de funciones de agregado como `SUM(DISTINCT ON (...) pol.area_ha)`. Bug preexistente que el cache de DEBT-3 no introdujo (ya estaba mal).
+- **Fix**: subconsulta correlacionada:
+  ```sql
+  COALESCE(SUM((
+    SELECT pol.area_ha
+    FROM   sgs_pro_propuesta_poligono pol
+    WHERE  pol.id_propuesta = pp.id_propuesta
+    LIMIT  1
+  )), 0)::numeric AS hectareas
+  ```
+  También removí el `LEFT JOIN sgs_pro_propuesta_poligono pol` (ya no se referencia en el SELECT).
+
+### Bug 2: `leaflet` se importa en SSR
+- **Archivo**: `app/monitoreo/monitoreo-map.tsx` (original).
+- **Error runtime**: `ReferenceError: window is not defined at leaflet-src.js:19`.
+- **Causa**: el archivo era `"use client"` pero tenía `import L from "leaflet"` en el top-level. Next.js igual procesa el módulo en SSR (Webpack), y el entry point de Leaflet hace `window.L = ...`. El `dynamic(() => Promise.resolve(Shell), { ssr: false })` NO code-splittea — solo difiere el render.
+- **Fix**: separar el shell en `monitoreo-map-client.tsx` (con los imports de Leaflet) y dejar `monitoreo-map.tsx` como wrapper que hace `dynamic(() => import("./monitoreo-map-client"), { ssr: false })`. Patrón idéntico al de `src/components/map/{leaflet-map,map-client}.tsx`.
+
+### Bug 3: `onClick` desde Server Component
+- **Archivo**: `app/reportes/page.tsx:113` (original).
+- **Error runtime**: `Event handlers cannot be passed to Client Component props. <button ref=... onClick={function onClick}>`.
+- **Causa**: `page.tsx` es Server Component (no tiene `"use client"`) y renderiza `<Button onClick={() => window.print()}>`. Las funciones NO son serializables entre server y client, así que el handler se rechaza en runtime. `tsc` no atrapa el bug porque `Button` acepta `onClick` en su tipo.
+- **Fix**: nuevo `app/reportes/print-button.tsx` con `"use client"` que encapsula el `onClick={() => window.print()}`. La page pasa solo props serializables (`variant`, children).
+
+### Test E2E (DEBT-3.2 + cobertura cruzada)
+- **Archivo**: `tests/e2e/smoke-routes.spec.ts` (NUEVO, 164 líneas).
+- **Cobertura**: 19 tests — 3 específicos para los bugs cerrados, 14 de smoke cruzado (todas las rutas con sesión real), 2 de API.
+- **Patrón de auth**: login real via NextAuth v5 (`GET /api/auth/csrf` → `POST /api/auth/callback/credentials` con form-urlencoded) y reuso de cookies en `request` fixture.
+- **Aserciones clave**:
+  - Status 200 (no 500).
+  - Body NO contiene `"digest":\s*"\d+"` (señal de que Next.js renderizó un error boundary).
+  - Body NO contiene `syntax error`, `window is not defined`, `Event handlers cannot be passed`.
+  - 14 rutas: cada una valida que su contenido característico aparece (ej. `/alertas` → "Monitoreo", `/reportes` → "Reportes").
+- **Ejecución**: `npx playwright test tests/e2e/smoke-routes.spec.ts` (con dev server en :3001). Tiempo total: ~1.2 min.
+- **Resultado**: **19/19 passed**.
+
+**Lección operativa (la más importante del audit)**: `tsc` + `next build` + `npm test` (unit) son **insuficientes** para garantizar que una app server-rendered con BD real funcione. Necesitamos un test E2E con sesión real y BD prendida para cerrar el loop. Sin este test, los 3 bugs hubiesen llegado a producción.
+
+**Patrón seguro para auditorías futuras**:
+1. Cargar BD real (docker compose up).
+2. Arrancar dev server.
+3. Correr Playwright con login real contra TODAS las rutas.
+4. Aserciones de status + ausencia de digest/error en el body.
+5. Si pasa, considerar el módulo "realmente verde". Si no, abrir DEBTs nuevos.
+
+---
+
 ## ✅ DEBT-5 — Alertas hardcodeadas en `getAlertas()` — **RESUELTO** (2026-07-21)
 
 **Commit**: `525c6de` — feat(platform): DEBT-5 — sgs_amb_alerta table replaces hardcoded getAlertas
@@ -323,6 +383,7 @@ LEFT JOIN LATERAL (
 | DEBT-2 | 🟠 | 5 min | Solo bloquea setup en dev | ✅ **RESUELTO** (commit `903f3d1`) |
 | DEBT-3 | 🟡 | 1 día | No, performance | ✅ **RESUELTO parcial** (commits `1ae8c8f..54b6a72`, merge `1253ef5`) — 19/28 queries wrapped |
 | DEBT-3.1 | 🟡 | 1h | No, TTL 60-300s backstop | ✅ **RESUELTO** (commit `abe23b8` — `/api/interventions/import` POST con 5 tags) |
+| DEBT-3.2 | 🔴 | 2h | Sí, 3 rutas devuelven 500 en runtime | ✅ **RESUELTO** (commits `abcd177`, `9738cce`, `4113432`, `873dc57`) |
 | DEBT-4 | 🟡 | — | — | ✅ Cubierto por DEBT-3 (helper + dashboard + catalogos) |
 | DEBT-5 | 🟢 | 1 día | No, cosmético | ✅ **RESUELTO** (commit `525c6de` + migration 10) |
 | DEBT-6 | 🟢 | ½ día | No, reportes | ✅ **RESUELTO** (commit `0ccfb4a`) |
@@ -350,7 +411,8 @@ LEFT JOIN LATERAL (
 - `npm test` → 156/156 passed.
 - `npm run lint` → 0 errors (1 warning preexistente en `map-client.tsx:133`, no relacionado con DEBTs).
 - `npm run build` → verde (14/14 páginas, todas las rutas compilan).
-- `git log origin/main` → sincronizado, `1253ef5` en local y remote.
+- `npx playwright test tests/e2e/smoke-routes.spec.ts` → 19/19 passed (sesión real, BD prendida).
+- `git log origin/main` → sincronizado, `873dc57` en local y remote.
 
 ## Historial de recomendaciones
 
