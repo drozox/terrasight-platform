@@ -16,6 +16,7 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { sql, pgInt, pgNum } from "@/lib/db";
 import type {
   ImportPayload,
@@ -346,6 +347,15 @@ export async function POST(req: Request): Promise<NextResponse<ImportResult>> {
         }
       }
     });
+
+    // DEBT-3.1: invalidar cache de capas afectadas por la inserción de propuestas.
+    // revalidateTag es sync, no afecta la respuesta. Se ejecuta ANTES del return
+    // para que el JSON devuelto ya refleje el estado limpio.
+    revalidateTag("intervenciones");
+    revalidateTag("dashboard");
+    revalidateTag("mapa");
+    revalidateTag("reportes");
+    revalidateTag("analisis");
 
     return NextResponse.json({
       ok: true,
