@@ -249,6 +249,40 @@ El middleware sigue redirigiendo rutas protegidas a `/login`. Este fix es sobre 
 
 **Resultado**: 21/21 tests E2E pasan (19 anteriores + 2 nuevos).
 
+---
+
+## ✅ DEBT-3.4 — Tailwind v4 `--spacing-md` redefinido rompe `max-w-md/lg/sm` — **RESUELTO** (2026-07-22)
+
+**Hallazgo**: tras cerrar DEBT-3.3, el form de login se veía **ancho pero todo el texto en columna de 1 char**. El sidebar/topbar ya no aparecían, pero el card del form estaba colapsado a ~12px de ancho.
+
+**Diagnóstico** (con Playwright + `getComputedStyle()`):
+- `<main class="flex h-screen w-full items-center justify-center ...">` → render OK (1280px).
+- `<main> > <div class="w-full max-w-md ...">` → render **66px** (max-width computado: 12px).
+- Buscar `.max-w-md` en el CSS generado: existe, pero el valor era `max-width: var(--spacing-md)`.
+- `--spacing-md` estaba redefinido a `0.75rem` (= 12px) en `globals.css`.
+
+**Causa raíz**: en Tailwind v4, `max-w-{X}` usa `--container-{X}` si está definido; si no, usa `--spacing-{X}` como fallback. El autor de `globals.css` redefinió `--spacing-md: 0.75rem`, `--spacing-lg: 1.5rem`, `--spacing-sm: 0.5rem` para tokens de spacing Material-3 sin saber que Tailwind v4 los usaría para los containers. Resultado: `max-w-md` se computaba como 12px en vez de 28rem, `max-w-lg` como 24px, `max-w-sm` como 8px. Cards, modales y forms en toda la app estaban rotos.
+
+**Fix** (`platform/src/app/globals.css`):
+- Renombrar las variables de spacing a namespace propio: `--spacing-terrasight-{sm,md,lg,gutter,margin-edge}`.
+- Agregar `@layer utilities` con las utilities custom que usan esos tokens: `p-gutter`, `gap-gutter`, `p-margin-edge`, `px-margin-edge`, etc. (los únicos usos en código: 4 sitios en `app/page.tsx`).
+
+**Después del fix**:
+- `max-w-md` computa como **448px** (28rem) — correcto.
+- `max-w-lg` → 512px, `max-w-sm` → 384px — todos OK.
+
+**Commits**:
+- `64e78b2` — fix CSS (rename tokens + agregar utilities)
+- `2c0a1c9` — test E2E que valida `getComputedStyle().maxWidth === "448px"` y que los inputs tienen `w-full`
+
+**Lección adicional** (refuerza DEBT-3.2 y 3.3): el test E2E debe validar **estilos computados**, no solo status y HTML. Una página puede devolver 200 con el HTML correcto y aún así tener un layout visual roto si el CSS no aplica los valores esperados. Patrón seguro:
+- Status code correcto (200).
+- HTML contiene los textos esperados.
+- `getComputedStyle()` de elementos clave tiene los valores numéricos esperados (max-width, width, padding, etc.).
+- Ausencia de mensajes de error de React hydration en consola.
+
+**Resultado**: 23/23 tests E2E pasan (21 anteriores + 2 nuevos de DEBT-3.4).
+
 **Patrón seguro para auditorías futuras**:
 1. Cargar BD real (docker compose up).
 2. Arrancar dev server.
@@ -415,6 +449,7 @@ LEFT JOIN LATERAL (
 | DEBT-3.1 | 🟡 | 1h | No, TTL 60-300s backstop | ✅ **RESUELTO** (commit `abe23b8` — `/api/interventions/import` POST con 5 tags) |
 | DEBT-3.2 | 🔴 | 2h | Sí, 3 rutas devuelven 500 en runtime | ✅ **RESUELTO** (commits `abcd177`, `9738cce`, `4113432`, `873dc57`) |
 | DEBT-3.3 | 🟠 | 30 min | No, pero login UI rota | ✅ **RESUELTO** (commits `d6c598e`, `5a97be8`) |
+| DEBT-3.4 | 🔴 | 30 min | No, pero form de login y cards colapsados a 1 char | ✅ **RESUELTO** (commits `64e78b2`, `2c0a1c9`) |
 | DEBT-4 | 🟡 | — | — | ✅ Cubierto por DEBT-3 (helper + dashboard + catalogos) |
 | DEBT-5 | 🟢 | 1 día | No, cosmético | ✅ **RESUELTO** (commit `525c6de` + migration 10) |
 | DEBT-6 | 🟢 | ½ día | No, reportes | ✅ **RESUELTO** (commit `0ccfb4a`) |
