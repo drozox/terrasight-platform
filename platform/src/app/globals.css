@@ -98,13 +98,16 @@
   --text-title-lg--line-height:  1.625rem;
 
   /* Spacing (Material-3 style)
-     --spacing-* tokens en Tailwind v4 generan utilities con cualquier
-     dirección: p-*, m-*, gap-*, w-*, h-* etc. */
-  --spacing-sm:           0.5rem;   /* 8px */
-  --spacing-md:           0.75rem;  /* 12px - py-md, px-md */
-  --spacing-lg:           1.5rem;   /* 24px - mb-lg, pt-lg */
-  --spacing-gutter:       1rem;     /* 16px - spacing estándar entre componentes */
-  --spacing-margin-edge:  1.5rem;   /* 24px - padding lateral del shell */
+     ⚠️ NO usar `--spacing-{md,lg,sm,...}` porque Tailwind v4 las usa como
+     fallback para los utilities `max-w-{md,lg,sm,...}` (cuando no hay
+     --container-{X} definido). Redefinir --spacing-md rompía max-w-md
+     (lo computaba como 0.75rem en lugar de 28rem). Usamos namespace
+     `terrasight-` para evitar la colisión. Ver DEBT-3.4. */
+  --spacing-terrasight-sm:           0.5rem;   /* 8px */
+  --spacing-terrasight-md:           0.75rem;  /* 12px - py-md, px-md */
+  --spacing-terrasight-lg:           1.5rem;   /* 24px - mb-lg, pt-lg */
+  --spacing-terrasight-gutter:       1rem;     /* 16px - spacing estándar entre componentes */
+  --spacing-terrasight-margin-edge:  1.5rem;   /* 24px - padding lateral del shell */
 
   /* Geometry */
   --radius:        0.5rem;
@@ -118,6 +121,25 @@
 
 /* Map Leaflet's CSS into our bundle (Leaflet expects .leaflet-* global) */
 @import "leaflet/dist/leaflet.css";
+
+/* =============================================================================
+ * Custom utilities para los tokens de spacing TerraSight.
+ * Tailwind v4 los lee automáticamente del namespace `--spacing-terrasight-*`
+ * para utilities genéricos (p-*, m-*, gap-*, etc.), pero los nombres como
+ * `gutter` y `margin-edge` NO son keywords estándar — necesitamos declararlos
+ * a mano. DEBT-3.4.
+ * ============================================================================= */
+@layer utilities {
+  .p-gutter          { padding: var(--spacing-terrasight-gutter); }
+  .px-gutter         { padding-inline: var(--spacing-terrasight-gutter); }
+  .py-gutter         { padding-block: var(--spacing-terrasight-gutter); }
+  .gap-gutter        { gap: var(--spacing-terrasight-gutter); }
+  .p-margin-edge     { padding: var(--spacing-terrasight-margin-edge); }
+  .px-margin-edge    { padding-inline: var(--spacing-terrasight-margin-edge); }
+  .py-margin-edge    { padding-block: var(--spacing-terrasight-margin-edge); }
+  .m-margin-edge     { margin: var(--spacing-terrasight-margin-edge); }
+  .mx-margin-edge    { margin-inline: var(--spacing-terrasight-margin-edge); }
+}
 
 /* Reset-ish */
 * { border-color: var(--color-outline-variant); }
