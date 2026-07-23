@@ -82,7 +82,8 @@ if (-not $OnlyEnv) {
 # -----------------------------------------------------------------------------
 # 2. Actualizar .env
 # -----------------------------------------------------------------------------
-Write-Host "[$((if ($OnlyEnv){'2'}else{'4'}))/4] Actualizando NEXTAUTH_URL en .env..."
+$stepEnv = if ($OnlyEnv) { '2' } else { '4' }
+Write-Host "[$stepEnv/4] Actualizando NEXTAUTH_URL en .env..."
 if (-not (Test-Path $envFile)) { throw ".env no encontrado en $envFile" }
 $content = Get-Content $envFile -Raw
 $newLine = "NEXTAUTH_URL=$cfUrl"
@@ -98,7 +99,8 @@ Write-Host "       .env: $newLine"
 # 3. Reiniciar dev server
 # -----------------------------------------------------------------------------
 if (-not $OnlyEnv) {
-  Write-Host "[$((if ($OnlyEnv){'3'}else{'4'}))/4] Reiniciando next dev en :3001..."
+  $stepDev = if ($OnlyEnv) { '3' } else { '4' }
+  Write-Host "[$stepDev/4] Reiniciando next dev en :3001..."
   Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object {
     $_.MainWindowTitle -eq "" -and $_.StartTime -gt (Get-Date).AddHours(-2)
   } | ForEach-Object {
