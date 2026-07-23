@@ -51,9 +51,9 @@ interface Props {
 }
 
 const BASEMAPS: Record<BasemapKey, { url: string; maxZoom?: number; attribution: string }> = {
-  osm:       { url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution: "© OpenStreetMap" },
-  topo:      { url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",  maxZoom: 17,  attribution: "© OpenTopoMap" },
-  satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attribution: "Tiles © Esri" },
+  osm:       { url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", maxZoom: 20, attribution: "© OpenStreetMap" },
+  topo:      { url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",  maxZoom: 17, attribution: "© OpenTopoMap" },
+  satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxZoom: 20, attribution: "Tiles © Esri" },
 };
 
 export default function MapClient({
@@ -92,7 +92,10 @@ export default function MapClient({
       <MapContainer
         center={center}
         zoom={11}
+        minZoom={3}
+        maxZoom={22}
         scrollWheelZoom
+        doubleClickZoom
         zoomControl={false}
         attributionControl={false}
         className="h-full w-full rounded-xl"

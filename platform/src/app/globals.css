@@ -162,9 +162,12 @@ body { overflow: hidden; /* full-screen AppShell layout like the Stitch */ }
 
 /* Leaflet z-index fixes when nested inside modal/floating panel */
 .leaflet-container { z-index: 1; outline: none; position: relative; }
-/* No forzamos z-index en .leaflet-control — Leaflet ya gestiona su propio
-   stacking (default 1000). Si lo bajamos a 10, queda detrás del search
-   overlay (z-500) y el control de capas desaparece. */
+/* Subimos el z-index del cluster de controles top-right (ZoomControl) para
+   que esté por encima del form de búsqueda (z-600). Leaflet default es 1000
+   pero algunos overlays nuestros (search bar, db health pill) tienen z-600,
+   lo que no es problema — el problema es que el form ocupa toda la zona
+   superior y bloquea clicks sobre el ZoomControl. */
+.leaflet-top.leaflet-right { z-index: 700; }
 
 /* Material Symbols helpers (si más adelante los queremos por URL) */
 .material-symbols-outlined {
