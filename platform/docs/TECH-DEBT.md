@@ -383,6 +383,63 @@ Overpass está bloqueado desde el container (probable CORS o rate limit), así q
 
 **Resultado**: 26/26 tests E2E pasan.
 
+---
+
+## ✅ DEBT-3.8 — Mapa con geometría real (polígonos/líneas) en vez de markers — **RESUELTO** (2026-07-23)
+
+**Hallazgo**: tras DEBT-3.6, el mapa tenía los datos correctos de Cundinamarca pero se renderizaban como **markers puntuales** (un punto por predio/quebrada). El user pidió geometría real (los polígonos de los predios, las líneas de los drenajes).
+
+**Fix** (3 componentes):
+
+1. **Endpoint `/api/geo?layer=X`** (`platform/src/app/api/geo/route.ts` + `lib/repos/geojson.ts`):
+   - Helpers en `lib/repos/geojson.ts` que usan `ST_AsGeoJSON(geom)` de PostGIS para convertir cada tabla geografía a `FeatureCollection`.
+   - Cacheado con `unstable_cache` (TTL 300s, tag `mapa` para `revalidateTag`).
+   - Endpoint genérico que despacha al helper correcto. 401 sin sesión, 400 con lista de layers válidos para layer desconocido.
+
+2. **Componente `GeoJsonLayer`** (`platform/src/components/map/geojson-layer.tsx`):
+   - Fetch client-side al endpoint + `L.geoJSON(...)` con `style` y popup configurable.
+   - Cleanup con `AbortController` si el componente se desmonta antes de la respuesta.
+   - Renderiza polígonos, líneas, multipolígonos, multilíneas — la geometría real de cada feature.
+
+3. **Refactor `map-client.tsx` + panel**:
+   - Reemplazado los markers de predios/quebradas por `<GeoJsonLayer url="/api/geo?layer=X" color={...} />`.
+   - Predios ahora son **polígonos catastrales** (verde primario `#006d37`, fill 0.35).
+   - Drenajes son **líneas azules** (`#1f79b9`).
+   - Vías son polilíneas marrón (`#7a4a00`).
+   - Municipios y veredas son polígonos administrativos con borde punteado.
+   - Biomas IAVH son polígonos verde claro.
+   - Popups muestran metadata: nombre, área (ha), longitud (km), estado, tipo, etc.
+   - Panel reorganizado por categoría: Límites Administrativos (Municipios, Veredas), Hidrografía (Quebradas, Ríos), Infraestructura Vial (Vías), Áreas Protegidas (Parques, Reservas), Cobertura Vegetal (Biomas IAVH), Mis Puntos (Predios).
+   - Removidos badges "próximamente" y keys `bosque`/`agropecuario` que no tenían implementación.
+
+**Resultado**:
+
+| Layer | Features | Geometría | Color |
+|---|---|---|---|
+| municipios | 5 | MultiPolygon | `#1f6feb` (azul) |
+| veredas | 23 | MultiPolygon | `#0b7c3a` (verde oscuro) |
+| predios | 1 | MultiPolygon | `#006d37` (verde primario) |
+| biomas | 70 | MultiPolygon | `#a3d977` (verde claro) |
+| quebradas | 2985 | MultiLineString | `#1f79b9` (azul) |
+| vías | 2295 | MultiLineString | `#7a4a00` (marrón) |
+
+**Verificado con Playwright**:
+- 2986 paths SVG en `.leaflet-overlay-pane` (1 polígono + 2985 líneas).
+- < 10 markers de punto (antes había ~13 markers por predios+quebradas).
+- Click en cualquier polígono/línea abre popup con metadata.
+
+**Commits**:
+- `18f2faa` — endpoint /api/geo + helpers en lib/repos/geojson.ts
+- `5834f61` — refactor map-client.tsx + panel con geometría real
+- `34e3b76` — tests E2E (8 nuevos en DEBT-3.8)
+
+**Lección operativa**: en SIG, la geometría debe venir de la BD como polígonos/líneas y renderizarse con `L.geoJSON`. Los markers puntuales (Leaflet `<Marker>`) son un atajo aceptable para herramientas de drill-down pero **no sirven para una vista de inventario geográfico**. El patrón es:
+- Server side: `ST_AsGeoJSON(geom)` → `FeatureCollection` JSON.
+- Endpoint backend (proxy): evita CORS y abstrae la fuente de datos.
+- Client side: `L.geoJSON(data, { style, onEachFeature })` con cleanup en `useEffect`.
+
+**Resultado**: 34/34 tests E2E pasan.
+
 **Patrón seguro para auditorías futuras**:
 1. Cargar BD real (docker compose up).
 2. Arrancar dev server.
@@ -552,6 +609,7 @@ LEFT JOIN LATERAL (
 | DEBT-3.4 | 🔴 | 30 min | No, pero form de login y cards colapsados a 1 char | ✅ **RESUELTO** (commits `64e78b2`, `2c0a1c9`) |
 | DEBT-3.6 | 🔴 | 1h | Sí, datos del seed eran de Cali, no de Cundinamarca | ✅ **RESUELTO** (commits `3ec39e7`) — script `import-shp-demo.{sh,ps1}` con reproyección + sanity check de bbox |
 | DEBT-3.7 | 🟠 | 1h | No, pero panel mostraba 'próximamente' en Parques/Reservas | ✅ **RESUELTO** (commits `a779191`, `4e25527`) — WFS endpoint + WfsLayer client component |
+| DEBT-3.8 | 🔴 | 2h | No, pero el mapa mostraba markers puntuales (no geometría real) | ✅ **RESUELTO** (commits `18f2faa`, `5834f61`, `34e3b76`) — /api/geo GeoJSON + GeoJsonLayer |
 | DEBT-4 | 🟡 | — | — | ✅ Cubierto por DEBT-3 (helper + dashboard + catalogos) |
 | DEBT-5 | 🟢 | 1 día | No, cosmético | ✅ **RESUELTO** (commit `525c6de` + migration 10) |
 | DEBT-6 | 🟢 | ½ día | No, reportes | ✅ **RESUELTO** (commit `0ccfb4a`) |
