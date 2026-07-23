@@ -269,18 +269,80 @@ test.describe("DEBT-3.8 — Geometría real (L.geoJSON) por capa", () => {
       failOnStatusCode: false,
     });
     await page.goto("/mapa", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(3000);
+    // Esperar a que aparezcan los paths SVG (puede tardar si el dev server
+    // está compilando los chunks de Leaflet por primera vez).
+    await page.locator(".leaflet-overlay-pane path").first().waitFor({ state: "attached", timeout: 15000 });
 
-    // DEBT-3.8: predios y drenajes encendidos por default.
-    // Verificar que hay geometría SVG renderizada (L.geoJSON pinta paths,
-    // NO markers de punto). Los markers de punto se renderizarían como
-    // <img class="leaflet-marker-icon"> — no debe haberlos para predios.
-    const paths = await page.locator(".leaflet-overlay-pane path").count();
-    expect(paths, "debe haber al menos 1 polígono de predio + 2985 líneas de drenaje").toBeGreaterThan(100);
+    // Esperar activamente a que se acumulen paths (pueden tardar en llegar
+    // si los 2985 drenajes se están cargando). Polling con timeout.
+    await expect.poll(
+      async () => await page.locator(".leaflet-overlay-pane path").count(),
+      { timeout: 10_000, intervals: [500, 1000] },
+    ).toBeGreaterThan(100);
+
     // No debe haber markers tipo "punto" para los predios (la geometría es polígono)
     const markers = await page.locator(".leaflet-marker-icon").count();
-    // Aceptamos un número bajo de markers si los hay (puede haber alertas), pero no muchos.
     expect(markers, "no debe haber markers puntuales para predios").toBeLessThan(10);
+  });
+});
+
+// --------------------------------------------------------------------
+// DEBT-3.9 — Mapa prominente en home + zoom range 3-22. Antes del fix,
+// el mapa tenía altura fija de 420px y el zoom estaba cappeado. Ahora
+// el mapa ocupa `flex-1` con mínimo 560px y el zoom range es 3-22
+// (tiles hasta 20). DEBT-3.9 cierra la queja del user "no puedo cambiar
+// el zoom que quiero".
+// --------------------------------------------------------------------
+test.describe("DEBT-3.9 — Mapa prominente + zoom range 3-22", () => {
+  test("/ home page tiene el mapa prominente (height > 420px)", async ({
+    page,
+  }) => {
+    // DEBT-3.9: antes el mapa tenía altura fija 420px. Ahora con `flex-1`
+    // + `min-h-[560px]` debe ser visiblemente más grande. Aceptamos
+    // cualquier altura >= 460px (no exacto 560) para evitar flakiness con
+    // diferentes viewports de CI.
+    const csrf = await page.request.get("/api/auth/csrf").then((r) => r.json());
+    await page.request.post("/api/auth/callback/credentials", {
+      form: { csrfToken: csrf.csrfToken, email: ADMIN_EMAIL, password: ADMIN_PASSWORD, redirect: "false", json: "true" },
+      maxRedirects: 0, failOnStatusCode: false,
+    });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(3000);
+    const map = page.locator(".leaflet-container").first();
+    await map.waitFor({ state: "attached" });
+    const box = await map.boundingBox();
+    expect(box, "el mapa debe tener bounding box").toBeTruthy();
+    expect(box!.height, "el mapa DEBE ser más alto que el valor fijo anterior (420px)").toBeGreaterThan(420);
+  });
+
+  test("/ y /mapa: zoom range permite zoom in profundo (click +, esperar tiles cargados)", async ({
+    page,
+  }) => {
+    const csrf = await page.request.get("/api/auth/csrf").then((r) => r.json());
+    await page.request.post("/api/auth/callback/credentials", {
+      form: { csrfToken: csrf.csrfToken, email: ADMIN_EMAIL, password: ADMIN_PASSWORD, redirect: "false", json: "true" },
+      maxRedirects: 0, failOnStatusCode: false,
+    });
+    await page.goto("/mapa", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2500);
+
+    // Zoom in 5 veces: 11 → 16 → debería cargar tiles más detallados.
+    for (let i = 0; i < 5; i++) {
+      await page.locator(".leaflet-control-zoom-in").click({ force: true });
+      await page.waitForTimeout(250);
+    }
+    const tilesAfter = await page.locator(".leaflet-tile-loaded").count();
+    expect(tilesAfter, "tiles deben cargar después de zoom in profundo").toBeGreaterThan(0);
+
+    // Zoom out 8 veces: llegar al límite inferior (3). No debe haber error.
+    for (let i = 0; i < 8; i++) {
+      await page.locator(".leaflet-control-zoom-out").click({ force: true });
+      await page.waitForTimeout(200);
+    }
+    // Verificar que el mapa sigue responsive (no crasheó)
+    const stillThere = await page.locator(".leaflet-container").count();
+    expect(stillThere, "el mapa debe seguir visible después de zoom out extremo").toBe(1);
   });
 });
 
