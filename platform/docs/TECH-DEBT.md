@@ -440,6 +440,44 @@ Overpass está bloqueado desde el container (probable CORS o rate limit), así q
 
 **Resultado**: 34/34 tests E2E pasan.
 
+---
+
+## ✅ DEBT-3.9 — Mapa prominente en home + zoom range 3-22 — **RESUELTO** (2026-07-23)
+
+**Hallazgos** (reportados por el user):
+
+1. **Zoom cappeado**: el `MapContainer` de Leaflet no tenía `minZoom`/`maxZoom` configurados, por lo que el límite era el del `TileLayer` OSM (`maxZoom=18` por default). El user quería poder acercarse más (a un edificio) o alejarse más (a ver toda Colombia).
+
+2. **Mapa chico en home**: `app/page.tsx` tenía el mapa con `h-[420px]` fijo. El user quería que el mapa sea la pieza principal del dashboard.
+
+**Fix**:
+
+1. **Zoom range** (`platform/src/components/map/map-client.tsx`):
+   - `minZoom={3}` y `maxZoom={22}` en el `MapContainer`. Eso permite zoom out hasta ver todo Colombia y zoom in hasta escala de edificio (aunque los tiles se pixelan a partir de zoom 20, que es el límite real de OSM).
+   - `maxZoom={20}` en OSM tile layer, `maxZoom={20}` en satellite, `maxZoom={17}` en topographic (lo que soporta cada servicio).
+   - `doubleClickZoom` habilitado (zoom con doble click).
+
+2. **Mapa prominente en home** (`platform/src/app/page.tsx`):
+   - Antes: `h-[420px]` fijo. Ahora: `min-h-[560px] flex-1` → el mapa ocupa todo el alto disponible con un mínimo de 560px.
+   - `ComponentRibbon` más compacto (padding reducido a `py-2`).
+   - El `RightPanel` mantiene su ancho fijo, pero ahora el mapa domina visualmente.
+   - Tip del mapa movido a la esquina inferior derecha (no intercepta el ZoomControl).
+
+3. **CSS fix** (`platform/src/app/globals.css`):
+   - El form de búsqueda (`MapSearchBar`) y el tip del mapa tapaban el `ZoomControl` en la esquina superior derecha. Subimos `.leaflet-top.leaflet-right` a `z-index: 700`.
+
+**Commits**:
+- `e019efc` — zoom range 3-22 + z-index fix
+- `36be13f` — mapa prominente en home
+- `84bc145` — tests E2E (2 nuevos en DEBT-3.9, fix flakiness DEBT-3.8)
+
+**Verificación con Playwright**:
+- Mapa del home: 630×558 px (antes 630×420 px). Cumple > 420px.
+- 5x zoom in: tiles cargan correctamente.
+- 8x zoom out: mapa sigue responsive, no crashea.
+
+**Resultado**: 36/36 tests E2E pasan.
+
 **Patrón seguro para auditorías futuras**:
 1. Cargar BD real (docker compose up).
 2. Arrancar dev server.
@@ -610,6 +648,7 @@ LEFT JOIN LATERAL (
 | DEBT-3.6 | 🔴 | 1h | Sí, datos del seed eran de Cali, no de Cundinamarca | ✅ **RESUELTO** (commits `3ec39e7`) — script `import-shp-demo.{sh,ps1}` con reproyección + sanity check de bbox |
 | DEBT-3.7 | 🟠 | 1h | No, pero panel mostraba 'próximamente' en Parques/Reservas | ✅ **RESUELTO** (commits `a779191`, `4e25527`) — WFS endpoint + WfsLayer client component |
 | DEBT-3.8 | 🔴 | 2h | No, pero el mapa mostraba markers puntuales (no geometría real) | ✅ **RESUELTO** (commits `18f2faa`, `5834f61`, `34e3b76`) — /api/geo GeoJSON + GeoJsonLayer |
+| DEBT-3.9 | 🟠 | 30 min | No, pero zoom cappeado y mapa chico en home | ✅ **RESUELTO** (commits `e019efc`, `36be13f`, `84bc145`) — zoom 3-22 + mapa prominente |
 | DEBT-4 | 🟡 | — | — | ✅ Cubierto por DEBT-3 (helper + dashboard + catalogos) |
 | DEBT-5 | 🟢 | 1 día | No, cosmético | ✅ **RESUELTO** (commit `525c6de` + migration 10) |
 | DEBT-6 | 🟢 | ½ día | No, reportes | ✅ **RESUELTO** (commit `0ccfb4a`) |
