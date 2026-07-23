@@ -1,4 +1,4 @@
-﻿import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
+import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
 import { ImportPanel } from "@/components/dashboard/import-panel";
 import { RightPanel } from "@/components/dashboard/right-panel";
 import { BottomSections, SummaryBar } from "@/components/dashboard/bottom-sections";
@@ -74,7 +74,6 @@ export default async function HomePage({
     : intervenciones;
 
   // Modo "Importar capa": reemplazamos el cuerpo por el ImportPanel.
-  // El component-ribbon sigue visible para poder volver a C1/C2/C3.
   if (esImportar) {
     return (
       <div className="flex h-full flex-1 flex-col overflow-hidden">
@@ -91,30 +90,37 @@ export default async function HomePage({
     );
   }
 
+  // =======================================================================
+  // DEBT-3.9 — Layout: el mapa es la pieza principal. Ocupa el área central
+  // con altura flexible (flex-1) y un mínimo de 560px. Los paneles de KPIs,
+  // componentes y alertas se compactan en una columna lateral derecha
+  // (ocultable) y la fila inferior con tabla + cards.
+  // =======================================================================
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">
       {/* ComponentRibbon (C1/C2/C3) — siempre visible */}
-      <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-3">
+      <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-2">
         <ComponentRibbon active={componenteFiltro} />
       </div>
 
-      {/* Contenido principal: mapa + right panel + bottom + footer */}
+      {/* Contenido principal: mapa al centro + right panel (ancho) + bottom */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Columna izquierda: mapa + bottom sections */}
+        {/* Columna izquierda: mapa grande + bottom sections */}
         <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
-          {/* Mapa */}
-          <div className="relative h-[420px] w-full overflow-hidden rounded-xl border border-outline-variant bg-surface-variant">
+          {/* Mapa: pieza central grande, ocupa todo el alto disponible */}
+          <div className="relative min-h-[560px] flex-1 w-full overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm">
             <LeafletMap
               predios={predios}
               quebradas={quebradas}
               geojson={geojson}
               activeComponente={componenteFiltro}
+              height="100%"
             />
 
-            {/* Search overlay */}
+            {/* Search overlay (debajo del ZoomControl para no interceptar clicks) */}
             <MapSearchBar initialQuery={queryTexto} />
 
-            {/* DB health pill */}
+            {/* DB health pill (esquina inferior izquierda) */}
             <div className="absolute bottom-4 left-4 z-[600] rounded-full bg-surface-container-lowest/95 px-3 py-1.5 text-[11px] shadow-md backdrop-blur">
               <span
                 className="mr-1 inline-block size-2 rounded-full align-middle"
@@ -128,9 +134,14 @@ export default async function HomePage({
                 ? `PostGIS OK · ${dbHealth.latencyMs} ms · ${dbHealth.server ?? ""}`
                 : `Postgres sin conexión (${dbHealth.latencyMs} ms)`}
             </div>
+
+            {/* Tip del mapa — esquina inferior derecha, debajo del ZoomControl */}
+            <div className="absolute bottom-3 right-3 z-[500] rounded-md bg-surface-container-lowest/80 px-2 py-1 text-[10px] text-on-surface-variant shadow-sm backdrop-blur">
+              Zoom 3–22 · wheel / double-click / +/–
+            </div>
           </div>
 
-          {/* Fila inferior: tabla + cards */}
+          {/* Fila inferior: tabla + cards (compactos) */}
           <BottomSections
             intervenciones={intervencionesFiltradas}
             cobertura={cobertura}
@@ -139,7 +150,7 @@ export default async function HomePage({
           />
         </div>
 
-        {/* Right Panel: KPIs + componentes + tendencia + alertas */}
+        {/* Right Panel: KPIs + componentes + tendencia + alertas (ancho fijo) */}
         <RightPanel
           kpis={kpis}
           componentes={componentes}
