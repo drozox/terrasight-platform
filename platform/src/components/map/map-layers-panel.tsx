@@ -18,10 +18,10 @@ export type MapLayerKey =
   | "veredas"
   | "rios"
   | "quebradas"
+  | "vias"
+  | "biomas"
   | "parques"
   | "reservas"
-  | "bosque"
-  | "agropecuario"
   | "predios";
 
 interface MapLayersPanelProps {
@@ -29,8 +29,8 @@ interface MapLayersPanelProps {
   onBasemapChange: (k: "osm" | "topo" | "satellite") => void;
   layers: Record<MapLayerKey, boolean>;
   onLayersChange: (l: Record<MapLayerKey, boolean>) => void;
-  prediosCount: number;
-  quebradasCount: number;
+  /** Conteos opcionales por capa. Si no se pasan, no se muestra el badge. */
+  counts?: Partial<Record<MapLayerKey, number>>;
 }
 
 /**
@@ -60,15 +60,22 @@ const LAYER_GROUPS: Array<{
     Icon: Building2,
     items: [
       { key: "municipios", label: "Límite Municipal", badge: "próx." },
-      { key: "veredas",    label: "Límite Veredal",  badge: "próx." },
+      { key: "veredas",    label: "Límite Veredal" },
     ],
   },
   {
     title: "Hidrografía",
     Icon: Droplets,
     items: [
-      { key: "rios",      label: "Ríos principales", badge: "próx." },
-      { key: "quebradas", label: "Quebradas" },
+      { key: "quebradas", label: "Quebradas / Drenajes" },
+      { key: "rios",      label: "Ríos principales" },
+    ],
+  },
+  {
+    title: "Infraestructura Vial",
+    Icon: Building2,
+    items: [
+      { key: "vias", label: "Vías" },
     ],
   },
   {
@@ -83,8 +90,7 @@ const LAYER_GROUPS: Array<{
     title: "Cobertura Vegetal",
     Icon: Trees,
     items: [
-      { key: "bosque",       label: "Bosque Natural", badge: "próx." },
-      { key: "agropecuario", label: "Uso Agropecuario", badge: "próx." },
+      { key: "biomas",       label: "Biomas IAVH" },
     ],
   },
   {
@@ -101,18 +107,14 @@ export function MapLayersPanel({
   onBasemapChange,
   layers,
   onLayersChange,
-  prediosCount,
-  quebradasCount,
+  counts: externalCounts,
 }: MapLayersPanelProps) {
   const [open, setOpen] = React.useState(true);
 
   const toggle = (k: MapLayerKey) =>
     onLayersChange({ ...layers, [k]: !layers[k] });
 
-  const counts: Partial<Record<MapLayerKey, number>> = {
-    predios: prediosCount,
-    quebradas: quebradasCount,
-  };
+  const counts = externalCounts ?? {};
 
   return (
     <div className="absolute left-4 top-4 z-[600] w-72 max-w-[calc(100%-2rem)] overflow-hidden rounded-xl border border-outline-variant/40 bg-surface-container-lowest/95 shadow-xl backdrop-blur">
