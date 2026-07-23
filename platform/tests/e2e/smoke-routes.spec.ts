@@ -171,6 +171,120 @@ test.describe("DEBT-3.6 — Geografía en Cundinamarca (no Cali)", () => {
 });
 
 // --------------------------------------------------------------------
+// DEBT-3.8 — Geometría real (polígonos/líneas) en lugar de markers.
+// Cada /api/geo?layer=X devuelve un FeatureCollection de la BD.
+// El mapa renderiza con L.geoJSON, no con markers puntuales.
+// --------------------------------------------------------------------
+test.describe("DEBT-3.8 — Geometría real (L.geoJSON) por capa", () => {
+  test("/api/geo?layer=municipios devuelve 5 MultiPolygon en Cundinamarca", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/geo?layer=municipios");
+    expect(r.status()).toBe(200);
+    const data = (await r.json()) as { features: Array<{ geometry: { type: string } }> };
+    expect(data.features.length).toBe(5);
+    expect(data.features[0].geometry.type).toBe("MultiPolygon");
+  });
+
+  test("/api/geo?layer=predios devuelve MultiPolygon (no Point)", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/geo?layer=predios");
+    expect(r.status()).toBe(200);
+    const data = (await r.json()) as { features: Array<{ geometry: { type: string } }> };
+    expect(data.features.length).toBeGreaterThan(0);
+    // DEBT-3.8: predios ahora son polígonos, no puntos
+    expect(data.features[0].geometry.type).toMatch(/Polygon|MultiPolygon/);
+  });
+
+  test("/api/geo?layer=drenajes devuelve MultiLineString", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/geo?layer=drenajes");
+    expect(r.status()).toBe(200);
+    const data = (await r.json()) as { features: Array<{ geometry: { type: string } }> };
+    expect(data.features.length).toBe(2985);
+    expect(data.features[0].geometry.type).toBe("MultiLineString");
+  });
+
+  test("/api/geo?layer=vias devuelve MultiLineString", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/geo?layer=vias");
+    expect(r.status()).toBe(200);
+    const data = (await r.json()) as { features: Array<{ geometry: { type: string } }> };
+    expect(data.features.length).toBe(2295);
+    expect(data.features[0].geometry.type).toBe("MultiLineString");
+  });
+
+  test("/api/geo?layer=biomas devuelve 70 MultiPolygon", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/geo?layer=biomas");
+    expect(r.status()).toBe(200);
+    const data = (await r.json()) as { features: Array<{ geometry: { type: string } }> };
+    expect(data.features.length).toBe(70);
+    expect(data.features[0].geometry.type).toBe("MultiPolygon");
+  });
+
+  test("/api/geo?layer=veredas devuelve 23 MultiPolygon", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/geo?layer=veredas");
+    expect(r.status()).toBe(200);
+    const data = (await r.json()) as { features: Array<{ geometry: { type: string } }> };
+    expect(data.features.length).toBe(23);
+    expect(data.features[0].geometry.type).toBe("MultiPolygon");
+  });
+
+  test("/api/geo?layer=foobar devuelve 400 con mensaje claro", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/geo?layer=foobar");
+    expect(r.status()).toBe(400);
+    const data = (await r.json()) as { error: string };
+    expect(data.error).toMatch(/inválido/i);
+  });
+
+  test("/mapa renderiza geometría real (no markers) para los predios encendidos", async ({
+    page,
+  }) => {
+    const csrf = await page.request.get("/api/auth/csrf").then((r) => r.json());
+    await page.request.post("/api/auth/callback/credentials", {
+      form: {
+        csrfToken: csrf.csrfToken,
+        email: ADMIN_EMAIL,
+        password: ADMIN_PASSWORD,
+        redirect: "false",
+        json: "true",
+      },
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    });
+    await page.goto("/mapa", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(3000);
+
+    // DEBT-3.8: predios y drenajes encendidos por default.
+    // Verificar que hay geometría SVG renderizada (L.geoJSON pinta paths,
+    // NO markers de punto). Los markers de punto se renderizarían como
+    // <img class="leaflet-marker-icon"> — no debe haberlos para predios.
+    const paths = await page.locator(".leaflet-overlay-pane path").count();
+    expect(paths, "debe haber al menos 1 polígono de predio + 2985 líneas de drenaje").toBeGreaterThan(100);
+    // No debe haber markers tipo "punto" para los predios (la geometría es polígono)
+    const markers = await page.locator(".leaflet-marker-icon").count();
+    // Aceptamos un número bajo de markers si los hay (puede haber alertas), pero no muchos.
+    expect(markers, "no debe haber markers puntuales para predios").toBeLessThan(10);
+  });
+});
+
+// --------------------------------------------------------------------
 // /analisis — DEBT-3.2 bug 1: SUM(DISTINCT ON ()) no es SQL estándar
 // --------------------------------------------------------------------
 test.describe("DEBT-3.2 — Runtime smoke /analisis", () => {
