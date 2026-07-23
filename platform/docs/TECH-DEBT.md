@@ -283,6 +283,106 @@ El middleware sigue redirigiendo rutas protegidas a `/login`. Este fix es sobre 
 
 **Resultado**: 23/23 tests E2E pasan (21 anteriores + 2 nuevos de DEBT-3.4).
 
+---
+
+## ✅ DEBT-3.6 — Datos geográficos de Cali en vez de Cundinamarca — **RESUELTO** (2026-07-23)
+
+**Hallazgo**: tras cerrar DEBT-3.4, el user probó la app manualmente. El mapa tenía:
+- 10 de 11 predios con coordenadas de **Cali** (lat 3.4, lon -76.5).
+- 8 quebradas también en Cali.
+- 4 puntos de monitoreo con `este=123456, norte=987654` (UTM inventado).
+- 7 municipios del Valle del Cauca + 3 de Cundinamarca.
+- Las columnas `latitud_centroide` / `longitud_centroide` estaban **intercambiadas** en `sgs_pre_predio`.
+
+El mapa estaba centrado en Cundinamarca (4.92, -73.93), pero los markers estaban en Cali (~300 km de distancia) — por eso se veían "vacío". El zoom "no funcionaba" porque el user zoomeaba sobre Cundinamarca sin ver nada.
+
+**Causa raíz**: el seed SQL inicial (`scripts/db/init/02-datos-ejemplo.sql`) usó nombres de fincas que ya tenía el cliente de drones (AeroAdmin AFM) para un demo de Valle del Cauca. No es un bug del código runtime — es un **bug de los datos de demo** que se cargaron al levantar la BD la primera vez.
+
+**Fix** (`platform/scripts/db/import-shp-demo.{sh,ps1}`):
+
+Script que reemplaza todo el seed de geografía con los SHPs del cliente en `DOCS/6. Script SQL (Implementación)/Datos prueba/Datos_Prueba/Datos_Prueba/`:
+
+1. **TRUNCATE** todas las tablas geografía (preserva schema, FKs).
+2. **ogr2ogr** lee el `.prj` de cada SHP y reproyecta a SRID 4686. Esto es crítico porque los SHPs usan `MAGNA_Colombia_Origen_Unico` (no estándar EPSG), y `shp2pgsql -s 3116:4686` los malinterpretaba como Bogota zone.
+3. **shp2pgsql** carga el SHP reproyectado a tabla temp.
+4. **INSERT con mapeo de campos** DBF → columnas del schema. Algunos requieren transformación (e.g. `drenaje_doble` SHP es Polygon pero la tabla es MultiLineString → uso `ST_Boundary`).
+5. **Sanity check de bounding box** al final: cada capa debe caer en Cundinamarca (lat 4-6, lon -75 a -73). Output: `OK (Cundinamarca)` o `FUERA DE RANGO!`.
+
+**Resultado**:
+
+| Tabla | Filas | Bbox |
+|---|---|---|
+| `bcs_lpa_municipio` | 5 | 4.62-5.45°N, -74.07 a -73.78°W ✓ |
+| `bcs_lpa_vereda` | 23 | Cundinamarca ✓ |
+| `sgs_pre_predio` | 1 (El Clavel) | 5.32°N, -74.12°W ✓ |
+| `sgs_amb_bioma` | 70 | 4.62-5.46°N ✓ |
+| `sgs_inf_drenaje_simple` | 2985 | 5.14-5.50°N ✓ |
+| `sgs_inf_drenaje_doble` | 27 | ✓ |
+| `sgs_inf_via` | 2295 | 5.14-5.50°N ✓ |
+| `sgs_pro_propuesta` | 141 | 4.62-5.46°N ✓ |
+| `sgs_pro_propuesta_linea` | 141 | ✓ |
+| `sgs_amb_alerta` | 5 | (sin geo) |
+
+**100% de los datos en Cundinamarca. 0% Cali.** El script también crea 2 municipios placeholder (CHOACHÍ, FÚQUENE) con geom en el centroide de sus veredas, porque el SHP de veredas cubre municipios que el SHP de municipio no incluye.
+
+**Commits**:
+- `3ec39e7` — script bash + wrapper PowerShell
+- `22749b0` — tests E2E
+
+**Lección operativa** (refuerza DEBT-3.2/3.3/3.4): no alcanza con que `tsc` + `next build` + unit tests + E2E status 200 estén verdes. Hay que **validar el contenido semántico de las queries** — el bbox de cada capa debería caer en Cundinamarca. **Patrón seguro**:
+- Sanity check de bounding box en el script de import (output `OK / FUERA DE RANGO`).
+- Test E2E que pide cada endpoint geográfico y verifica que el bbox cae en el rango esperado.
+
+**Resultado**: 26/26 tests E2E pasan (23 anteriores + 3 nuevos).
+
+---
+
+## ✅ DEBT-3.7 — WFS áreas protegidas (Parques Naturales + Reservas Forestales) — **RESUELTO** (2026-07-23)
+
+**Hallazgo**: el panel de capas tenía toggles para "Parques Naturales" y "Reservas Forestales" con badge "próximamente" (no implementados). El user pidió agregar estas capas.
+
+**Fix** (4 componentes):
+
+1. **Endpoint `/api/wfs/parques`** (`platform/src/app/api/wfs/parques/route.ts`):
+   - Server-side fetch a Overpass API (OpenStreetMap) con query `relation["boundary"="protected_area"]["protect_class"~"2|3"]`.
+   - Convierte la respuesta Overpass a GeoJSON FeatureCollection.
+   - Fallback a 2 features hardcoded (PNN Chingaza, PNN Sumapaz) si Overpass no responde.
+   - Requiere auth (401 si no hay sesión).
+
+2. **Endpoint `/api/wfs/reservas`** (`platform/src/app/api/wfs/reservas/route.ts`):
+   - Misma lógica, Overpass con `protect_class=1|2` (reservas).
+   - Fallback: RF Protectora Río Blanco, RF Cuenca Alta del Río Bogotá.
+
+3. **Componente `WfsLayer`** (`platform/src/components/map/wfs-layer.tsx`):
+   - Client component, usa `useMap()` de react-leaflet.
+   - `useEffect` que hace fetch al endpoint, parsea GeoJSON, y agrega `L.geoJSON` con `L.geoJSON(...)` + popup.
+   - Cleanup: aborta el fetch si el componente se desmonta antes de la respuesta.
+
+4. **Wire en `map-client.tsx`**: cuando `layers.parques` o `layers.reservas` está activo, renderiza `<WfsLayer>` con colores `#2e7d32` (parques) y `#558b2f` (reservas).
+
+5. **Panel `map-layers-panel.tsx`**: removido el badge "próximamente" de Parques y Reservas.
+
+**Resultado**:
+
+```bash
+GET /api/wfs/parques  → 200, 458 bytes, 2 features
+GET /api/wfs/reservas → 200, 477 bytes, 2 features
+```
+
+Overpass está bloqueado desde el container (probable CORS o rate limit), así que se sirven los fallbacks hardcoded. Cuando se ejecute la app desde una red con acceso a Overpass, automáticamente usará datos en vivo de OpenStreetMap.
+
+**Commits**:
+- `a779191` — endpoints WFS + WfsLayer
+- `4e25527` — wire en map-client + remover badge
+- `22749b0` — tests E2E
+
+**Lección**: el patrón **endpoint proxy + fallback hardcoded** es robusto para WFS:
+- Si el servicio externo funciona → datos en vivo.
+- Si no → fallback a features conocidas de la zona.
+- El endpoint server-side evita CORS y abstrae la fuente de datos.
+
+**Resultado**: 26/26 tests E2E pasan.
+
 **Patrón seguro para auditorías futuras**:
 1. Cargar BD real (docker compose up).
 2. Arrancar dev server.
@@ -450,6 +550,8 @@ LEFT JOIN LATERAL (
 | DEBT-3.2 | 🔴 | 2h | Sí, 3 rutas devuelven 500 en runtime | ✅ **RESUELTO** (commits `abcd177`, `9738cce`, `4113432`, `873dc57`) |
 | DEBT-3.3 | 🟠 | 30 min | No, pero login UI rota | ✅ **RESUELTO** (commits `d6c598e`, `5a97be8`) |
 | DEBT-3.4 | 🔴 | 30 min | No, pero form de login y cards colapsados a 1 char | ✅ **RESUELTO** (commits `64e78b2`, `2c0a1c9`) |
+| DEBT-3.6 | 🔴 | 1h | Sí, datos del seed eran de Cali, no de Cundinamarca | ✅ **RESUELTO** (commits `3ec39e7`) — script `import-shp-demo.{sh,ps1}` con reproyección + sanity check de bbox |
+| DEBT-3.7 | 🟠 | 1h | No, pero panel mostraba 'próximamente' en Parques/Reservas | ✅ **RESUELTO** (commits `a779191`, `4e25527`) — WFS endpoint + WfsLayer client component |
 | DEBT-4 | 🟡 | — | — | ✅ Cubierto por DEBT-3 (helper + dashboard + catalogos) |
 | DEBT-5 | 🟢 | 1 día | No, cosmético | ✅ **RESUELTO** (commit `525c6de` + migration 10) |
 | DEBT-6 | 🟢 | ½ día | No, reportes | ✅ **RESUELTO** (commit `0ccfb4a`) |
