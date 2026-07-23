@@ -487,6 +487,66 @@ Overpass está bloqueado desde el container (probable CORS o rate limit), así q
 
 ---
 
+## ✅ DEBT-3.10 — `NEXTAUTH_URL=http://localhost:3001` rompe acceso vía cloudflared (CORS-RFC1918) — **RESUELTO** (2026-07-23)
+
+**Síntoma reportado por el reviewer**: entra a `https://journal-investor-remainder-bought.trycloudflare.com/login`, completa `admin@car.gov.co` / `Admin123!`, click "Ingresar" → el browser dice **"localhost rechazó la conexión"**. Consola muestra:
+
+```
+Access to resource at 'http://localhost:3001/login?callbackUrl=...'
+(redirected from 'https://journal-investor-remainder-bought.trycloudflare.com/icon.svg?...')
+from origin 'https://journal-investor-remainder-bought.trycloudflare.com'
+has been blocked by CORS policy: Permission was denied for this request to
+access the `loopback` address space.
+```
+
+**Causa raíz**: `NEXTAUTH_URL=http://localhost:3001` hardcodeado en `.env`. NextAuth v5 usa ese valor como base para construir redirects absolutos (`Location: http://localhost:3001/dashboard` después de login OK). El browser del reviewer está en origen público (trycloudflare.com) e intenta navegar a `localhost:3001` → **Chrome bloquea por CORS-RFC1918 / Private Network Access** (RFC 1918 + CORS prefligh sobre loopback). Es política de seguridad del browser, no bug del túnel.
+
+**Diagnóstico ejecutado** (antes del fix):
+```js
+POST /api/auth/callback/credentials (vía tunnel con Host: trycloudflare.com)
+→ 302 Location: http://localhost:3001          // ← MAL: loopback
+```
+
+**Fix** (cambio mínimo en `.env`):
+```diff
+- NEXTAUTH_URL=http://localhost:3001
++ NEXTAUTH_URL=https://journal-investor-remainder-bought.trycloudflare.com
+```
+
+**Por qué `trustHost: true` no bastaba solo**: aunque `src/lib/auth.ts` tiene `trustHost: true`, NextAuth v5 prioriza `NEXTAUTH_URL` cuando está seteado. Sin ese env var, prioriza el bind host del server (`localhost` o `0.0.0.0` según cómo se arrancó), que tampoco es el host público. La solución determinística es setear `NEXTAUTH_URL` al URL público del tunnel.
+
+**Verificación post-fix con Playwright real** (browser con origen en trycloudflare.com):
+```
+1) Goto /login   → 200, form visible
+2) Fill + submit → 302 → /dashboard
+3) Final URL:    https://journal-investor-remainder-bought.trycloudflare.com/dashboard
+4) Body contiene Inicio, Mapa, Convenio  →  ✓
+5) Console errors: 0
+```
+
+**36/36 E2E tests siguen pasando** (sin regresión).
+
+**Automatización del ciclo tunnel+env+server** — `scripts/dev-tunnel.ps1`:
+- Mata cloudflared previos (opcional, `-KeepOld` para conservar).
+- Lanza nuevo tunnel, captura URL del stdout (regex `https://[a-z0-9-]+\.trycloudflare\.com`).
+- Actualiza `NEXTAUTH_URL=` en `.env`.
+- Mata `next dev` previo, arranca uno nuevo en :3001.
+- Espera a que responda, imprime URL final + credenciales.
+
+**Patrón general — Auth detrás de proxy/tunnel efímero**:
+- `NEXTAUTH_URL` debe apuntar al URL público que el browser ve, NO a `localhost`.
+- `trustHost: true` es necesario pero NO suficiente: NextAuth v5 prioriza `NEXTAUTH_URL` cuando existe.
+- Si el tunnel da subdomain random, hay que actualizar `NEXTAUTH_URL` cada vez (script obligatorio para no olvidarse).
+- **CORS-RFC1918 (Private Network Access)** es una política de Chrome 94+ / Firefox / Safari que bloquea orígenes públicos accediendo a loopback. Workaround: que el server SIEMPRE devuelva URLs con el host público.
+
+**Lección operativa**: cuando se comparte dev server con un stakeholder vía tunnel efímero, **el primer test de humo debe ser un POST de login end-to-end desde el browser del stakeholder**, no un GET. Los GETs funcionan porque la página se sirve vía tunnel, pero los redirects absolutos de POST/NextAuth revelan el `NEXTAUTH_URL` mal configurado.
+
+**Archivos modificados**:
+- `platform/.env` — `NEXTAUTH_URL` apunta a URL del tunnel
+- `platform/scripts/dev-tunnel.ps1` — nuevo, 150 líneas
+
+---
+
 ## ✅ DEBT-5 — Alertas hardcodeadas en `getAlertas()` — **RESUELTO** (2026-07-21)
 
 **Commit**: `525c6de` — feat(platform): DEBT-5 — sgs_amb_alerta table replaces hardcoded getAlertas
