@@ -75,8 +75,8 @@ const LAYER_GROUPS: Array<{
     title: "Áreas Protegidas",
     Icon: Mountain,
     items: [
-      { key: "parques",  label: "Parques Naturales", badge: "próx." },
-      { key: "reservas", label: "Reservas Forestales", badge: "próx." },
+      { key: "parques",  label: "Parques Naturales" },
+      { key: "reservas", label: "Reservas Forestales" },
     ],
   },
   {

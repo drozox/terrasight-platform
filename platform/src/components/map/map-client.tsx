@@ -15,6 +15,7 @@ import { MapLayersPanel, type MapLayerKey } from "./map-layers-panel";
 import { MapTools, type MapToolKey } from "./map-tools";
 import { MapCompass } from "./map-compass";
 import { MapRegionLabels } from "./map-region-labels";
+import { WfsLayer } from "./wfs-layer";
 
 // Fix: leaflet default icons no cargan en bundlers — usamos SVG inline.
 // (resolve el bug clásico "marker icon not found")
@@ -242,6 +243,22 @@ export default function MapClient({
 
         {/* Labels de regiones hidrográficas (siguen pan/zoom del mapa) */}
         <MapRegionLabels />
+
+        {/* Áreas protegidas (WFS) — capas on-demand vía /api/wfs/* */}
+        {layers.parques && (
+          <WfsLayer
+            url="/api/wfs/parques"
+            color="#2e7d32"
+            fillOpacity={0.18}
+          />
+        )}
+        {layers.reservas && (
+          <WfsLayer
+            url="/api/wfs/reservas"
+            color="#558b2f"
+            fillOpacity={0.12}
+          />
+        )}
       </MapContainer>
 
       {showLayersPanel && (
