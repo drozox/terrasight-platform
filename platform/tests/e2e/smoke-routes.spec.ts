@@ -112,6 +112,65 @@ async function loginAsAdmin(request: APIRequestContext): Promise<void> {
 }
 
 // --------------------------------------------------------------------
+// DEBT-3.6 — Re-import geografía. Bounding box de cada capa debe caer
+// en Cundinamarca (lat 4-6, lon -75 a -73). Antes del fix, los predios
+// y quebradas tenían coordenadas de Cali (lat 3.4, lon -76.5).
+// --------------------------------------------------------------------
+test.describe("DEBT-3.6 — Geografía en Cundinamarca (no Cali)", () => {
+  test("/api/wfs/parques con sesión devuelve GeoJSON de parques en Cundinamarca", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/wfs/parques");
+    expect(r.status()).toBe(200);
+    const data = (await r.json()) as { features: Array<{ properties: { nombre?: string }; geometry: { type: string } }> };
+    expect(data.features.length).toBeGreaterThan(0);
+    expect(data.features[0].geometry.type).toMatch(/Polygon|MultiPolygon/);
+    // El primer feature debe tener nombre
+    expect(data.features[0].properties.nombre).toBeTruthy();
+  });
+
+  test("/api/wfs/reservas con sesión devuelve GeoJSON de reservas", async ({
+    request,
+  }) => {
+    await loginAsAdmin(request);
+    const r = await request.get("/api/wfs/reservas");
+    expect(r.status()).toBe(200);
+    const data = (await r.json()) as { features: Array<{ properties: { tipo?: string } }> };
+    expect(data.features.length).toBeGreaterThan(0);
+    const tipos = data.features.map((f) => f.properties.tipo);
+    expect(tipos).toContain("Reserva Forestal");
+  });
+
+  test("/mapa con sesión renderiza panel con toggles de parques y reservas (browser-level)", async ({
+    page,
+  }) => {
+    // Login browser-level (no `request`).
+    const csrf = await page.request.get("/api/auth/csrf").then((r) => r.json());
+    await page.request.post("/api/auth/callback/credentials", {
+      form: {
+        csrfToken: csrf.csrfToken,
+        email: ADMIN_EMAIL,
+        password: ADMIN_PASSWORD,
+        redirect: "false",
+        json: "true",
+      },
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    });
+    await page.goto("/mapa", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2000);
+    // El panel de capas debe contener los toggles de Parques y Reservas,
+    // y NO deben estar marcados como "próximamente" (ya están implementados).
+    await expect(page.getByText("Parques Naturales")).toBeVisible();
+    await expect(page.getByText("Reservas Forestales")).toBeVisible();
+    // Verificar que NO esté el badge "próximamente" en estas filas
+    const parquesRow = page.getByText("Parques Naturales").locator("..");
+    await expect(parquesRow).not.toContainText(/pr[oó]ximamente/i);
+  });
+});
+
+// --------------------------------------------------------------------
 // /analisis — DEBT-3.2 bug 1: SUM(DISTINCT ON ()) no es SQL estándar
 // --------------------------------------------------------------------
 test.describe("DEBT-3.2 — Runtime smoke /analisis", () => {
