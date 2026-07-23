@@ -43,23 +43,30 @@ if (-not $OnlyEnv) {
 
   Write-Host "[2/4] Lanzando cloudflared (tunnel efímero)..."
   $logPath = Join-Path $root "cloudflared.log"
+  $errPath = Join-Path $root "cloudflared.err"
   if (Test-Path $logPath) { Remove-Item $logPath }
+  if (Test-Path $errPath) { Remove-Item $errPath }
   $cfProc = Start-Process -FilePath $cfExe `
     -ArgumentList "tunnel", "--url", "http://localhost:3001", "--no-autoupdate" `
     -RedirectStandardOutput $logPath `
-    -RedirectStandardError $logPath `
+    -RedirectStandardError $errPath `
     -PassThru -NoNewWindow
   Write-Host "       cloudflared PID $($cfProc.Id), log: $logPath"
 
   Write-Host "[3/4] Esperando URL público (timeout 30s)..."
+  # cloudflared v2026.7+ manda los INF logs a stderr (no stdout).
   for ($i = 0; $i -lt 30; $i++) {
     Start-Sleep -Seconds 1
-    if (Test-Path $logPath) {
+    $line = $null
+    if (Test-Path $errPath) {
+      $line = Select-String -Path $errPath -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' -ErrorAction SilentlyContinue | Select-Object -First 1
+    }
+    if (-not $line -and (Test-Path $logPath)) {
       $line = Select-String -Path $logPath -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' -ErrorAction SilentlyContinue | Select-Object -First 1
-      if ($line) {
-        $cfUrl = ($line.Matches[0].Value).TrimEnd('.')
-        break
-      }
+    }
+    if ($line) {
+      $cfUrl = ($line.Matches[0].Value).TrimEnd('.')
+      break
     }
   }
   if (-not $cfUrl) {
