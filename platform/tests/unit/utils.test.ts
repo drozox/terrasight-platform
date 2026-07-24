@@ -120,8 +120,8 @@ describe("formatHa — formato compacto (>=1000 → 'K')", () => {
     expect(formatHa(999.5)).toBe("999,5");
   });
 
-  it("0 → '0,0'", () => {
-    expect(formatHa(0)).toBe("0,0");
+  it("0 → '0' (UX-40: antes '0,0', ahora sin coma decimal)", () => {
+    expect(formatHa(0)).toBe("0");
   });
 
   it("10000 → '10,0K'", () => {
