@@ -64,10 +64,13 @@ export default function MapClient({
   const center: [number, number] = [4.92, -73.93];
 
   const [basemap, setBasemap] = React.useState<BasemapKey>("osm");
+  // UX-13/UX-50 (audit 2026-07-24): `municipios` ahora prende por default
+  // junto con predios y quebradas. La capa está implementada desde DEBT-3.8
+  // y quitar el "próx." stale en el panel.
   const [layers, setLayers] = React.useState<Record<MapLayerKey, boolean>>({
     predios: true,
     quebradas: true,
-    municipios: false,
+    municipios: true,
     veredas: false,
     rios: false,
     vias: false,

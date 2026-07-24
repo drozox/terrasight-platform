@@ -105,29 +105,37 @@ export const getBiomasGeoJSON = unstable_cache(
   { revalidate: 300, tags: ["mapa"] },
 );
 
-/** Drenajes simples — líneas (quebradas). */
-export const getDrenajesSimplesGeoJSON = unstable_cache(
-  async (): Promise<FeatureCollection> => {
-    const rows = await sql<{ id: number; nombre: string; estado: string; geom: string }[]>`
-      SELECT id_drenaje_simple AS id, nombre_geografico AS nombre, estado_drenaje AS estado,
-             ST_AsGeoJSON(geom) AS geom
-      FROM sgs_inf_drenaje_simple
-      WHERE geom IS NOT NULL
-      ORDER BY id_drenaje_simple;
-    `;
-    return {
-      type: "FeatureCollection",
-      features: rows.map((r) => ({
-        type: "Feature",
-        id: r.id,
-        properties: { id: r.id, nombre: r.nombre, estado: r.estado, layer: "drenajes" },
-        geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
-      })),
-    };
-  },
-  ["geo-drenajes-simples"],
-  { revalidate: 300, tags: ["mapa"] },
-);
+/** Drenajes simples — líneas (quebradas).
+ *
+ * UX-04 (audit 2026-07-24): NO wrappear en `unstable_cache`. El dataset tiene
+ * 2985 features ≈ 11 MB serializado. `unstable_cache` de Next.js tiene un
+ * limite estricto de 2 MB por item (`Error: items over 2MB can not be cached`).
+ * Como resultado el cache falla silenciosamente, satura el log de Next.js en
+ * cada request, y la respuesta igual se sirve — pero sin cache real.
+ *
+ * La cache se hace por HTTP (`Cache-Control: public, max-age=300` en el
+ * route handler) que NO tiene ese limite. Si el dia de mañana el layer crece
+ * a >100MB y queremos cache real, la opcion es vector tiles (MVT) o
+ * simplificar la geometria en BD (`ST_Simplify(geom, 0.0001)`).
+ */
+export async function getDrenajesSimplesGeoJSON(): Promise<FeatureCollection> {
+  const rows = await sql<{ id: number; nombre: string; estado: string; geom: string }[]>`
+    SELECT id_drenaje_simple AS id, nombre_geografico AS nombre, estado_drenaje AS estado,
+           ST_AsGeoJSON(geom) AS geom
+    FROM sgs_inf_drenaje_simple
+    WHERE geom IS NOT NULL
+    ORDER BY id_drenaje_simple;
+  `;
+  return {
+    type: "FeatureCollection",
+    features: rows.map((r) => ({
+      type: "Feature",
+      id: r.id,
+      properties: { id: r.id, nombre: r.nombre, estado: r.estado, layer: "drenajes" },
+      geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
+    })),
+  };
+}
 
 /** Vías — líneas. */
 export const getViasGeoJSON = unstable_cache(

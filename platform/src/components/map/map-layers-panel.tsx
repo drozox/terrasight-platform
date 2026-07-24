@@ -58,8 +58,12 @@ const LAYER_GROUPS: Array<{
   {
     title: "Límites Administrativos",
     Icon: Building2,
+    // UX-13/UX-50 (audit 2026-07-24): la capa `municipios` está implementada en
+    // `map-client.tsx:80-86` desde DEBT-3.8. Antes tenía `badge: "próx."` que
+    // mostraba "próximamente" — era UI stale. Ahora se prende por default
+    // junto con predios y quebradas (los 3 que el usuario espera ver de entrada).
     items: [
-      { key: "municipios", label: "Límite Municipal", badge: "próx." },
+      { key: "municipios", label: "Límite Municipal" },
       { key: "veredas",    label: "Límite Veredal" },
     ],
   },
