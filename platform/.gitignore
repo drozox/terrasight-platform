@@ -13,3 +13,10 @@ coverage
 playwright-report/
 test-results/
 playwright/.cache/
+
+# Logs de tunnels y procesos en background
+*.err
+*.out
+# Docs temporales (los .pdf/.html definitivos van al repo)
+platform/docs/*.tmp
+platform/docs/*.bak
