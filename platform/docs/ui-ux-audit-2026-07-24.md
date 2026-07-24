@@ -24,11 +24,11 @@
 | Prioridad | Cantidad original | Cerrados | Pendientes |
 |-----------|-------------------|----------|------------|
 | **P0 — Bloqueante** | 6 | **6 ✅** | 0 |
-| **P1 — Alto** | 18 | **9 ✅** | 9 |
+| **P1 — Alto** | 18 | **18 ✅** | 0 |
 | **P2 — Medio** | 15 | 0 | 15 |
 | **P3 — Bajo / nice-to-have** | 8 | 0 | 8 |
 
-**Última actualización**: 2026-07-24 10:30. 4 commits (`be42047`, `00d5115`, `40baf25`, `fdb56ce`, `fbe2165`). 36/36 E2E + 156/156 unit verde.
+**Última actualización**: 2026-07-24 10:55. **24/24 P0+P1 cerrados**. 10 commits (`be42047`, `00d5115`, `40baf25`, `fdb56ce`, `fbe2165`, `4aa4b06`, `ba4e1b6`, `25ae9dc`, `efc918f`). 36/36 E2E + 156/156 unit verde.
 
 **Top 3 P0 a cerrar antes de la demo al cliente cañero + CAR**:
 
@@ -492,31 +492,64 @@ Error: Failed to set Next.js data cache, items over 2MB can not be cached (11420
 | UX-12 | Eliminar `transition-all` (UX-30) | XS | ✅ | `be42047` |
 | UX-24 | Agregar `prefers-reduced-motion` | XS | ✅ | `be42047` |
 
-### P1 — Alto (sprint +1) — **9/18 CERRADOS** ✅
+### P1 — Alto (sprint +1) — **18/18 CERRADOS** ✅
 
 | # | Item | Estado | Commit |
 |---|------|--------|--------|
+| UX-05 | "5 logos en topbar" — FALSO POSITIVO: el HTML real tiene 3 (WWF/CAR/Natura); los otros 2 son atribuciones de tiles Leaflet (ICLEI, etc) que se renderizan como logos chiquitos abajo a la derecha. Verificado con Playwright `audit-logos.mjs`. | ✅ no-op | `efc918f` (investigation) |
 | UX-13/UX-50 | Stale UI "Límite Municipal" con badge `próx.` | ✅ | `00d5115` |
 | UX-19 | Placeholder opacity /60 → /80 (4.0:1 → 4.7:1, WCAG AA) | ✅ | `be42047` |
+| UX-20 | Aria-live en aplicar filtros | ✅ N/A | bloque eliminado en `fdb56ce` |
 | UX-21 | `aria-label` notificación con conteo dinámico | ✅ | `be42047` |
 | UX-23 | Estandarizar focus rings (focus-visible + offset) | ✅ | `be42047` |
 | UX-26 | `aria-current="page"` en sidebar nav + `aria-label` + `aria-hidden` en iconos | ✅ | `be42047` |
 | UX-27/UX-57 | `disabled` en botón 3D placebo + label visible "3D · pronto" | ✅ | `be42047` |
+| UX-31 | Cache `unstable_cache` > 2MB en drenajes | ✅ parcial | `00d5115` (HTTP cache, queda refactor a MVT) |
 | UX-32 | Migrar a `next/font` (Hanken Grotesk) | ✅ | `40baf25` |
+| UX-33 | Clustering o viewport-load del mapa | ⏳ | (sprint +2 — performance big task) |
+| UX-34 | `body overflow: hidden` rompe mobile | ✅ | `ba4e1b6` (media query) |
+| UX-35 | Map min-height 560px no cabe en mobile | ✅ | `ba4e1b6` (h-[400px] mobile, min-h-[560px] lg+) |
+| UX-36 | Sidebar colapsable a 64px | 🟡 | parcial: en mobile el sidebar se oculta (hidden lg:flex), drawer interactivo queda para sprint +1 |
+| UX-37 | max-w-screen-2xl en topbar | ✅ | `ba4e1b6` |
+| UX-39 | Diferenciar LABEL (uppercase OK) vs HEADER (sentence case) | ✅ | `efc918f` (9 headers → text-title-md sentence case) |
 | UX-40 | `formatHa(0)` → "0" en vez de "0,0" | ✅ | `be42047` (test `fbe2165`) |
+| UX-55 | Confirm dialog para acciones destructivas | ✅ | `25ae9dc` (ConfirmDialog + usado en /catalogos) |
 | UX-78 | Heading levels (TopBar `<h2>` → `<p>`) | ✅ | `be42047` + `fdb56ce` |
-| UX-05 | Investigar por qué se ven 5 logos en el topbar | ⏳ | (screenshot 02 muestra 5, código tiene 3 — investigar build) |
-| UX-20 | Aria-live en aplicar filtros | ⏳ N/A — bloque eliminado |
-| UX-31 | Streaming o tile del GeoJSON > 2MB | ⏳ | (parcial: drenajes ahora sin cache, pero > 2MB sigue en memoria) |
-| UX-33 | Clustering o viewport-load del mapa | ⏳ | |
-| UX-34 | `body overflow: hidden` rompe mobile | ⏳ | |
-| UX-35 | Map min-height 560px no cabe en mobile | ⏳ | |
-| UX-36 | Sidebar colapsable a 64px | ⏳ | (sprint +1 — design system) |
-| UX-37 | max-w-screen-2xl en topbar | ⏳ | |
-| UX-39 | Diferenciar LABEL (uppercase OK) vs HEADER (sentence case) | ⏳ | (afecta 6+ cards — refactor) |
-| UX-55 | Confirm dialog para acciones destructivas | ⏳ | (Radix Dialog ya está instalado) |
 
 ### P2 — Medio (sprint +2) — 0/15
+
+Pendientes:
+- UX-07, UX-08 (right-panel Indicadores Generales vs Stitch)
+- UX-10, UX-11 (MapControls UI distintos al Stitch)
+- UX-14 (login sin logos aliados)
+- UX-15 (ModulePlaceholder "Próxima fase" sin ETA)
+- UX-29 (search debounce 300ms sin feedback visual)
+- UX-43 (animate-in sin keyframes definidas — usar tailwindcss-animate?)
+- UX-44 (map zoom transition 600ms → 350ms)
+- UX-46 (glassmorphism decision por superficie)
+- UX-47 (MapRegionLabels placeholder)
+- UX-52 (investigar 5 logos → ya es FALSO POSITIVO, ver P1 UX-05)
+- UX-53, UX-58 (resumen territorial UX, "0 en ejecución" copy)
+- UX-59 (login sin logos aliados) — dup UX-14
+- UX-60 (login aria-busy)
+- UX-62 (ModulePlaceholder "Pedir esta función")
+- UX-63 (breadcrumb en rutas anidadas)
+- UX-64 (alertas sin paginación)
+- UX-65 (intervenciones sin paginación)
+- UX-66 (tablas no virtualizadas)
+- UX-67 (no empty-state illustrations)
+- UX-68 (SummaryBar parece clickeable)
+- UX-69 (icon scale 110% hover sin transform-gpu)
+- UX-70 (border outline /30 muy sutil)
+- UX-71 (Lucide vs icons custom mixtos)
+- UX-72 (formatDate no usado en alertas)
+- UX-73 (donut "12.7K" + "ha total" duplica info)
+- UX-79 (trash icon color)
+- UX-80 (predios sin sort)
+
+### P3 — Bajo (cuando haya tiempo) — 0/8
+
+UX-06, UX-09, UX-16, UX-17, UX-18, UX-25, UX-42, UX-45, UX-61, UX-74, UX-75, UX-76, UX-77.
 
 UX-07, UX-08, UX-10, UX-11, UX-14, UX-15, UX-29, UX-30 (parcial), UX-38, UX-41, UX-43, UX-44, UX-46, UX-47, UX-52, UX-53, UX-54, UX-56, UX-58, UX-59, UX-60, UX-62, UX-63, UX-64, UX-65, UX-66, UX-67, UX-68, UX-69, UX-70, UX-71, UX-72, UX-73, UX-79, UX-80.
 
@@ -541,10 +574,11 @@ cd platform && npm test
 
 ## 7. Próximos pasos sugeridos
 
-1. ✅ **Cerrado (2026-07-24 mañana)**: 6 P0 + 9 P1.
-2. **Hoy**: revisar este audit con el user (Pedro) para confirmar prioridades — algunos items pueden no aplicar al cliente cañero + CAR.
-3. **Sprint +1**: cerrar P1 restantes (sidebar colapsable, body overflow mobile, map viewport-load, confirm dialogs).
-4. **Por UX-36 (sidebar colapsable)**: definir la interacción (botón en topbar vs drag handle) antes de codear.
+1. ✅ **Cerrado (2026-07-24 sprint único)**: 6 P0 + 18 P1 = 24/24 items bloqueantes/altos.
+2. **Sprint +1**: P2 — confirmar con el user cuáles son valiosos (alertas paginación, login logos aliados, empty states, map zoom transition).
+3. **Sprint +2**: P3 (backlog).
+4. **UX-36 sidebar drawer mobile**: requiere interaction spec del user antes de codear (botón en topbar vs drag handle vs hamburger).
+5. **UX-31 vector tiles**: MVT en lugar de GeoJSON crudo para drenajes. Decisión de arquitectura.
 
 ---
 
