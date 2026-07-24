@@ -3,6 +3,18 @@
 // =============================================================================
 // Sidebar — cliente (necesita usePathname para highlight).
 // Acepta un `rol` opcional; si está presente, filtra los items visibles.
+//
+// UX-03/UX-48 (audit 2026-07-24): los selects de "Filtros territoriales" y el
+// botón "Aplicar Filtros" eran CONTROLES PLACEBO. El useState local no se
+// conectaba a nada — clickearlos solo cambiaba la fecha del footer. Era un
+// anti-patrón clásico. Decisión: SACAR todo el bloque. Los filtros de verdad
+// viven en cada vista (predios tiene su search, intervenciones tiene chips
+// por componente, mapa tiene layers panel). El sidebar vuelve a ser solo
+// navegación.
+//
+// UX-02/UX-49: el "Última actualización: 16/05/2025" estaba hardcodeado
+// como initial state. También se va con el bloque. Si el cliente lo pide,
+// en un sprint futuro lo conectamos a `pingDb()` server-side.
 // =============================================================================
 
 import * as React from "react";
@@ -19,8 +31,6 @@ import {
   FileText,
   Bell,
   Settings as SettingsIcon,
-  Filter as FilterIcon,
-  RefreshCw,
   Droplet,
   BookMarked,
 } from "lucide-react";
@@ -53,19 +63,6 @@ const ALL_ITEMS: Item[] = [
 
 export function Sidebar({ rol }: { rol?: RolSistema | null }) {
   const pathname = usePathname();
-  const [depto, setDepto] = React.useState("Cundinamarca");
-  const [municipio, setMunicipio] = React.useState("Todos");
-  const [refreshKey, setRefreshKey] = React.useState(0);
-  const [lastUpdate, setLastUpdate] = React.useState("16/05/2025");
-
-  React.useEffect(() => {
-    if (refreshKey > 0) {
-      const fmt = new Intl.DateTimeFormat("es-CO", {
-        day: "2-digit", month: "2-digit", year: "numeric",
-      }).format(new Date());
-      setLastUpdate(fmt);
-    }
-  }, [refreshKey]);
 
   const navItems = React.useMemo(
     () => (rol ? ALL_ITEMS.filter((it) => it.roles === null || it.roles.includes(rol)) : ALL_ITEMS),
@@ -76,16 +73,16 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
     <aside
       className={cn(
         "flex h-screen w-64 flex-shrink-0 flex-col overflow-y-auto",
-        "border-r border-outline-variant bg-surface-container-low py-md transition-all",
+        "border-r border-outline-variant bg-surface-container-low py-md transition-[background-color,border-color]",
       )}
     >
       <div className="mb-lg px-md">
         <Link href="/" className="flex items-center gap-3">
           <TerraSightLogo className="h-10 w-10 rounded-lg" />
           <div>
-            <h1 className="text-lg font-bold leading-tight text-secondary">
+            <p className="text-lg font-bold leading-tight text-secondary">
               Cundinamarca
-            </h1>
+            </p>
             <p className="text-body-sm text-on-surface-variant">
               Gestión Territorial
             </p>
@@ -119,65 +116,17 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
         })}
       </nav>
 
+      {/* Footer: convención del convenio. UX-03/48 — antes había selects
+          placebo + botón "Aplicar Filtros" + "Última actualización" hardcodeada.
+          Sacado en audit 2026-07-24. Si en el futuro se quieren filtros
+          globales, van en un store y se leen en cada vista server-side. */}
       <div className="mt-auto border-t border-outline-variant/30 px-md pt-lg">
-        <h3 className="mb-3 px-2 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-          Filtros territoriales
-        </h3>
-        <div className="space-y-3 px-2">
-          <div>
-            <label className="mb-1 block text-[11px] text-on-surface-variant">
-              Departamento
-            </label>
-            <select
-              value={depto}
-              onChange={(e) => setDepto(e.target.value)}
-              className="w-full rounded-lg border-none bg-surface-container-highest px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option>Cundinamarca</option>
-              <option>Boyacá</option>
-              <option>Meta</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] text-on-surface-variant">
-              Municipio
-            </label>
-            <select
-              value={municipio}
-              onChange={(e) => setMunicipio(e.target.value)}
-              className="w-full rounded-lg border-none bg-surface-container-highest px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option>Todos</option>
-              <option>Guasca</option>
-              <option>Cogua</option>
-              <option>San Rafael</option>
-              <option>Río Negro</option>
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={() => setRefreshKey((k) => k + 1)}
-            className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-lg bg-secondary px-3 py-2.5",
-              "font-bold text-label-lg text-on-secondary transition-all hover:bg-secondary/90 active:scale-[0.98]",
-            )}
-          >
-            <FilterIcon className="size-4" />
-            Aplicar Filtros
-          </button>
-        </div>
-        <div className="mt-6 flex items-center gap-2 px-2 text-[11px] text-on-surface-variant">
-          <RefreshCw
-            className={cn(
-              "size-3 transition-transform",
-              refreshKey > 0 && "text-primary",
-            )}
-          />
-          <span>
-            Última actualización:{" "}
-            <span className="font-bold text-on-surface-variant">{lastUpdate}</span>
-          </span>
-        </div>
+        <p className="px-2 text-[11px] leading-relaxed text-on-surface-variant/70">
+          Convenio CAR · WWF · Fundación Natura
+        </p>
+        <p className="mt-1 px-2 text-[10px] text-on-surface-variant/60">
+          Plataforma SIG integrada
+        </p>
       </div>
     </aside>
   );
