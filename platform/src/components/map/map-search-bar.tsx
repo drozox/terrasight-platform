@@ -41,12 +41,17 @@ export function MapSearchBar({ initialQuery = "" }: { initialQuery?: string }) {
           placeholder="Buscar municipio, vereda o predio…"
           aria-label="Buscar en el mapa"
         />
+        {/* UX-27/UX-57: el botón 3D es no-funcional (próximamente). Antes era
+           clickeable y tenía hover state — engañaba al usuario. Ahora está
+           disabled con label visible "3D · pronto" y cursor-not-allowed. */}
         <button
           type="button"
-          title="Vista 3D (próximamente)"
-          className="flex items-center gap-1 rounded-full bg-surface-container px-3 py-1 text-label-md font-bold text-on-surface-variant transition-colors hover:bg-surface-variant hover:text-primary"
+          disabled
+          aria-disabled="true"
+          title="Vista 3D — próxima fase"
+          className="flex cursor-not-allowed items-center gap-1 rounded-full bg-surface-container px-3 py-1 text-label-md font-bold text-on-surface-variant/60"
         >
-          <Box className="size-3.5" /> 3D
+          <Box className="size-3.5" /> 3D · pronto
         </button>
         <button
           type="button"

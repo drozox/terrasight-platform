@@ -81,7 +81,12 @@ export function TopBar({
     >
       <div className="flex items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-primary">Plataforma SIG Integrada</h2>
+          {/* UX-78: el brand de la app NO es un heading. Cada page provee su
+             <h1> propio. Antes era <h2>, pero "Plataforma SIG Integrada"
+             es un brand repetido en TODAS las pages — no es el título de
+             ninguna. Era ruido para screen readers + violaba la jerarquía
+             de headings. */}
+          <p className="text-xl font-bold text-primary">Plataforma SIG Integrada</p>
           <p className="text-label-lg text-on-surface-variant">
             Monitoreo Ambiental y Gestión Territorial
           </p>
@@ -101,13 +106,22 @@ export function TopBar({
             <div className="relative" ref={notifRef}>
               <button
                 type="button"
-                aria-label="Notificaciones"
+                aria-label={
+                  alertasList.length > 0
+                    ? `Notificaciones (${alertasList.length} sin leer)`
+                    : "Notificaciones"
+                }
                 onClick={() => setNotifOpen((v) => !v)}
                 className="relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
               >
-                <Bell className="size-5" />
+                <Bell className="size-5" aria-hidden="true" />
                 {alertasList.length > 0 && (
-                  <span className="absolute right-2 top-2 inline-flex size-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-on-error">
+                  // UX-21: screen readers oían "5" sin contexto. Ahora aria-label
+                  // del button dice "Notificaciones (5 sin leer)".
+                  <span
+                    aria-hidden="true"
+                    className="absolute right-2 top-2 inline-flex size-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-on-error"
+                  >
                     {alertasList.length}
                   </span>
                 )}

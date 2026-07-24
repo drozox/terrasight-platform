@@ -123,6 +123,23 @@
 @import "leaflet/dist/leaflet.css";
 
 /* =============================================================================
+ * UX-24 (audit 2026-07-24): respetar prefers-reduced-motion. Algunos usuarios
+ * (vestibular disorders, low-power devices, batería) necesitan que la UI no se
+ * mueva. Aplica a todas las animations y transitions de la app, incluyendo
+ * las del `animate-in fade-in slide-in-from-top-1` (TopBar popovers), el
+ * MapTools hover scale, el ComponentRibbon scale-110, y el splash del módulo
+ * ImportPanel.
+ * ============================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =============================================================================
  * Custom utilities para los tokens de spacing TerraSight.
  * Tailwind v4 los lee automáticamente del namespace `--spacing-terrasight-*`
  * para utilities genéricos (p-*, m-*, gap-*, etc.), pero los nombres como

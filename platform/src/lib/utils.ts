@@ -19,9 +19,10 @@ export function formatDecimal(n: number | null | undefined, decimals = 1): strin
   }).format(n);
 }
 
-/** Format hectares compact (e.g. 12.7K). */
+/** Format hectares compact (e.g. 12.7K). UX-40: 0 → "0" (no "0,0"). */
 export function formatHa(n: number | null | undefined): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  if (n === 0) return "0";
   const abs = Math.abs(n);
   if (abs >= 1000) {
     const val = n / 1000;

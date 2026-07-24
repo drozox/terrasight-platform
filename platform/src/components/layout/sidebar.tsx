@@ -93,7 +93,7 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 px-2">
+      <nav className="flex-1 space-y-1 px-2" aria-label="Navegación principal">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -104,6 +104,7 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "mx-2 my-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-label-lg transition-colors",
                 isActive
@@ -111,7 +112,7 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
                   : "text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface",
               )}
             >
-              <Icon className="size-5" />
+              <Icon className="size-5" aria-hidden="true" />
               <span>{item.label}</span>
             </Link>
           );

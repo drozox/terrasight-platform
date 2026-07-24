@@ -6,8 +6,10 @@ function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputEleme
     <input
       className={cn(
         "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-highest px-3 text-sm",
-        "placeholder:text-on-surface-variant/60",
-        "focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary",
+        // UX-19: opacity 80 en placeholder (era /60) — 4.0:1 → 4.7:1, pasa WCAG AA.
+        "placeholder:text-on-surface-variant/80",
+        // UX-23: focus ring estandarizado a 2px + offset + sin re-paint en click.
+        "focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
