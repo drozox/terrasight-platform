@@ -26,7 +26,8 @@ export function IntersectionResults({
   return (
     <div className="mt-6 space-y-4">
       <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4">
-        <h3 className="mb-2 text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
+        {/* UX-39: HEADER de sección, no LABEL. Sentence case. */}
+        <h3 className="mb-2 text-title-md font-bold text-on-surface">
           Resumen del rectángulo
         </h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -47,7 +48,8 @@ export function IntersectionResults({
 
       {/* Predios */}
       <Card className="overflow-x-auto">
-        <div className="border-b border-outline-variant bg-surface-container-low p-3 text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
+        {/* UX-39: HEADER de sección, no LABEL. Sentence case + count. */}
+        <div className="border-b border-outline-variant bg-surface-container-low p-3 text-title-md font-bold text-on-surface">
           Predios ({result.predios.length})
         </div>
         <table className="w-full text-left text-sm">
@@ -89,7 +91,7 @@ export function IntersectionResults({
 
       {/* Propuestas */}
       <Card className="overflow-x-auto">
-        <div className="border-b border-outline-variant bg-surface-container-low p-3 text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
+        <div className="border-b border-outline-variant bg-surface-container-low p-3 text-title-md font-bold text-on-surface">
           Propuestas ({result.propuestas.length})
         </div>
         <table className="w-full text-left text-sm">

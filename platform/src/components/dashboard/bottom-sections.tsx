@@ -90,6 +90,9 @@ export function SummaryBar({ footer }: { footer: FooterKpis }) {
               <Icon className="size-6 shrink-0 opacity-90" />
               <div className="leading-tight">
                 <p className="text-title-lg font-bold">{r.valor}</p>
+                {/* UX-39: este SI es un LABEL (caption chico bajo un stat),
+                   uppercase con tracking queda OK. El numero grande es el
+                   dato, el uppercase es la metadata. */}
                 <p className="text-[11px] uppercase tracking-wider opacity-90">
                   {r.label}
                 </p>

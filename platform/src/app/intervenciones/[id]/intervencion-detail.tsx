@@ -77,7 +77,9 @@ export function IntervencionDetail({
       {/* ---- Estado editable + datos básicos ---- */}
       <Card className="p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
+          {/* UX-39 (audit 2026-07-24): era uppercase tracking-wider. Es un
+             HEADER de sección, no un LABEL. Sentence case + text-title-md. */}
+          <h2 className="text-title-md font-bold text-on-surface">
             Datos básicos
           </h2>
           <div className="flex items-center gap-2">
@@ -162,7 +164,7 @@ export function IntervencionDetail({
       {/* ---- Geometría ---- */}
       <Card className="overflow-hidden p-0">
         <div className="flex items-center justify-between border-b border-outline-variant px-5 py-3">
-          <h2 className="text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
+          <h2 className="text-title-md font-bold text-on-surface">
             Geometría
           </h2>
           <span className="text-[11px] text-on-surface-variant">
@@ -178,7 +180,7 @@ export function IntervencionDetail({
 
       {/* ---- Avance ---- */}
       <Card className="p-5">
-        <h2 className="mb-4 text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
+        <h2 className="mb-4 text-title-md font-bold text-on-surface">
           Avance
         </h2>
         <AvanceForm
@@ -195,7 +197,7 @@ export function IntervencionDetail({
 
       {/* ---- Timeline ---- */}
       <Card className="p-5">
-        <h2 className="mb-4 text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
+        <h2 className="mb-4 text-title-md font-bold text-on-surface">
           Histórico de avances
         </h2>
         {/* Excluimos el backfill (migración 06) para no mostrar el evento

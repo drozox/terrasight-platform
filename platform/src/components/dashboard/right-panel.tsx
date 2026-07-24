@@ -134,8 +134,12 @@ export function RightPanel({
       {/* SECCIÓN 1 — Indicadores Generales (grid 2x2) */}
       <Card className="p-3">
         <div className="mb-2.5 flex items-center justify-between">
-          <h3 className="text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
-            Indicadores Generales
+          {/* UX-39 (audit 2026-07-24): era uppercase tracking-wider. Es un
+             HEADER de sección, no un LABEL de metadata. Sentence case +
+             text-title-md (más prominente). Los LABELs (chips, badges
+             internos) sí mantienen uppercase. */}
+          <h3 className="text-title-md font-bold text-on-surface">
+            Indicadores generales
           </h3>
           <button
             type="button"
@@ -183,8 +187,8 @@ export function RightPanel({
       {/* SECCIÓN 2 — Intervenciones por Componente */}
       <Card className="p-3">
         <div className="mb-2.5 flex items-center justify-between">
-          <h3 className="text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
-            Intervenciones por Componente
+          <h3 className="text-title-md font-bold text-on-surface">
+            Intervenciones por componente
           </h3>
           <button
             type="button"
@@ -231,8 +235,8 @@ export function RightPanel({
       {/* SECCIÓN 3 — Tendencia de Propuestas */}
       <Card className="p-3">
         <div className="mb-2.5 flex items-center justify-between">
-          <h3 className="text-label-lg font-bold uppercase tracking-wider text-on-surface-variant">
-            Tendencia por Componente
+          <h3 className="text-title-md font-bold text-on-surface">
+            Tendencia por componente
           </h3>
           <button
             type="button"
@@ -251,8 +255,11 @@ export function RightPanel({
       {/* SECCIÓN 4 — Alertas y Notificaciones */}
       <Card className="p-3">
         <div className="mb-2.5 flex items-center justify-between">
-          <h3 className="text-label-lg font-bold uppercase tracking-wider text-error">
-            Alertas y Notificaciones
+          {/* En esta card el color error sí tiene sentido porque es un panel
+             de alertas activas — el header lleva el tono para reforzar
+             urgencia visual. */}
+          <h3 className="text-title-md font-bold text-error">
+            Alertas y notificaciones
           </h3>
           <AlertTriangle className="size-4 text-error" />
         </div>
