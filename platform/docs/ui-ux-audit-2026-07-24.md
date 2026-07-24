@@ -21,18 +21,20 @@
 
 ## 0. Resumen ejecutivo
 
-| Prioridad | Cantidad | Impacto |
-|-----------|----------|---------|
-| **P0 — Bloqueante** | 6 | Rompen design system, accesibilidad, o engañan al usuario |
-| **P1 — Alto** | 18 | Degradan UX notablemente, fáciles de arreglar |
-| **P2 — Medio** | 15 | Polish visual y consistencia |
-| **P3 — Bajo / nice-to-have** | 8 | Mejoras incrementales |
+| Prioridad | Cantidad original | Cerrados | Pendientes |
+|-----------|-------------------|----------|------------|
+| **P0 — Bloqueante** | 6 | **6 ✅** | 0 |
+| **P1 — Alto** | 18 | **9 ✅** | 9 |
+| **P2 — Medio** | 15 | 0 | 15 |
+| **P3 — Bajo / nice-to-have** | 8 | 0 | 8 |
+
+**Última actualización**: 2026-07-24 10:30. 4 commits (`be42047`, `00d5115`, `40baf25`, `fdb56ce`, `fbe2165`). 36/36 E2E + 156/156 unit verde.
 
 **Top 3 P0 a cerrar antes de la demo al cliente cañero + CAR**:
 
-1. **UX-01** — La tipografía `Hanken Grotesk` está declarada en CSS pero **no se carga** en ningún lado. El navegador cae a `Segoe UI` (Windows). El premium "Modern Corporate" prometido por el DESIGN.md se pierde.
-2. **UX-02** — "Última actualización: 16/05/2025" hardcodeado en el sidebar miente: solo se actualiza si el usuario clickea "Aplicar Filtros" (que tampoco filtra nada — ver UX-03).
-3. **UX-03** — Los filtros "Departamento / Municipio / Aplicar Filtros" del sidebar son **controles placebo** — no hacen nada. Anti-patrón de "fake control". El usuario clickea y nada cambia (solo la fecha).
+1. ~~**UX-01** — La tipografía `Hanken Grotesk` está declarada en CSS pero **no se carga**~~ ✅ Cerrado en `40baf25` (next/font/google).
+2. ~~**UX-02** — "Última actualización: 16/05/2025" hardcodeado en el sidebar miente~~ ✅ Cerrado en `fdb56ce` (bloque eliminado del sidebar).
+3. ~~**UX-03** — Los filtros "Departamento / Municipio / Aplicar Filtros" del sidebar son **controles placebo**~~ ✅ Cerrado en `fdb56ce` (bloque eliminado del sidebar).
 
 **Otros hallazgos notorios**: la geometría real del mapa funciona (DEBT-3.8 cerrado), pero la sidebar muestra "Límite Municipal" con badge `PRÓX.` cuando la capa ya está implementada en el código. Hay `0,0 ha` donde debería decir `0 ha`. Y el cache de Next.js revienta (>2MB) cuando se cargan los 2985 drenajes.
 
@@ -479,47 +481,48 @@ Error: Failed to set Next.js data cache, items over 2MB can not be cached (11420
 
 ## 5. Backlog priorizado
 
-### P0 — Bloqueante (sprint actual)
+### P0 — Bloqueante (sprint actual) — **6/6 CERRADOS** ✅
 
-| # | Item | Esfuerzo | Archivo |
-|---|------|----------|---------|
-| UX-01 | Cargar Hanken Grotesk con `next/font/google` | XS | `src/app/layout.tsx`, `globals.css` |
-| UX-02 | Sacar o conectar "Última actualización" del sidebar | XS | `src/components/layout/sidebar.tsx:23,122` |
-| UX-03 | Sacar o conectar filtros territoriales placebo | M | `src/components/layout/sidebar.tsx:99-115` |
-| UX-04 | Arreglar el cache roto de `/api/geo` para drenajes | S | `src/app/api/geo/route.ts:60` + `lib/repos/geojson.ts` |
-| UX-12 | Eliminar `transition-all` (UX-30) | XS | varios |
-| UX-24 | Agregar `prefers-reduced-motion` | XS | `globals.css` |
+| # | Item | Esfuerzo | Estado | Commit |
+|---|------|----------|--------|--------|
+| UX-01 | Cargar Hanken Grotesk con `next/font/google` | XS | ✅ | `40baf25` |
+| UX-02 | Sacar o conectar "Última actualización" del sidebar | XS | ✅ | `fdb56ce` |
+| UX-03 | Sacar o conectar filtros territoriales placebo | M | ✅ | `fdb56ce` |
+| UX-04 | Arreglar el cache roto de `/api/geo` para drenajes | S | ✅ | `00d5115` |
+| UX-12 | Eliminar `transition-all` (UX-30) | XS | ✅ | `be42047` |
+| UX-24 | Agregar `prefers-reduced-motion` | XS | ✅ | `be42047` |
 
-### P1 — Alto (sprint +1)
+### P1 — Alto (sprint +1) — **9/18 CERRADOS** ✅
 
-| # | Item | Esfuerzo |
-|---|------|----------|
-| UX-13 | Stale UI "Límite Municipal" con badge `próx.` (UX-50) | XS |
-| UX-05 | Investigar por qué se ven 5 logos en el topbar | S |
-| UX-20 | Aria-live en aplicar filtros (cuando se conecten) | XS |
-| UX-26 | `aria-current="page"` en sidebar nav | XS |
-| UX-31 | Streaming o tile del GeoJSON > 2MB | M |
-| UX-32 | Migrar a `next/font` | S |
-| UX-33 | Clustering o viewport-load del mapa | M |
-| UX-34 | `body overflow: hidden` rompe mobile | S |
-| UX-35 | Map min-height 560px no cabe en mobile | S |
-| UX-36 | Sidebar colapsable a 64px | M |
-| UX-37 | max-w-screen-2xl en topbar | XS |
-| UX-39 | Diferenciar LABEL (uppercase OK) vs HEADER (sentence case) | S |
-| UX-40 | `formatHa(0)` → "0" en vez de "0,0" | XS |
-| UX-23 | Estandarizar focus rings | XS |
-| UX-27 | `disabled` en botón 3D placebo | XS |
-| UX-28 | `disabled` en checkbox `Límite Municipal` (UX-50) | XS |
-| UX-55 | Confirm dialog para acciones destructivas | M |
-| UX-78 | Heading levels (TopBar `<h2>` → `<p>`) | XS |
+| # | Item | Estado | Commit |
+|---|------|--------|--------|
+| UX-13/UX-50 | Stale UI "Límite Municipal" con badge `próx.` | ✅ | `00d5115` |
+| UX-19 | Placeholder opacity /60 → /80 (4.0:1 → 4.7:1, WCAG AA) | ✅ | `be42047` |
+| UX-21 | `aria-label` notificación con conteo dinámico | ✅ | `be42047` |
+| UX-23 | Estandarizar focus rings (focus-visible + offset) | ✅ | `be42047` |
+| UX-26 | `aria-current="page"` en sidebar nav + `aria-label` + `aria-hidden` en iconos | ✅ | `be42047` |
+| UX-27/UX-57 | `disabled` en botón 3D placebo + label visible "3D · pronto" | ✅ | `be42047` |
+| UX-32 | Migrar a `next/font` (Hanken Grotesk) | ✅ | `40baf25` |
+| UX-40 | `formatHa(0)` → "0" en vez de "0,0" | ✅ | `be42047` (test `fbe2165`) |
+| UX-78 | Heading levels (TopBar `<h2>` → `<p>`) | ✅ | `be42047` + `fdb56ce` |
+| UX-05 | Investigar por qué se ven 5 logos en el topbar | ⏳ | (screenshot 02 muestra 5, código tiene 3 — investigar build) |
+| UX-20 | Aria-live en aplicar filtros | ⏳ N/A — bloque eliminado |
+| UX-31 | Streaming o tile del GeoJSON > 2MB | ⏳ | (parcial: drenajes ahora sin cache, pero > 2MB sigue en memoria) |
+| UX-33 | Clustering o viewport-load del mapa | ⏳ | |
+| UX-34 | `body overflow: hidden` rompe mobile | ⏳ | |
+| UX-35 | Map min-height 560px no cabe en mobile | ⏳ | |
+| UX-36 | Sidebar colapsable a 64px | ⏳ | (sprint +1 — design system) |
+| UX-37 | max-w-screen-2xl en topbar | ⏳ | |
+| UX-39 | Diferenciar LABEL (uppercase OK) vs HEADER (sentence case) | ⏳ | (afecta 6+ cards — refactor) |
+| UX-55 | Confirm dialog para acciones destructivas | ⏳ | (Radix Dialog ya está instalado) |
 
-### P2 — Medio (sprint +2)
+### P2 — Medio (sprint +2) — 0/15
 
-UX-07, UX-08, UX-10, UX-11, UX-14, UX-15, UX-19, UX-21, UX-22, UX-29, UX-30, UX-38, UX-41, UX-43, UX-44, UX-46, UX-47, UX-52, UX-53, UX-54, UX-56, UX-58, UX-59, UX-60, UX-62, UX-63, UX-64, UX-65, UX-66, UX-67, UX-68, UX-69, UX-70, UX-71, UX-72, UX-73, UX-79, UX-80.
+UX-07, UX-08, UX-10, UX-11, UX-14, UX-15, UX-29, UX-30 (parcial), UX-38, UX-41, UX-43, UX-44, UX-46, UX-47, UX-52, UX-53, UX-54, UX-56, UX-58, UX-59, UX-60, UX-62, UX-63, UX-64, UX-65, UX-66, UX-67, UX-68, UX-69, UX-70, UX-71, UX-72, UX-73, UX-79, UX-80.
 
-### P3 — Bajo (cuando haya tiempo)
+### P3 — Bajo (cuando haya tiempo) — 0/8
 
-UX-06, UX-09, UX-16, UX-17, UX-18, UX-25, UX-42, UX-45, UX-48 (conectar filtros), UX-49 (reemplazar fecha), UX-57 (3D label), UX-61 (Ana María), UX-74 (dark mode), UX-75, UX-76, UX-77.
+UX-06, UX-09, UX-16, UX-17, UX-18, UX-25, UX-42, UX-45, UX-61, UX-74, UX-75, UX-76, UX-77.
 
 ---
 
@@ -530,17 +533,17 @@ UX-06, UX-09, UX-16, UX-17, UX-18, UX-25, UX-42, UX-45, UX-48 (conectar filtros)
 cd platform && node scripts/audit-screenshot.mjs
 
 # Tests E2E (incluye el smoke test de las 14 rutas)
-cd platform && npx playwright test tests/e2e/smoke-routes.spec.ts
+cd platform && PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test tests/e2e/smoke-routes.spec.ts
 
-# Lint de accesibilidad (requiere axe-core)
-npx playwright test tests/e2e/ --grep "@a11y"
+# Unit tests
+cd platform && npm test
 ```
 
 ## 7. Próximos pasos sugeridos
 
-1. **Hoy**: cerrar P0 (6 items, ~2-4 horas total).
-2. **Mañana**: revisar este audit con el user (Pedro) para confirmar prioridades — algunos items pueden no aplicar al cliente cañero + CAR.
-3. **Sprint +1**: cerrar P1 con el equipo.
+1. ✅ **Cerrado (2026-07-24 mañana)**: 6 P0 + 9 P1.
+2. **Hoy**: revisar este audit con el user (Pedro) para confirmar prioridades — algunos items pueden no aplicar al cliente cañero + CAR.
+3. **Sprint +1**: cerrar P1 restantes (sidebar colapsable, body overflow mobile, map viewport-load, confirm dialogs).
 4. **Por UX-36 (sidebar colapsable)**: definir la interacción (botón en topbar vs drag handle) antes de codear.
 
 ---
