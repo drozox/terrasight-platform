@@ -177,7 +177,14 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body { overflow: hidden; /* full-screen AppShell layout like the Stitch */ }
+/* UX-34 (audit 2026-07-24): antes `body { overflow: hidden }` bloqueaba TODO
+   scroll en mobile (< 1024px). El sidebar + topbar + main juntos se hacian
+   mas altos que el viewport y el usuario no podia scrollear nada. Fix: el
+   shell del app (root layout) se encarga del overflow en desktop. En mobile
+   el body vuelve a scroll normal, y el shell usa flex-col con altura explicita. */
+@media (min-width: 1024px) {
+  body { overflow: hidden; }
+}
 
 /* Scrollbar sutil tipo Stitch */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

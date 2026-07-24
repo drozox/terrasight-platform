@@ -104,11 +104,16 @@ export default async function HomePage({
       </div>
 
       {/* Contenido principal: mapa al centro + right panel (ancho) + bottom */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         {/* Columna izquierda: mapa grande + bottom sections */}
         <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
-          {/* Mapa: pieza central grande, ocupa todo el alto disponible */}
-          <div className="relative min-h-[560px] flex-1 w-full overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm">
+          {/* Mapa: pieza central grande, ocupa todo el alto disponible.
+             UX-35 (audit 2026-07-24): en mobile el min-h-[560px] no cabe.
+             Reducimos a h-[400px] en mobile y dejamos min-h-[560px] en lg+.
+             Tambien flex-col en mobile para que el mapa no compita con los
+             bottom sections — en mobile el usuario quiere ver el mapa PRIMERO
+             (no scrollear para llegar). */}
+          <div className="relative h-[400px] w-full flex-shrink-0 overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[560px] lg:flex-1">
             <LeafletMap
               predios={predios}
               quebradas={quebradas}

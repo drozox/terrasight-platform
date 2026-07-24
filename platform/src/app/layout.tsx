@@ -56,12 +56,20 @@ export default async function RootLayout({
 
   return (
     <html lang="es" className={`light ${hankenGrotesk.variable}`}>
-      <body className="flex h-screen overflow-hidden bg-background text-on-surface">
+      {/* UX-34/UX-36 (audit 2026-07-24): en desktop el shell es `h-screen
+         flex` con sidebar 256px + main fluido (sin scroll en body, scroll
+         interno por componente). En mobile (< lg) el shell pasa a flex-col
+         con scroll en el body y el sidebar queda DEBAJO del main como bloque
+         horizontal (o se oculta, depende del siguiente sprint que implemente
+         UX-36 colapsable). Por ahora, en mobile: el sidebar se esconde
+         (hidden lg:flex) y el main ocupa todo el ancho. Body mantiene scroll
+         normal en mobile (sin h-screen). */}
+      <body className="flex min-h-screen flex-col bg-background text-on-surface lg:h-screen lg:flex-row lg:overflow-hidden">
         <AuthSessionProvider>
           <Sidebar rol={usuario.rol} />
-          <main className="flex h-screen flex-1 flex-col overflow-hidden">
+          <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <TopBar alertas={alertas} usuario={usuario} />
-            <div className="flex-1 overflow-hidden">{children}</div>
+            <div className="flex-1 overflow-y-auto">{children}</div>
           </main>
         </AuthSessionProvider>
       </body>

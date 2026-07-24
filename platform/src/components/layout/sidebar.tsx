@@ -70,10 +70,15 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
   );
 
   return (
+    // UX-34/UX-36 (audit 2026-07-24): en mobile (< lg) el sidebar se esconde.
+    // El siguiente sprint deberia implementar un drawer mobile (UX-36) — por
+    // ahora el usuario en mobile solo ve el main full-width. En desktop se
+    // mantiene como columna lateral de 256px fija.
     <aside
       className={cn(
-        "flex h-screen w-64 flex-shrink-0 flex-col overflow-y-auto",
+        "hidden w-64 flex-shrink-0 flex-col overflow-y-auto",
         "border-r border-outline-variant bg-surface-container-low py-md transition-[background-color,border-color]",
+        "lg:flex lg:h-screen",
       )}
     >
       <div className="mb-lg px-md">

@@ -75,7 +75,8 @@ export function TopBar({
   return (
     <header
       className="
-        z-50 flex h-16 w-full flex-shrink-0 items-center justify-between
+        z-50 mx-auto flex h-16 w-full max-w-screen-2xl flex-shrink-0
+        items-center justify-between
         border-b border-outline-variant bg-surface px-margin-edge
       "
     >
