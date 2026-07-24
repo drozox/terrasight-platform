@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2, PackageOpen, Link2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { ComponenteFull, AccionFull } from "@/lib/types";
 import {
   eliminarComponenteAction, eliminarAccionAction,
@@ -18,7 +19,9 @@ type Flash = { tipo: "ok" | "error"; msg: string };
 
 const COMPONENT_COLOR: Record<string, "primary" | "secondary" | "tertiary"> = {
   C1: "primary", C2: "secondary", C3: "tertiary",
-};// =============================================================================
+};
+
+// =============================================================================
 // Panel de componentes
 // =============================================================================
 
@@ -33,6 +36,9 @@ export function ComponentesPanel({
   const router = useRouter();
   const [editId, setEditId] = React.useState<number | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
+  // UX-55 (audit 2026-07-24): confirm() nativo reemplazado por ConfirmDialog
+  // accesible (Radix Dialog). El state guarda el componente a eliminar.
+  const [pendingDelete, setPendingDelete] = React.useState<ComponenteFull | null>(null);
 
   function done() {
     onBusyChange(false);
@@ -57,7 +63,7 @@ export function ComponentesPanel({
           <button
             onClick={() => setCreateOpen(true)}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-on-primary transition-all hover:bg-primary/90 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-on-primary transition-[background-color,color,box-shadow] hover:bg-primary/90 disabled:opacity-50"
           >
             <Plus className="size-3.5" />Nuevo
           </button>
@@ -122,16 +128,8 @@ export function ComponentesPanel({
                         </button>
                         <button title={bloqueado ? "Bloqueado: tiene acciones o propuestas vinculadas" : "Eliminar"}
                           disabled={busy || bloqueado}
-                          onClick={async () => {
-                            if (!confirm(`¿Eliminar el componente "${c.nombre}"?`)) return;
-                            onBusyChange(true);
-                            const fd = new FormData();
-                            fd.set("idComponente", String(c.idComponente));
-                            const res = await eliminarComponenteAction(fd);
-                            if (res.ok) showFlash({ tipo: "ok", msg: res.message });
-                            else showFlash({ tipo: "error", msg: res.message });
-                            done();
-                          }}
+                          onClick={() => setPendingDelete(c)}
+                          aria-label={`Eliminar componente ${c.nombre}`}
                           className="flex h-8 w-8 items-center justify-center rounded-md text-error/70 hover:bg-error/10 hover:text-error disabled:cursor-not-allowed disabled:opacity-30">
                           <Trash2 className="size-4" />
                         </button>
@@ -163,9 +161,33 @@ export function ComponentesPanel({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+        title={`Eliminar componente ${pendingDelete?.nombre ?? ""}`}
+        description={`Se eliminará el componente "${pendingDelete?.nombre}" y sus relaciones en la BD. Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        confirmVariant="danger"
+        tone="destructive"
+        loading={busy}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          onBusyChange(true);
+          const fd = new FormData();
+          fd.set("idComponente", String(pendingDelete.idComponente));
+          const res = await eliminarComponenteAction(fd);
+          if (res.ok) showFlash({ tipo: "ok", msg: res.message });
+          else showFlash({ tipo: "error", msg: res.message });
+          setPendingDelete(null);
+          done();
+        }}
+      />
     </>
   );
-}// =============================================================================
+}
+
+// =============================================================================
 // Panel de acciones (agrupadas por componente)
 // =============================================================================
 
@@ -181,6 +203,8 @@ export function AccionesPanel({
   const router = useRouter();
   const [editId, setEditId] = React.useState<number | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
+  // UX-55 (audit 2026-07-24): confirm() nativo → ConfirmDialog accesible.
+  const [pendingDelete, setPendingDelete] = React.useState<AccionFull | null>(null);
 
   function done() {
     onBusyChange(false);
@@ -217,7 +241,7 @@ export function AccionesPanel({
             onClick={() => setCreateOpen(true)}
             disabled={busy || componentes.length === 0}
             title={componentes.length === 0 ? "Crea primero un componente" : "Nueva acción"}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-on-secondary transition-all hover:bg-secondary/90 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-on-secondary transition-[background-color,color,box-shadow] hover:bg-secondary/90 disabled:opacity-50"
           >
             <Plus className="size-3.5" />Nueva
           </button>
@@ -288,16 +312,8 @@ export function AccionesPanel({
                               </button>
                               <button title={bloqueada ? `Bloqueado: ${a.totalPropuestas} propuesta(s) la referencian` : "Eliminar"}
                                 disabled={busy || bloqueada}
-                                onClick={async () => {
-                                  if (!confirm(`¿Eliminar la accion "${a.nombre}" de ${a.nombreComponente}?`)) return;
-                                  onBusyChange(true);
-                                  const fd = new FormData();
-                                  fd.set("idAccion", String(a.idAccion));
-                                  const res = await eliminarAccionAction(fd);
-                                  if (res.ok) showFlash({ tipo: "ok", msg: res.message });
-                                  else showFlash({ tipo: "error", msg: res.message });
-                                  done();
-                                }}
+                                onClick={() => setPendingDelete(a)}
+                                aria-label={`Eliminar acción ${a.nombre}`}
                                 className="flex h-8 w-8 items-center justify-center rounded-md text-error/70 hover:bg-error/10 hover:text-error disabled:cursor-not-allowed disabled:opacity-30">
                                 <Trash2 className="size-4" />
                               </button>
@@ -333,6 +349,28 @@ export function AccionesPanel({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+        title={`Eliminar acción ${pendingDelete?.nombre ?? ""}`}
+        description={`Se eliminará la acción "${pendingDelete?.nombre}" del componente ${pendingDelete?.nombreComponente ?? ""}. Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        confirmVariant="danger"
+        tone="destructive"
+        loading={busy}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          onBusyChange(true);
+          const fd = new FormData();
+          fd.set("idAccion", String(pendingDelete.idAccion));
+          const res = await eliminarAccionAction(fd);
+          if (res.ok) showFlash({ tipo: "ok", msg: res.message });
+          else showFlash({ tipo: "error", msg: res.message });
+          setPendingDelete(null);
+          done();
+        }}
+      />
     </>
   );
 }
