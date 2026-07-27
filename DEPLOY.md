@@ -87,22 +87,24 @@ node scripts/migrate.mjs
 En SQL Editor:
 
 ```sql
--- 25+ tablas
+-- 32 tablas
 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';
--- debe dar >= 25
+-- debe dar 32
 
--- 151 propuestas demo
+-- 10 propuestas demo
 SELECT count(*) FROM sgs_pro_propuesta;
+
+-- 10 predios
+SELECT count(*) FROM sgs_pre_predio;
 
 -- 6 acciones
 SELECT count(*) FROM sgs_com_accion;
 
--- 9 migraciones aplicadas (chequear tabla de avances + UNIQUE en catalogos)
-SELECT count(*) FROM sgs_pro_propuesta_avance;
-SELECT count(*) FROM information_schema.table_constraints 
-  WHERE constraint_type = 'UNIQUE' AND table_name IN ('sgs_com_componente', 'sgs_com_accion', 'bcs_lpa_municipio', 'bcs_lpa_vereda', 'sgs_pre_propietario', 'bcs_dh_microcuenca', 'sgs_pre_usuario');
--- debe dar 7
+-- 5 alertas (DEBT-5)
+SELECT count(*) FROM sgs_amb_alerta;
 ```
+
+> **Nota**: el `02-datos-ejemplo.sql` actual carga **10 propuestas / 10 predios / 7 municipios** (no 151/2458 como en versiones iniciales del doc). La app funciona con este subset para demo; el cliente CAR Cundinamarca carga los datos reales despues del deploy.
 
 ---
 
