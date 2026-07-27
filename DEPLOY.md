@@ -2,10 +2,30 @@
 
 Guia paso a paso para desplegar TerraSight en produccion con cuentas free.
 
-## TL;DR
+## TL;DR (automatizado)
+
+```powershell
+# 1. Supabase: crear proyecto + copiar pooled connection string
+# 2. Local:
+$env:DATABASE_URL='postgresql://postgres.[REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require'
+cd platform
+node scripts/migrate.mjs
+node scripts/setup-vercel.mjs --alias=terrasight-convenio
+# 3. Vercel dashboard: Settings → Domains → Add (alias si el CLI no lo hizo)
+# 4. Local:
+node scripts/create-admin.mjs --email admin@car.gov.co --nombre "Admin" --password "PassFuerte123!" --rol ADMIN
+```
+
+Listo. Tiempo total: 10-15 minutos.
+
+> El script `setup-vercel.mjs` automatiza auth, env vars, deploy y captura del URL real (que antes era 10+ clicks manuales). Si algo falla, fallback al paso a paso manual de abajo.
+
+---
+
+## TL;DR (manual)
 
 1. Crear cuenta + proyecto en **Supabase** (PostGIS 3.5 preinstalado).
-2. Aplicar las 9 migraciones SQL via `node scripts/migrate.mjs`.
+2. Aplicar las migraciones SQL via `node scripts/migrate.mjs`.
 3. Crear cuenta + proyecto en **Vercel**, linkear al repo `drozox/terrasight-platform`.
 4. Setear 4 env vars en Vercel.
 5. Deploy automatico.
