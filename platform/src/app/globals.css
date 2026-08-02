@@ -130,13 +130,60 @@
 @import "leaflet/dist/leaflet.css";
 
 /* =============================================================================
- * UX-24 (audit 2026-07-24): respetar prefers-reduced-motion. Algunos usuarios
- * (vestibular disorders, low-power devices, batería) necesitan que la UI no se
- * mueva. Aplica a todas las animations y transitions de la app, incluyendo
- * las del `animate-in fade-in slide-in-from-top-1` (TopBar popovers), el
- * MapTools hover scale, el ComponentRibbon scale-110, y el splash del módulo
- * ImportPanel.
+ * UX-24 + UX-43 (audit 2026-07-24):
+ *
+ * UX-24: respetar prefers-reduced-motion. Algunos usuarios (vestibular
+ * disorders, low-power devices, batería) necesitan que la UI no se mueva.
+ * Aplica a TODAS las animations y transitions de la app, incluyendo las
+ * popovers del topbar, el ConfirmDialog, el MapTools hover scale, el
+ * ComponentRibbon scale-110, y el splash del módulo ImportPanel.
+ *
+ * UX-43: antes usabamos `animate-in fade-in slide-in-from-top-1` que requiere
+ * `tailwindcss-animate` (NO instalado). Las popovers del topbar y el
+ * ConfirmDialog se renderizaban sin animacion. Definimos las keyframes
+ * nativas + las utility classes equivalentes al plugin, scoped a la capa
+ * `utilities` para que Tailwind v4 las procese.
  * ============================================================================= */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes zoom-in-95 {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes zoom-out-95 {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.95); }
+}
+@keyframes slide-in-from-top-1 {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-out-to-top-1 {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+@layer utilities {
+  /* UX-43: popovers del topbar y del ConfirmDialog. */
+  .animate-in {
+    animation-duration: 200ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+  }
+  .fade-in-0 { animation-name: fade-in; }
+  .fade-out-0 { animation-name: fade-out; animation-direction: reverse; }
+  .zoom-in-95 { animation-name: zoom-in-95; }
+  .zoom-out-95 { animation-name: zoom-out-95; animation-direction: reverse; }
+  .slide-in-from-top-1 { animation-name: slide-in-from-top-1; }
+  .slide-out-to-top-1 { animation-name: slide-out-to-top-1; animation-direction: reverse; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

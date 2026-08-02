@@ -85,7 +85,10 @@ export default function MapClient({
   }, []);
 
   const onRecenter = React.useCallback(() => {
-    mapRef.current?.flyTo(center, 11, { duration: 0.6 });
+    // UX-44 (audit 2026-07-24): era 0.6s. La skill ui-ux-pro-max recomienda
+    // 150-300ms para flyTo. 350ms da tiempo a percibir el movimiento sin
+    // sentirse lento (Leaflet flyTo interpola zoom + bearing + center).
+    mapRef.current?.flyTo(center, 11, { duration: 0.35 });
   }, []);
 
   const mapRef = React.useRef<L.Map | null>(null);

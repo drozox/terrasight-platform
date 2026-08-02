@@ -77,7 +77,7 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
     <aside
       className={cn(
         "hidden w-64 flex-shrink-0 flex-col overflow-y-auto",
-        "border-r border-outline-variant bg-surface-container-low py-md transition-[background-color,border-color]",
+        "border-r border-outline-variant/50 bg-surface-container-low py-md transition-[background-color,border-color]",
         "lg:flex lg:h-screen",
       )}
     >
@@ -125,7 +125,10 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
           placebo + botón "Aplicar Filtros" + "Última actualización" hardcodeada.
           Sacado en audit 2026-07-24. Si en el futuro se quieren filtros
           globales, van en un store y se leen en cada vista server-side. */}
-      <div className="mt-auto border-t border-outline-variant/30 px-md pt-lg">
+      {/* UX-70 (audit 2026-07-24): /30 era muy sutil, se perdia contra el
+          surface-container-low. /50 da mejor contraste sin romper la
+          jerarquía. */}
+      <div className="mt-auto border-t border-outline-variant/50 px-md pt-lg">
         <p className="px-2 text-[11px] leading-relaxed text-on-surface-variant/70">
           Convenio CAR · WWF · Fundación Natura
         </p>

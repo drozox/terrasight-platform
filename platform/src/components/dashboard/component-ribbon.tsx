@@ -102,12 +102,18 @@ export function ComponentRibbon({ active }: { active?: string | null }) {
               aria-hidden
             />
             <div className="flex items-center gap-4">
+              {/* UX-69 (audit 2026-07-24): `group-hover:scale-110` sin
+                 `transform-gpu` causaba re-paint de la sombra. La skill
+                 ui-ux-pro-max recomienda `will-change-transform` o un
+                 baseline `transform: translateZ(0)` para que el browser
+                 promueva el layer. Ademas `transform` se computa en GPU
+                 y el cambio de sombra no lo afecta. */}
               <div
                 className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-lg transition-all",
+                  "flex h-12 w-12 items-center justify-center rounded-lg transition-transform",
                   c.bgClass,
                   c.textClass,
-                  "group-hover:scale-110",
+                  "transform-gpu group-hover:scale-110",
                   isActive && "scale-110",
                 )}
               >

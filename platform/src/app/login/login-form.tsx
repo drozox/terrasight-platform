@@ -66,7 +66,15 @@ export function LoginForm({
   const preservedCallback = search?.get("callbackUrl") ?? callbackUrl;
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate>
+    // UX-60 (audit 2026-07-24): aria-busy durante el submit para que los
+    // screen readers anuncien que la app esta procesando. disabled solo
+    // afecta interaccion, no semantica.
+    <form
+      onSubmit={onSubmit}
+      className="space-y-4"
+      noValidate
+      aria-busy={submitting}
+    >
       <div>
         <label
           htmlFor="email"

@@ -9,6 +9,7 @@ import type {
   PredioPorMunicipio,
 } from "@/lib/types";
 import { formatInt, formatHa, cn } from "@/lib/utils";
+import Link from "next/link";
 
 /**
  * BottomSections — fila inferior del dashboard.
@@ -81,7 +82,15 @@ export function SummaryBar({ footer }: { footer: FooterKpis }) {
   ];
 
   return (
-    <Card className="bg-primary p-4 text-on-primary">
+    // UX-68 (audit 2026-07-24): antes el SummaryBar se veia clickeable (card
+    // verde solido, sin estado) y no llevaba a ningun lado. Ahora es un
+    // Link al dashboard analitico (cuando exista) con aria-label descriptivo
+    // y hover sutil. Sigue funcionando como informacion visual.
+    <Link
+      href="/dashboard"
+      aria-label="Ver resumen de indicadores del convenio"
+      className="block rounded-xl bg-primary p-4 text-on-primary transition-[background-color,box-shadow] hover:bg-primary/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest"
+    >
       <div className="flex flex-wrap items-center justify-between gap-4">
         {items.map((r) => {
           const Icon = r.icon;
@@ -101,6 +110,6 @@ export function SummaryBar({ footer }: { footer: FooterKpis }) {
           );
         })}
       </div>
-    </Card>
+    </Link>
   );
 }
