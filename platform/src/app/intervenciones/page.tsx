@@ -1,6 +1,7 @@
 ﻿import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, ArrowRight } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Wrench, ArrowRight, Inbox } from "lucide-react";
 import Link from "next/link";
 import { getIntervencionesRecientes, getComponentes } from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
@@ -9,7 +10,10 @@ import { EstadoIntervencionDropdown } from "./estado-dropdown";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ componente?: string }>;
+type SearchParams = Promise<{ componente?: string; page?: string }>;
+
+// UX-65 (audit 2026-07-24): paginacion basica via searchParams.
+const PAGE_SIZE = 25;
 
 const COMPONENT_COLOR: Record<string, "primary" | "secondary" | "tertiary"> = {
   C1: "primary",
@@ -23,6 +27,15 @@ const COMPONENT_ACTIVE_BG: Record<"primary" | "secondary" | "tertiary", string> 
   tertiary:  "border-tertiary bg-tertiary text-on-tertiary",
 };
 
+// UX-65: helper para construir el URL de paginacion preservando el filtro.
+function buildPageUrl(componente: string | null, page: number): string {
+  const params = new URLSearchParams();
+  if (componente) params.set("componente", componente);
+  if (page > 1) params.set("page", String(page));
+  const qs = params.toString();
+  return qs ? `/intervenciones?${qs}` : "/intervenciones";
+}
+
 export default async function IntervencionesPage({
   searchParams,
 }: {
@@ -33,10 +46,14 @@ export default async function IntervencionesPage({
     getCurrentUser(),
   ]);
   const componente = params.componente ?? null;
+  // UX-65 (audit 2026-07-24): paginacion. page=1 default. Cap a 9999
+  // (mas alla es claramente input malicioso).
+  const pageNum = Math.max(1, Math.min(9999, Number(params.page ?? "1") || 1));
   const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
+  // Pedimos 1 fila extra para saber si hay mas paginas sin un COUNT extra.
   const [intervenciones, componentes] = await Promise.all([
-    getIntervencionesRecientes(50, componente),
+    getIntervencionesRecientes(PAGE_SIZE + 1, componente),
     getComponentes(),
   ]);
 
@@ -44,6 +61,12 @@ export default async function IntervencionesPage({
     (acc, c) => ({ ...acc, [c.nombre]: c.total }),
     {},
   );
+
+  // UX-65: aplicamos paginacion client-side sobre la lista que ya vino
+  // del server. Cortamos a PAGE_SIZE (la fila +1 era para detectar "hay mas").
+  const hasNextPage = intervenciones.length > PAGE_SIZE;
+  const intervencionesPage = intervenciones.slice(0, PAGE_SIZE);
+  const offset = (pageNum - 1) * PAGE_SIZE;
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-container-low p-gutter">
@@ -58,12 +81,12 @@ export default async function IntervencionesPage({
                 Intervenciones
               </h1>
               <p className="text-body-sm text-on-surface-variant">
-                {intervenciones.length} propuestas
+                {intervencionesPage.length} propuestas
                 {componente ? ` del componente ${componente}` : ""} ·{" "}
                 {formatInt(
-                  intervenciones.reduce((acc, i) => acc + (i.hectareas ?? 0), 0),
+                  intervencionesPage.reduce((acc, i) => acc + (i.hectareas ?? 0), 0),
                 )}{" "}
-                ha totales
+                ha totales · página {pageNum}
               </p>
             </div>
           </div>
@@ -99,6 +122,42 @@ export default async function IntervencionesPage({
           })}
         </div>
 
+        {/* UX-65: indicador de rango + paginador. Server-rendered,
+           la paginación se hace via searchParams. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-body-sm text-on-surface-variant">
+          <p>
+            {intervencionesPage.length === 0
+              ? "Sin resultados"
+              : `Mostrando ${offset + 1}–${offset + intervencionesPage.length}`}
+            {hasNextPage && " (hay más)"}
+          </p>
+          <div className="flex items-center gap-1">
+            <Link
+              href={buildPageUrl(componente, Math.max(1, pageNum - 1))}
+              aria-disabled={pageNum === 1}
+              className={`flex h-8 items-center gap-1 rounded-md border border-outline-variant px-3 text-label-lg font-bold transition-colors ${
+                pageNum === 1
+                  ? "pointer-events-none opacity-40"
+                  : "hover:border-primary hover:bg-primary/5"
+              }`}
+            >
+              ← Anterior
+            </Link>
+            <span className="px-2 text-label-lg font-bold">pág {pageNum}</span>
+            <Link
+              href={buildPageUrl(componente, pageNum + 1)}
+              aria-disabled={!hasNextPage}
+              className={`flex h-8 items-center gap-1 rounded-md border border-outline-variant px-3 text-label-lg font-bold transition-colors ${
+                !hasNextPage
+                  ? "pointer-events-none opacity-40"
+                  : "hover:border-primary hover:bg-primary/5"
+              }`}
+            >
+              Siguiente →
+            </Link>
+          </div>
+        </div>
+
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-body-sm">
@@ -115,14 +174,27 @@ export default async function IntervencionesPage({
                 </tr>
               </thead>
               <tbody>
+                {/* UX-67 (audit 2026-07-24): empty state con icono + accion.
+                   Antes <td colSpan> con texto plano. */}
                 {intervenciones.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-on-surface-variant">
-                      Sin intervenciones registradas.
+                    <td colSpan={8} className="p-0">
+                      <EmptyState
+                        icon={Inbox}
+                        eyebrow={componente ?? "Convenio CAR · WWF · Natura"}
+                        title="Sin intervenciones registradas"
+                        description={
+                          componente
+                            ? `Aún no hay propuestas del componente ${componente}. Cuando se carguen, aparecerán acá.`
+                            : "Cuando se carguen propuestas desde el módulo de importación o el dashboard, aparecerán acá con su avance y estado."
+                        }
+                        size="sm"
+                        action={{ label: "Ir al dashboard", href: "/" }}
+                      />
                     </td>
                   </tr>
                 )}
-                {intervenciones.map((i) => (
+                {intervencionesPage.map((i) => (
                   <tr
                     key={i.id}
                     className="border-b border-outline-variant/30 transition-colors hover:bg-surface-container-low"

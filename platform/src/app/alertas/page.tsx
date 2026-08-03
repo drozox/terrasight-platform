@@ -3,6 +3,7 @@ import { Bell, AlertTriangle, AlertCircle, Info, MapPin, CheckCircle2, Filter, X
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getAlertas, getPrediosGeoJSON } from "@/lib/repos";
 import { requireRole } from "@/lib/auth-guard";
 import { cn } from "@/lib/utils";
@@ -104,7 +105,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: Sear
                   key={t}
                   href={t === "todas" ? "/alertas" : `/alertas?tipo=${t}`}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-label-lg font-bold uppercase transition-all",
+                    "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-label-lg font-bold uppercase transition-colors",
                     isActive
                       ? `${meta.chip} ring-2 ${meta.ring} border-transparent`
                       : "border-outline-variant text-on-surface-variant hover:border-outline hover:bg-surface-container-low",
@@ -128,14 +129,20 @@ export default async function AlertasPage({ searchParams }: { searchParams: Sear
 
         {/* Lista */}
         {filtered.length === 0 ? (
-          <Card className="p-12 text-center">
-            <CheckCircle2 className="mx-auto size-12 text-success" />
-            <h3 className="mt-4 text-lg font-bold text-on-surface">
-              Sin alertas {filtro === "todas" ? "" : `de tipo ${filtro}`}
-            </h3>
-            <p className="mt-1 text-body-sm text-on-surface-variant">
-              No se encontraron notificaciones con este filtro.
-            </p>
+          <Card>
+            <EmptyState
+              icon={CheckCircle2}
+              eyebrow={filtro === "todas" ? "Sistema de monitoreo" : `Filtro: ${TIPO_META[filtro as keyof typeof TIPO_META]?.label ?? filtro}`}
+              title={all.length === 0 ? "Sin alertas registradas" : "Sin alertas con este filtro"}
+              description={
+                all.length === 0
+                  ? "Cuando el sistema de monitoreo genere alertas (deforestación, nivel hídrico bajo, propuestas con avance crítico), aparecerán acá."
+                  : "Probá cambiar el filtro o limpiarlo para ver todas las alertas del sistema."
+              }
+              size="md"
+              tone={all.length === 0 ? "neutral" : "success"}
+              action={all.length === 0 ? { label: "Ir al monitoreo", href: "/monitoreo" } : { label: "Limpiar filtro", href: "/alertas" }}
+            />
           </Card>
         ) : (
           <div className="grid gap-gutter">

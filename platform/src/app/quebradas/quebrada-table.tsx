@@ -6,7 +6,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Pencil, Power, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, Pencil, Power, Trash2, CheckCircle2, AlertCircle, Droplet } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   actualizarQuebradaAction,
   eliminarQuebradaAction,
@@ -26,6 +28,8 @@ export function QuebradaTable({
   const [editId, setEditId] = React.useState<number | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [flash, setFlash] = React.useState<{ tipo: "ok" | "error"; msg: string } | null>(null);
+  // UX-55 (audit 2026-07-24): confirm() nativo → ConfirmDialog accesible.
+  const [pendingDelete, setPendingDelete] = React.useState<QuebradaFull | null>(null);
 
   function showFlash(f: { tipo: "ok" | "error"; msg: string }) {
     setFlash(f);
@@ -69,10 +73,17 @@ export function QuebradaTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/40">
+            {/* UX-67 (audit 2026-07-24): empty state con icono + accion. */}
             {quebradas.length === 0 && (
               <tr>
-                <td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-on-surface-variant">
-                  Sin quebradas registradas.
+                <td colSpan={canEdit ? 6 : 5} className="p-0">
+                  <EmptyState
+                    icon={Droplet}
+                    title="Sin quebradas registradas"
+                    description="El inventario de fuentes hídricas del convenio está vacío. Empezá cargando la primera quebrada para que aparezca en el mapa y los reportes."
+                    size="sm"
+                    tone="primary"
+                  />
                 </td>
               </tr>
             )}
@@ -108,18 +119,10 @@ export function QuebradaTable({
                           </button>
                           <button
                             title="Eliminar"
+                            aria-label={`Eliminar quebrada ${q.nombreQuebrada}`}
                             disabled={busy}
-                            onClick={async () => {
-                              if (!confirm(`¿Eliminar la quebrada "${q.nombreQuebrada}"?`)) return;
-                              setBusy(true);
-                              const fd = new FormData();
-                              fd.set("idQuebrada", String(q.idQuebrada));
-                              const res = await eliminarQuebradaAction(fd);
-                              if (res.ok) showFlash({ tipo: "ok", msg: res.message });
-                              else showFlash({ tipo: "error", msg: res.message });
-                              done();
-                            }}
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-error/70 hover:bg-error/10 hover:text-error"
+                            onClick={() => setPendingDelete(q)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-error/70 hover:bg-error/10 hover:text-error disabled:opacity-50"
                           >
                             <Trash2 className="size-4" />
                           </button>
@@ -154,6 +157,28 @@ export function QuebradaTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+        title={`Eliminar quebrada ${pendingDelete?.nombreQuebrada ?? ""}`}
+        description={`Se eliminará la quebrada "${pendingDelete?.nombreQuebrada}" del inventario. Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        confirmVariant="danger"
+        tone="destructive"
+        loading={busy}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          setBusy(true);
+          const fd = new FormData();
+          fd.set("idQuebrada", String(pendingDelete.idQuebrada));
+          const res = await eliminarQuebradaAction(fd);
+          if (res.ok) showFlash({ tipo: "ok", msg: res.message });
+          else showFlash({ tipo: "error", msg: res.message });
+          setPendingDelete(null);
+          done();
+        }}
+      />
     </div>
   );
 }
@@ -249,7 +274,7 @@ function EditForm({
         <button
           type="submit"
           disabled={disabled}
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary transition-all hover:bg-primary/90 disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary transition-[background-color,box-shadow] hover:bg-primary/90 disabled:opacity-50"
         >
           {disabled && <Loader2 className="size-4 animate-spin" />}
           Guardar

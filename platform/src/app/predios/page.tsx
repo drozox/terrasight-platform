@@ -2,6 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Building2, Search, MapPin, Filter } from "lucide-react";
 import Link from "next/link";
 import { getPrediosGeoJSON } from "@/lib/repos";
@@ -147,13 +148,36 @@ export default async function PrediosPage({
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 && (
+                {/* UX-67 (audit 2026-07-24): empty state con icono + accion.
+                   Antes era <tr> con <td colSpan> + texto plano. Ahora
+                   EmptyState component (reusable). */}
+                {filtered.length === 0 && all.length > 0 && (
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-12 text-center text-on-surface-variant"
-                    >
-                      Sin predios que coincidan con "{q}".
+                    <td colSpan={6} className="p-0">
+                      <EmptyState
+                        icon={Search}
+                        title="Sin coincidencias"
+                        description={`No hay predios que coincidan con "${q}". Probá limpiar el filtro o usar otro término.`}
+                        size="sm"
+                        action={{ label: "Limpiar filtro", href: "/predios" }}
+                      />
+                    </td>
+                  </tr>
+                )}
+                {filtered.length === 0 && all.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-0">
+                      <EmptyState
+                        icon={Building2}
+                        title="Sin predios registrados"
+                        description="Aún no hay predios del convenio cargados. Empezá creando uno nuevo."
+                        size="md"
+                        action={
+                          canEdit
+                            ? { label: "+ Crear primer predio", href: "/predios/nuevo" }
+                            : { label: "Ir al mapa", href: "/mapa" }
+                        }
+                      />
                     </td>
                   </tr>
                 )}
