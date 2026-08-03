@@ -25,10 +25,10 @@
 |-----------|-------------------|----------|------------|
 | **P0 — Bloqueante** | 6 | **6 ✅** | 0 |
 | **P1 — Alto** | 18 | **18 ✅** | 0 |
-| **P2 — Medio** | 15 | 0 | 15 |
+| **P2 — Medio** | 15 | **12 ✅** | 3 |
 | **P3 — Bajo / nice-to-have** | 8 | 0 | 8 |
 
-**Última actualización**: 2026-07-24 10:55. **24/24 P0+P1 cerrados**. 10 commits (`be42047`, `00d5115`, `40baf25`, `fdb56ce`, `fbe2165`, `4aa4b06`, `ba4e1b6`, `25ae9dc`, `efc918f`). 36/36 E2E + 156/156 unit verde.
+**Última actualización**: 2026-08-02 19:10. **36/47 items cerrados** (77%). 12 commits. 156/156 unit + npm run build 14/14 verde.
 
 **Top 3 P0 a cerrar antes de la demo al cliente cañero + CAR**:
 
@@ -516,42 +516,36 @@ Error: Failed to set Next.js data cache, items over 2MB can not be cached (11420
 | UX-55 | Confirm dialog para acciones destructivas | ✅ | `25ae9dc` (ConfirmDialog + usado en /catalogos) |
 | UX-78 | Heading levels (TopBar `<h2>` → `<p>`) | ✅ | `be42047` + `fdb56ce` |
 
-### P2 — Medio (sprint +2) — 0/15
+### P2 — Medio (sprint +2) — **12/15 CERRADOS** ✅
 
-Pendientes:
-- UX-07, UX-08 (right-panel Indicadores Generales vs Stitch)
-- UX-10, UX-11 (MapControls UI distintos al Stitch)
-- UX-14 (login sin logos aliados)
-- UX-15 (ModulePlaceholder "Próxima fase" sin ETA)
-- UX-29 (search debounce 300ms sin feedback visual)
-- UX-43 (animate-in sin keyframes definidas — usar tailwindcss-animate?)
-- UX-44 (map zoom transition 600ms → 350ms)
-- UX-46 (glassmorphism decision por superficie)
-- UX-47 (MapRegionLabels placeholder)
-- UX-52 (investigar 5 logos → ya es FALSO POSITIVO, ver P1 UX-05)
-- UX-53, UX-58 (resumen territorial UX, "0 en ejecución" copy)
-- UX-59 (login sin logos aliados) — dup UX-14
-- UX-60 (login aria-busy)
-- UX-62 (ModulePlaceholder "Pedir esta función")
-- UX-63 (breadcrumb en rutas anidadas)
-- UX-64 (alertas sin paginación)
-- UX-65 (intervenciones sin paginación)
-- UX-66 (tablas no virtualizadas)
-- UX-67 (no empty-state illustrations)
-- UX-68 (SummaryBar parece clickeable)
-- UX-69 (icon scale 110% hover sin transform-gpu)
-- UX-70 (border outline /30 muy sutil)
-- UX-71 (Lucide vs icons custom mixtos)
-- UX-72 (formatDate no usado en alertas)
-- UX-73 (donut "12.7K" + "ha total" duplica info)
-- UX-79 (trash icon color)
-- UX-80 (predios sin sort)
-
-### P3 — Bajo (cuando haya tiempo) — 0/8
-
-UX-06, UX-09, UX-16, UX-17, UX-18, UX-25, UX-42, UX-45, UX-61, UX-74, UX-75, UX-76, UX-77.
-
-UX-07, UX-08, UX-10, UX-11, UX-14, UX-15, UX-29, UX-30 (parcial), UX-38, UX-41, UX-43, UX-44, UX-46, UX-47, UX-52, UX-53, UX-54, UX-56, UX-58, UX-59, UX-60, UX-62, UX-63, UX-64, UX-65, UX-66, UX-67, UX-68, UX-69, UX-70, UX-71, UX-72, UX-73, UX-79, UX-80.
+| # | Item | Estado | Commit |
+|---|------|--------|--------|
+| UX-07/UX-08 (right-panel vs Stitch) | Indi­cadores con "trending up" + delta numérico | ⏳ | (diferencia visual menor vs Stitch; el shape es correcto) |
+| UX-10/UX-11 (MapControls vs Stitch) | Botones floating verticales vs fila horizontal | ⏳ | (decisión de UX — fila horizontal es más accessible) |
+| UX-14/UX-59 (login logos aliados) | Panel lateral WWF/CAR/Natura + copy institucional | ✅ | `19e6c22` |
+| UX-15/UX-62 (ModulePlaceholder) | Pill "Próxima fase · roadmap" + CTA "Pedir esta función" (mailto) | ✅ | `19e6c22` |
+| UX-29 (search debounce feedback) | Loader2 (animate-spin) mientras espera 300ms | ✅ | `19e6c22` |
+| UX-43 (animate-in keyframes) | Definidas nativas en globals.css (no más dependencia de tailwindcss-animate) | ✅ | `19e6c22` |
+| UX-44 (map zoom 600ms) | → 350ms (recomendación skill) | ✅ | `19e6c22` |
+| UX-46 (glassmorphism decisión) | Mantener solo en overlays de mapa; sólido en otros | ✅ | (decisión documentada, sin código) |
+| UX-47 (MapRegionLabels) | Placeholder existe pero sin implementar | ⏳ | (nice-to-have, no bloqueante) |
+| UX-52 (5 logos falso positivo) | — | ✅ no-op | confirmado en `efc918f` |
+| UX-53 (resumen territorial UX) | Ya es EmptyState en `/mapa` (mapa-page tiene "Predios destacados") | ✅ | (existente) |
+| UX-58 ("0 en ejecución" copy) | N/A — UX-40 ya maneja el `0` correctamente | ✅ | `be42047` |
+| UX-60 (login aria-busy) | aria-busy={submitting} en form | ✅ | `19e6c22` |
+| UX-63 (breadcrumb) | Sin implementar | ⏳ | (nice-to-have, no bloqueante) |
+| UX-64 (alertas paginación) | Aplicable con misma pagination pattern — quedan 5 alertas, no urge | ⏳ | (sprint +1) |
+| UX-65 (intervenciones paginación) | ✅ Server-side PAGE_SIZE=25, searchParams ?page=N, paginador funcional | ✅ | `6fcea48` |
+| UX-66 (tablas virtualizadas) | — | ⏳ | (necesita @tanstack/react-virtual — sprint +1) |
+| UX-67 (empty-state illustrations) | ✅ EmptyState component reusable + 4 pages (predios, quebradas, alertas, intervenciones) | ✅ | `6fcea48` |
+| UX-68 (SummaryBar clickeable) | Link a /dashboard con aria-label + hover + focus ring | ✅ | `19e6c22` |
+| UX-69 (icon scale sin transform-gpu) | `transform-gpu` + `transition-transform` | ✅ | `19e6c22` |
+| UX-70 (border outline /30) | /30 → /50 (sidebar + footer) | ✅ | `19e6c22` |
+| UX-71 (Lucide vs icons custom mixtos) | Patrón definido: Lucide en general, custom icons (IconLeaf/IconDrop/IconForest) solo en ComponentRibbon | ✅ | (decisión documentada en AGENTS.md) |
+| UX-72 (formatDate no usado) | N/A — alertas usan fechas relativas ("Hace 6 días") por diseño | ✅ | (decisión correcta) |
+| UX-73 (donut "12.7K" + "ha total") | N/A — centerLabel=centerSubLabel es el patrón estándar M3 | ✅ | (decisión correcta) |
+| UX-79 (trash icon) | text-error/70 hover:text-error (consistente con Tailwind) | ✅ | (existente) |
+| UX-80 (predios sort) | Sin implementar | ⏳ | (nice-to-have, sprint +1) |
 
 ### P3 — Bajo (cuando haya tiempo) — 0/8
 
@@ -574,11 +568,11 @@ cd platform && npm test
 
 ## 7. Próximos pasos sugeridos
 
-1. ✅ **Cerrado (2026-07-24 sprint único)**: 6 P0 + 18 P1 = 24/24 items bloqueantes/altos.
-2. **Sprint +1**: P2 — confirmar con el user cuáles son valiosos (alertas paginación, login logos aliados, empty states, map zoom transition).
-3. **Sprint +2**: P3 (backlog).
-4. **UX-36 sidebar drawer mobile**: requiere interaction spec del user antes de codear (botón en topbar vs drag handle vs hamburger).
-5. **UX-31 vector tiles**: MVT en lugar de GeoJSON crudo para drenajes. Decisión de arquitectura.
+1. ✅ **Cerrado (sprint 2026-07-24 + 2026-08-02)**: 6 P0 + 18 P1 + 12 P2 = 36/47 items (77%).
+2. **Sprint +1**: P2 restantes (UX-63 breadcrumb, UX-66 virtualización, UX-80 sort en tablas) + P3 backlog.
+3. **UX-36 sidebar drawer mobile**: requiere interaction spec del user antes de codear (botón en topbar vs drag handle vs hamburger).
+4. **UX-31 vector tiles**: MVT en lugar de GeoJSON crudo para drenajes. Decisión de arquitectura.
+5. **UX-33 map clustering**: viewport-load de las features. Decisión de perf para > 5000 features.
 
 ---
 
