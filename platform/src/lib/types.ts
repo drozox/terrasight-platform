@@ -604,7 +604,12 @@ export type UsuarioAdmin = {
   creadoEn: Date;
 }
 
-export type AuditEvento = "LOGIN_OK" | "LOGIN_FAIL" | "LOGOUT" | "ACCESS_DENY";
+export type AuditEvento =
+  | "LOGIN_OK"
+  | "LOGIN_FAIL"
+  | "LOGOUT"
+  | "ACCESS_DENY"
+  | "ACCOUNT_LOCKED";
 
 export type AuditEvent = {
   idEvento: string;

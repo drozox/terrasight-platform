@@ -4,7 +4,7 @@
 // =============================================================================
 
 import Link from "next/link";
-import { ShieldAlert, ShieldCheck, LogIn, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShieldAlert, ShieldCheck, Lock, LogIn, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-guard";
 import {
   listAuditEventos,
@@ -17,22 +17,30 @@ export const metadata = { title: "Auditoría de accesos — TerraSight" };
 const PAGE_SIZE = 50;
 
 function isEvento(s: string | undefined): s is AuditEvento {
-  return s === "LOGIN_OK" || s === "LOGIN_FAIL" || s === "LOGOUT" || s === "ACCESS_DENY";
+  return (
+    s === "LOGIN_OK" ||
+    s === "LOGIN_FAIL" ||
+    s === "LOGOUT" ||
+    s === "ACCESS_DENY" ||
+    s === "ACCOUNT_LOCKED"
+  );
 }
 
 function EventoIcon({ evento }: { evento: AuditEvento }) {
-  if (evento === "LOGIN_OK")      return <LogIn     className="size-4 text-primary" />;
-  if (evento === "LOGOUT")        return <LogOut    className="size-4 text-on-surface-variant" />;
-  if (evento === "ACCESS_DENY")   return <ShieldAlert className="size-4 text-warning" />;
-  return                                  <ShieldCheck className="size-4 text-error" />; // LOGIN_FAIL
+  if (evento === "LOGIN_OK")        return <LogIn       className="size-4 text-primary" />;
+  if (evento === "LOGOUT")          return <LogOut      className="size-4 text-on-surface-variant" />;
+  if (evento === "ACCESS_DENY")     return <ShieldAlert className="size-4 text-warning" />;
+  if (evento === "ACCOUNT_LOCKED")  return <Lock        className="size-4 text-error" />;
+  return                                       <ShieldCheck className="size-4 text-error" />; // LOGIN_FAIL
 }
 
 function EventoBadge({ evento }: { evento: AuditEvento }) {
   const styles: Record<AuditEvento, string> = {
-    LOGIN_OK:    "bg-primary/10 text-primary",
-    LOGIN_FAIL:  "bg-error/10  text-error",
-    LOGOUT:      "bg-surface-variant/40 text-on-surface-variant",
-    ACCESS_DENY: "bg-warning/10 text-warning",
+    LOGIN_OK:       "bg-primary/10 text-primary",
+    LOGIN_FAIL:     "bg-error/10  text-error",
+    LOGOUT:         "bg-surface-variant/40 text-on-surface-variant",
+    ACCESS_DENY:    "bg-warning/10 text-warning",
+    ACCOUNT_LOCKED: "bg-error/15  text-error ring-1 ring-error/30",
   };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${styles[evento]}`}>

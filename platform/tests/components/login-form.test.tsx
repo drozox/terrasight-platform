@@ -208,6 +208,54 @@ describe("LoginForm — error display", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/no tiene acceso/i);
   });
 
+  it("initialError = 'AccountLocked' → muestra mensaje de cuenta bloqueada (15 min)", () => {
+    render(<LoginForm callbackUrl="/dashboard" initialError="AccountLocked" />);
+    expect(screen.getByRole("alert")).toHaveTextContent(/cuenta bloqueada/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/15 minutos/i);
+  });
+
+  it("initialError = 'AccountInactive' → muestra mensaje de cuenta desactivada", () => {
+    render(<LoginForm callbackUrl="/dashboard" initialError="AccountInactive" />);
+    expect(screen.getByRole("alert")).toHaveTextContent(/cuenta está desactivada/i);
+  });
+
+  it("signIn con error: 'AccountLocked' → muestra mensaje de cuenta bloqueada", async () => {
+    mockSignIn.mockResolvedValue({
+      ok: false,
+      error: "AccountLocked",
+      status: 401,
+      url: null,
+    });
+    const user = userEvent.setup();
+    render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
+    await user.type(screen.getByLabelText(/correo/i), "user@example.com");
+    await user.type(screen.getByLabelText(/contraseña/i), "wrong");
+    await user.click(screen.getByRole("button", { name: /ingresar/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/cuenta bloqueada/i);
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(/15 minutos/i);
+  });
+
+  it("signIn con error: 'AccountInactive' → muestra mensaje de cuenta desactivada", async () => {
+    mockSignIn.mockResolvedValue({
+      ok: false,
+      error: "AccountInactive",
+      status: 403,
+      url: null,
+    });
+    const user = userEvent.setup();
+    render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
+    await user.type(screen.getByLabelText(/correo/i), "user@example.com");
+    await user.type(screen.getByLabelText(/contraseña/i), "any");
+    await user.click(screen.getByRole("button", { name: /ingresar/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/desactivada/i);
+    });
+  });
+
   it("initialError desconocido → fallback 'No se pudo iniciar sesión.'", () => {
     render(<LoginForm callbackUrl="/dashboard" initialError="AlgoRaro" />);
     expect(screen.getByRole("alert")).toHaveTextContent(/no se pudo iniciar sesión/i);

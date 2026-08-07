@@ -25,7 +25,7 @@ const connectionString =
 
 const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
 
-const ORDER = ["01-schema.sql","02-datos-ejemplo.sql","03-auth-schema.sql","04-intervencion-estado.sql","05-catalogos-unique.sql","06-propuesta-avance.sql","07-monitoreo-punto.sql","08-cat-secundarios.sql","09-propuesta-avance-es-backfill.sql","10-sgs-amb-alerta.sql"];
+const ORDER = ["01-schema.sql","02-datos-ejemplo.sql","03-auth-schema.sql","04-intervencion-estado.sql","05-catalogos-unique.sql","06-propuesta-avance.sql","07-monitoreo-punto.sql","08-cat-secundarios.sql","09-propuesta-avance-es-backfill.sql","10-sgs-amb-alerta.sql","11-auth-lockout.sql"];
 
 const missing = ORDER.filter((f) => { try { readFileSync(join(initDir, f)); return false; } catch { return true; } });
 if (missing.length) { console.error("[migrate] Faltan archivos: " + missing.join(", ")); process.exit(2); }

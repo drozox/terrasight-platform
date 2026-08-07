@@ -78,5 +78,5 @@ export async function listAuditEventos(
 }
 
 export async function listEventTypes(): Promise<AuditEvento[]> {
-  return ["LOGIN_OK", "LOGIN_FAIL", "LOGOUT", "ACCESS_DENY"];
+  return ["LOGIN_OK", "LOGIN_FAIL", "LOGOUT", "ACCESS_DENY", "ACCOUNT_LOCKED"];
 }

@@ -22,7 +22,7 @@ export type AuditContext = {
 async function writeAudit(args: {
   idUsuario: number | null;
   emailUsado: string | null;
-  evento: "LOGIN_OK" | "LOGIN_FAIL" | "LOGOUT" | "ACCESS_DENY";
+  evento: "LOGIN_OK" | "LOGIN_FAIL" | "LOGOUT" | "ACCESS_DENY" | "ACCOUNT_LOCKED";
   exitoso: boolean;
   detalle: string | null;
   ctx?: AuditContext;
@@ -104,6 +104,35 @@ export async function auditAccessDeny(
     evento: "ACCESS_DENY",
     exitoso: false,
     detalle: args.detalle,
+    ctx,
+  });
+}
+
+// -----------------------------------------------------------------------------
+// auditAccountLocked — emitido cuando:
+//   1. Se cumple el umbral de 5 intentos fallidos y la cuenta pasa a bloqueada.
+//   2. Un usuario bloqueado intenta loguearse (rechazo sin chequear password).
+// `intentosF` ayuda al admin a distinguir ambos casos en la bitácora.
+// -----------------------------------------------------------------------------
+export async function auditAccountLocked(
+  args: {
+    idUsuario: number | null;
+    emailUsado: string;
+    intentosF: number;
+    motivo: "umbral_alcanzado" | "intento_con_cuenta_bloqueada";
+    detalle?: string | null;
+  },
+  ctx?: AuditContext,
+): Promise<void> {
+  const detalleBase = args.motivo === "umbral_alcanzado"
+    ? `Cuenta bloqueada tras ${args.intentosF} intentos fallidos`
+    : `Intento de login con cuenta bloqueada (intentos_fallidos=${args.intentosF})`;
+  await writeAudit({
+    idUsuario: args.idUsuario,
+    emailUsado: args.emailUsado,
+    evento: "ACCOUNT_LOCKED",
+    exitoso: false,
+    detalle: args.detalle ? `${detalleBase} · ${args.detalle}` : detalleBase,
     ctx,
   });
 }

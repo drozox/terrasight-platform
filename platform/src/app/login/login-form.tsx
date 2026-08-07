@@ -12,9 +12,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const FRIENDLY_ERROR: Record<string, string> = {
+  // Mantenemos el mensaje GENÉRICO para "no existe" / "password mal" — diferenciar
+  // sería un oracle de enumeración de usuarios (alguien podría probar emails).
+  // La auditoría SÍ guarda el motivo real (ver /admin/auditoria).
   CredentialsSignin: "Email o contraseña incorrectos.",
-  Configuration:      "Error de configuración de autenticación. Avisá al admin.",
-  AccessDenied:       "Tu cuenta no tiene acceso a esta plataforma.",
+  // Estos dos SÍ se diferencian: no revelan existencia de la cuenta.
+  AccountLocked:     "Cuenta bloqueada por intentos fallidos. Intentá en 15 minutos.",
+  AccountInactive:   "Tu cuenta está desactivada. Contactá al administrador.",
+  Configuration:     "Error de configuración de autenticación. Avisá al admin.",
+  AccessDenied:      "Tu cuenta no tiene acceso a esta plataforma.",
 };
 
 export function LoginForm({
