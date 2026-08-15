@@ -36,6 +36,7 @@ import { MapCompass } from "./map-compass";
 import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
+import { MapToolFeedback } from "./map-tool-feedback";
 
 type BasemapKey = "osm" | "topo" | "satellite";
 
@@ -83,6 +84,10 @@ export default function MapClient({
   const onSelectTool = React.useCallback((tool: MapToolKey) => {
     setActiveTool((prev) => (prev === tool ? null : tool));
   }, []);
+
+  // UX-11 (audit 2026-07-24): el MapToolFeedback necesita un onClose
+  // explicito para limpiar el tool (en vez de re-togglear via onSelectTool).
+  const onClearTool = React.useCallback(() => setActiveTool(null), []);
 
   const onRecenter = React.useCallback(() => {
     // UX-44 (audit 2026-07-24): era 0.6s. La skill ui-ux-pro-max recomienda
@@ -211,6 +216,10 @@ export default function MapClient({
         onSelect={onSelectTool}
         onRecenter={onRecenter}
       />
+
+      {/* UX-11: feedback inline cuando un tool no-implementado se selecciona.
+         Aparece esquina sup-der, auto-dismiss a los 6s. */}
+      <MapToolFeedback tool={activeTool} onClose={onClearTool} />
 
       {/* Brújula flotante */}
       <MapCompass />
