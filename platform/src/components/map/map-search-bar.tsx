@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Search, Layers, Bookmark, Box, Loader2 } from "lucide-react";
+import { Search, Bookmark, Box, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { View3DDialog } from "./view-3d-dialog";
+import { BookmarksDialog } from "./bookmarks-dialog";
 
 export function MapSearchBar({ initialQuery = "" }: { initialQuery?: string }) {
   const router = useRouter();
@@ -17,6 +18,9 @@ export function MapSearchBar({ initialQuery = "" }: { initialQuery?: string }) {
   // Antes el boton 3D era solo decorativo (disabled). Ahora abre un dialog
   // con mockup visual + features list + CTA de feedback (View3DDialog).
   const [view3DOpen, setView3DOpen] = React.useState(false);
+  // UX-P3: el botón Bookmark del search bar era no-op. Ahora abre un dialog
+  // "Próximamente" con preview de cómo se verán los marcadores + CTA feedback.
+  const [bookmarksOpen, setBookmarksOpen] = React.useState(false);
 
   // Debounce: actualiza la URL 300ms después de dejar de tipear
   React.useEffect(() => {
@@ -81,19 +85,13 @@ export function MapSearchBar({ initialQuery = "" }: { initialQuery?: string }) {
         </button>
         <button
           type="button"
-          aria-label="Capas"
-          title="Capas del mapa"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-variant hover:text-primary"
-        >
-          <Layers className="size-4" />
-        </button>
-        <button
-          type="button"
           aria-label="Marcadores guardados"
           title="Marcadores guardados"
+          onClick={() => setBookmarksOpen(true)}
           className={cn(
             "flex h-7 w-7 items-center justify-center rounded-full text-on-surface-variant",
             "transition-colors hover:bg-surface-variant hover:text-primary",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           )}
         >
           <Bookmark className="size-4" />
@@ -101,6 +99,7 @@ export function MapSearchBar({ initialQuery = "" }: { initialQuery?: string }) {
       </form>
 
       <View3DDialog open={view3DOpen} onOpenChange={setView3DOpen} />
+      <BookmarksDialog open={bookmarksOpen} onOpenChange={setBookmarksOpen} />
     </div>
   );
 }

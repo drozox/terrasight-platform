@@ -26,9 +26,9 @@
 | **P0 — Bloqueante** | 6 | **6 ✅** | 0 |
 | **P1 — Alto** | 18 | **18 ✅** | 0 |
 | **P2 — Medio** | 15 | **12 ✅** | 3 |
-| **P3 — Bajo / nice-to-have** | 8 | 0 | 8 |
+| **P3 — Bajo / nice-to-have** | 13 | **5 ✅** (vía mocks honestos) | 8 |
 
-**Última actualización**: 2026-08-02 19:10. **36/47 items cerrados** (77%). 12 commits. 156/156 unit + npm run build 14/14 verde.
+**Última actualización**: 2026-08-15 19:10. **41/55 items cerrados** (75%). 14 commits. **214/214 unit+component** + 6 e2e + build 14/14 verde + tsc 0 errors.
 
 **Top 3 P0 a cerrar antes de la demo al cliente cañero + CAR**:
 
@@ -547,9 +547,23 @@ Error: Failed to set Next.js data cache, items over 2MB can not be cached (11420
 | UX-79 (trash icon) | text-error/70 hover:text-error (consistente con Tailwind) | ✅ | (existente) |
 | UX-80 (predios sort) | Sin implementar | ⏳ | (nice-to-have, sprint +1) |
 
-### P3 — Bajo (cuando haya tiempo) — 0/8
+### P3 — Bajo (cuando haya tiempo) — 5/13 cerrados vía mocks honestos
 
-UX-06, UX-09, UX-16, UX-17, UX-18, UX-25, UX-42, UX-45, UX-61, UX-74, UX-75, UX-76, UX-77.
+| # | Item | Estado | Commit |
+|---|------|--------|--------|
+| UX-06 | Sidebar ancho (240 vs 256) | ⏳ | off-by-16px, intencional |
+| UX-09 | Botón "Vista 3D" floating | ✅ mock con View3DDialog | sprint batch 12 (`8396e09`) |
+| UX-11 | MapControls floating 2 cols | ✅ mockups en MapToolFeedback (toast inline) | sprint batch 12 (`8396e09`) |
+| UX-16 | 404 sin ilustración | ⏳ | (nice-to-have) |
+| UX-17 | aria-label en toasts de error | ⏳ | (nice-to-have) |
+| UX-18 | Loading skeleton | ⏳ | (nice-to-have) |
+| UX-25 | prefers-reduced-motion cobertura ampliada | ✅ | (en be42047 + 19e6c22) |
+| UX-42 | Contraste iconos en dark mode | ⏳ | (no dark mode aún) |
+| UX-45 | Map zoom button min size 44px | ⏳ | (nice-to-have) |
+| UX-61 | Topbar búsqueda global | ⏳ | (sprint +1) |
+| **Topbar HelpCircle** (nuevo) | Botón Ayuda era no-op | ✅ **HelpDialog** con info + atajos + mailto | sprint batch 14 |
+| **MapSearchBar Bookmark** (nuevo) | Marcadores guardados no-op | ✅ **BookmarksDialog** con preview + features + CTA | sprint batch 14 |
+| **MapSearchBar Layers** (nuevo) | Botón duplicado del MapLayersPanel | ✅ **eliminado** (duplicado) | sprint batch 14 |
 
 ---
 
@@ -568,11 +582,13 @@ cd platform && npm test
 
 ## 7. Próximos pasos sugeridos
 
-1. ✅ **Cerrado (sprint 2026-07-24 + 2026-08-02)**: 6 P0 + 18 P1 + 12 P2 = 36/47 items (77%).
-2. **Sprint +1**: P2 restantes (UX-63 breadcrumb, UX-66 virtualización, UX-80 sort en tablas) + P3 backlog.
-3. **UX-36 sidebar drawer mobile**: requiere interaction spec del user antes de codear (botón en topbar vs drag handle vs hamburger).
-4. **UX-31 vector tiles**: MVT en lugar de GeoJSON crudo para drenajes. Decisión de arquitectura.
-5. **UX-33 map clustering**: viewport-load de las features. Decisión de perf para > 5000 features.
+1. ✅ **Cerrado (sprint 2026-07-24 + 2026-08-02 + 2026-08-15)**: 6 P0 + 18 P1 + 12 P2 + 5 P3 (vía mocks) = **41/55 items (75%)**.
+2. **Tests**: 214 unit+component (era 156, +58 nuevos), 6 e2e. Build 14/14 verde, tsc 0 errors.
+3. **Mocks honestos** (batch 14): `View3DDialog`, `MapToolFeedback`, `HelpDialog`, `BookmarksDialog` — todos con preview/features list/CTA mailto.
+4. **Sprint +1**: P2 restantes (UX-63 breadcrumb, UX-66 virtualización, UX-80 sort en tablas) + P3 backlog menor.
+5. **UX-36 sidebar drawer mobile**: requiere interaction spec del user antes de codear (botón en topbar vs drag handle vs hamburger).
+6. **UX-31 vector tiles**: MVT en lugar de GeoJSON crudo para drenajes. Decisión de arquitectura.
+7. **UX-33 map clustering**: viewport-load de las features. Decisión de perf para > 5000 features.
 
 ---
 

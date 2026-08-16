@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { PartnerLogo } from "@/components/icons";
+import { HelpDialog } from "@/components/layout/help-dialog";
 import type { Alerta } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth-guard";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,9 @@ export function TopBar({
 }) {
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [userOpen, setUserOpen] = React.useState(false);
+  // UX-P3: el botón Ayuda (HelpCircle) antes era no-op. Ahora abre un dialog
+  // con info del producto, atajos de teclado y contacto de soporte.
+  const [helpOpen, setHelpOpen] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
   const userRef = React.useRef<HTMLDivElement>(null);
 
@@ -181,12 +185,13 @@ export function TopBar({
             </div>
           )}
 
-          {/* Ayuda */}
+          {/* Ayuda — antes no-op; ahora abre HelpDialog con info + atajos + mailto */}
           <button
             type="button"
-            aria-label="Ayuda"
+            aria-label="Ayuda y soporte"
             title="Ayuda y soporte"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
+            onClick={() => setHelpOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <HelpCircle className="size-5" />
           </button>
@@ -274,6 +279,8 @@ export function TopBar({
           )}
         </div>
       </div>
+
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </header>
   );
 }

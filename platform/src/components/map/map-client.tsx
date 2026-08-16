@@ -94,7 +94,7 @@ export default function MapClient({
     // 150-300ms para flyTo. 350ms da tiempo a percibir el movimiento sin
     // sentirse lento (Leaflet flyTo interpola zoom + bearing + center).
     mapRef.current?.flyTo(center, 11, { duration: 0.35 });
-  }, []);
+  }, [center]);
 
   const mapRef = React.useRef<L.Map | null>(null);
 
