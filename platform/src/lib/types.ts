@@ -686,3 +686,41 @@ export type MonitoreoKpis = {
   totalBeneficiarios: number;
   porComponente: Record<string, number>;
 }
+
+// -----------------------------------------------------------------------------
+// Metas por Componente/Acción (S5.M — sprint 5, paralelo a S5 Reportes)
+//
+// Una `MetaResumen` es una meta del convenio: "12 km de cercos vivos en C1A1",
+// "79 cosecha de agua en C2A1", etc. La página /metas las muestra como
+// progress bars. `pct` se computa en el repo (current/meta * 100), capping
+// a 100 para la barra (los % >100 se muestran como "超额" en el futuro).
+// -----------------------------------------------------------------------------
+export type MetaResumen = {
+  componente: string;
+  accion: string;
+  metaKey: string;
+  metaLabel: string;
+  metaValue: number;
+  metaUnit: string;
+  currentValue: number;
+  currentUnit: string;
+  countPropuestas: number;
+  pct: number;
+};
+
+export type MetasGlobal = {
+  totalMetas: number;
+  metasCumplidas: number;
+  sumCurrent: number;
+  sumMeta: number;
+  pct: number;
+};
+
+export type MunicipioIntervenido = {
+  idMunicipio: number;
+  nombreMunicipio: string;
+  departamento: string;
+  numPropuestas: number;
+  numPredios: number;
+  numVeredas: number;
+};

@@ -14,3 +14,4 @@ export * from "./auditoria";
 export * from "./reportes";
 export * from "./analisis";
 export * from "./monitoreo";
+export * from "./metas";

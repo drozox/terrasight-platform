@@ -33,6 +33,7 @@ import {
   Settings as SettingsIcon,
   Droplet,
   BookMarked,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TerraSightLogo } from "@/components/icons";
@@ -50,6 +51,7 @@ const ALL_ITEMS: Item[] = [
   { href: "/",               label: "Inicio",             icon: HomeIcon,    roles: null },
   { href: "/mapa",           label: "Mapa 2D / 3D",       icon: MapIcon,     roles: null },
   { href: "/dashboard",      label: "Dashboard",          icon: BarChart3,   roles: null },
+  { href: "/metas",          label: "Metas del convenio", icon: Target,      roles: null },
   { href: "/predios",        label: "Predios",            icon: Building2,   roles: null },
   { href: "/quebradas",      label: "Quebradas",          icon: Droplet,     roles: null },
   { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,      roles: null },
