@@ -91,11 +91,15 @@ WITH
 -- ============ C1A1: Conservación del recurso hídrico ============
 c1a1_cercos_vivos AS (
     SELECT
-        'C1'::text, 'A1'::text,
-        'c1a1_cercos_vivos'::text, 'Cercos vivos'::text,
-        12.0, 'km'::text,
-        COALESCE(SUM(pl.longitud_km), 0)::numeric, 'km'::text,
-        COUNT(*)
+        'C1'::text                          AS componente,
+        'A1'::text                          AS accion,
+        'c1a1_cercos_vivos'::text            AS meta_key,
+        'Cercos vivos'::text                 AS meta_label,
+        12.0                                AS meta_value,
+        'km'::text                          AS meta_unit,
+        COALESCE(SUM(pl.longitud_km), 0)::numeric AS current_value,
+        'km'::text                          AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_linea pl
     JOIN sgs_pro_propuesta    pp ON pl.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion   = a.id_accion
@@ -105,11 +109,15 @@ c1a1_cercos_vivos AS (
 ),
 c1a1_aislamiento AS (
     SELECT
-        'C1'::text, 'A1'::text,
-        'c1a1_aislamiento'::text, 'Aislamientos (cerco de alambre)'::text,
-        12.0, 'km'::text,
-        COALESCE(SUM(pl.longitud_km), 0)::numeric, 'km'::text,
-        COUNT(*)
+        'C1'::text                          AS componente,
+        'A1'::text                          AS accion,
+        'c1a1_aislamiento'::text            AS meta_key,
+        'Aislamientos (cerco de alambre)'::text AS meta_label,
+        12.0                                AS meta_value,
+        'km'::text                          AS meta_unit,
+        COALESCE(SUM(pl.longitud_km), 0)::numeric AS current_value,
+        'km'::text                          AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_linea pl
     JOIN sgs_pro_propuesta    pp ON pl.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion   = a.id_accion
@@ -121,11 +129,15 @@ c1a1_aislamiento AS (
 -- ============ C1A2: 15 ha conectividad + 15 ha silvopastoril + 15 ha agroforestal ============
 c1a2_conectividad AS (
     SELECT
-        'C1'::text, 'A2'::text,
-        'c1a2_conectividad'::text, 'Conectividad'::text,
-        15.0, 'ha'::text,
-        COALESCE(SUM(pp2.area_ha), 0)::numeric, 'ha'::text,
-        COUNT(*)
+        'C1'::text                          AS componente,
+        'A2'::text                          AS accion,
+        'c1a2_conectividad'::text           AS meta_key,
+        'Conectividad'::text                AS meta_label,
+        15.0                                AS meta_value,
+        'ha'::text                          AS meta_unit,
+        COALESCE(SUM(pp2.area_ha), 0)::numeric AS current_value,
+        'ha'::text                          AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_poligono pp2
     JOIN sgs_pro_propuesta    pp ON pp2.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion    = a.id_accion
@@ -135,11 +147,15 @@ c1a2_conectividad AS (
 ),
 c1a2_silvopastoril AS (
     SELECT
-        'C1'::text, 'A2'::text,
-        'c1a2_silvopastoril'::text, 'Silvopastoriles'::text,
-        15.0, 'ha'::text,
-        COALESCE(SUM(pp2.area_ha), 0)::numeric, 'ha'::text,
-        COUNT(*)
+        'C1'::text                          AS componente,
+        'A2'::text                          AS accion,
+        'c1a2_silvopastoril'::text          AS meta_key,
+        'Silvopastoriles'::text             AS meta_label,
+        15.0                                AS meta_value,
+        'ha'::text                          AS meta_unit,
+        COALESCE(SUM(pp2.area_ha), 0)::numeric AS current_value,
+        'ha'::text                          AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_poligono pp2
     JOIN sgs_pro_propuesta    pp ON pp2.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion    = a.id_accion
@@ -149,11 +165,15 @@ c1a2_silvopastoril AS (
 ),
 c1a2_agroforestal AS (
     SELECT
-        'C1'::text, 'A2'::text,
-        'c1a2_agroforestal'::text, 'Agroforestales'::text,
-        15.0, 'ha'::text,
-        COALESCE(SUM(pp2.area_ha), 0)::numeric, 'ha'::text,
-        COUNT(*)
+        'C1'::text                          AS componente,
+        'A2'::text                          AS accion,
+        'c1a2_agroforestal'::text           AS meta_key,
+        'Agroforestales'::text              AS meta_label,
+        15.0                                AS meta_value,
+        'ha'::text                          AS meta_unit,
+        COALESCE(SUM(pp2.area_ha), 0)::numeric AS current_value,
+        'ha'::text                          AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_poligono pp2
     JOIN sgs_pro_propuesta    pp ON pp2.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion    = a.id_accion
@@ -165,11 +185,15 @@ c1a2_agroforestal AS (
 -- ============ C2A1: 79 cosecha de agua + 79 kit compostaje ============
 c2a1_cosecha AS (
     SELECT
-        'C2'::text, 'A1'::text,
-        'c2a1_cosecha_agua'::text, 'Cosecha de agua'::text,
-        79.0, 'unidades'::text,
-        COUNT(*)::numeric, 'unidades'::text,
-        COUNT(*)
+        'C2'::text                          AS componente,
+        'A1'::text                          AS accion,
+        'c2a1_cosecha_agua'::text           AS meta_key,
+        'Cosecha de agua'::text             AS meta_label,
+        79.0                                AS meta_value,
+        'unidades'::text                    AS meta_unit,
+        COUNT(*)::numeric                   AS current_value,
+        'unidades'::text                    AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_punto pp3
     JOIN sgs_pro_propuesta    pp ON pp3.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion    = a.id_accion
@@ -179,11 +203,15 @@ c2a1_cosecha AS (
 ),
 c2a1_compostaje AS (
     SELECT
-        'C2'::text, 'A1'::text,
-        'c2a1_compostaje'::text, 'Kit de compostaje'::text,
-        79.0, 'unidades'::text,
-        COUNT(*)::numeric, 'unidades'::text,
-        COUNT(*)
+        'C2'::text                          AS componente,
+        'A1'::text                          AS accion,
+        'c2a1_compostaje'::text             AS meta_key,
+        'Kit de compostaje'::text           AS meta_label,
+        79.0                                AS meta_value,
+        'unidades'::text                    AS meta_unit,
+        COUNT(*)::numeric                   AS current_value,
+        'unidades'::text                    AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_punto pp3
     JOIN sgs_pro_propuesta    pp ON pp3.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion    = a.id_accion
@@ -195,11 +223,15 @@ c2a1_compostaje AS (
 -- ============ C2A2: 7 estaciones limnimétricas + 48 obras de captación ============
 c2a2_estaciones AS (
     SELECT
-        'C2'::text, 'A2'::text,
-        'c2a2_estaciones_limnimetricas'::text, 'Estaciones limnimétricas'::text,
-        7.0, 'unidades'::text,
-        COUNT(*)::numeric, 'unidades'::text,
-        COUNT(*)
+        'C2'::text                          AS componente,
+        'A2'::text                          AS accion,
+        'c2a2_estaciones_limnimetricas'::text AS meta_key,
+        'Estaciones limnimétricas'::text    AS meta_label,
+        7.0                                 AS meta_value,
+        'unidades'::text                    AS meta_unit,
+        COUNT(*)::numeric                   AS current_value,
+        'unidades'::text                    AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_punto pp3
     JOIN sgs_pro_propuesta    pp ON pp3.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion    = a.id_accion
@@ -209,11 +241,15 @@ c2a2_estaciones AS (
 ),
 c2a2_obras AS (
     SELECT
-        'C2'::text, 'A2'::text,
-        'c2a2_obras_captacion'::text, 'Obras de captación'::text,
-        48.0, 'unidades'::text,
-        COUNT(*)::numeric, 'unidades'::text,
-        COUNT(*)
+        'C2'::text                          AS componente,
+        'A2'::text                          AS accion,
+        'c2a2_obras_captacion'::text        AS meta_key,
+        'Obras de captación'::text          AS meta_label,
+        48.0                                AS meta_value,
+        'unidades'::text                    AS meta_unit,
+        COUNT(*)::numeric                   AS current_value,
+        'unidades'::text                    AS current_unit,
+        COUNT(*)                            AS count_propuestas
     FROM sgs_pro_propuesta_punto pp3
     JOIN sgs_pro_propuesta    pp ON pp3.id_propuesta = pp.id_propuesta
     JOIN sgs_com_accion       a  ON pp.id_accion    = a.id_accion
@@ -232,11 +268,15 @@ c2a2_obras AS (
 --   predios que efectivamente cuentan hacia la meta.
 c3_predios_protegidos AS (
     SELECT
-        'C3'::text, '—'::text,
-        'c3_predios_protegidos'::text, 'Predios en áreas protegidas'::text,
-        35.0, 'predios'::text,
-        COUNT(DISTINCT pr.id_predio)::numeric, 'predios'::text,
-        COUNT(DISTINCT pr.id_predio)
+        'C3'::text                          AS componente,
+        '—'::text                           AS accion,
+        'c3_predios_protegidos'::text       AS meta_key,
+        'Predios en áreas protegidas'::text AS meta_label,
+        35.0                                AS meta_value,
+        'predios'::text                     AS meta_unit,
+        COUNT(DISTINCT pr.id_predio)::numeric AS current_value,
+        'predios'::text                     AS current_unit,
+        COUNT(DISTINCT pr.id_predio)        AS count_propuestas
     FROM sgs_pro_propuesta pp
     JOIN sgs_com_accion       a  ON pp.id_accion   = a.id_accion
     JOIN sgs_com_componente   c  ON a.id_componente = c.id_componente
