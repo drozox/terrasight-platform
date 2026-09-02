@@ -138,6 +138,33 @@ describe("getMetasResumen", () => {
     const out = await getMetasResumen();
     expect(out).toEqual([]);
   });
+
+  it("mapea correctamente la fila C3 (accion='—', sin acción específica)", async () => {
+    mockSql.mockResolvedValueOnce([
+      {
+        componente: "C3",
+        accion: "—",  // em-dash = meta a nivel componente
+        meta_key: "c3_predios_protegidos",
+        meta_label: "Predios en áreas protegidas",
+        meta_value: 35,
+        meta_unit: "predios",
+        current_value: 2,  // demo: 2 predios C3 reasignados del seed
+        current_unit: "predios",
+        count_propuestas: 2,
+      },
+    ]);
+    const out = await getMetasResumen();
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      componente: "C3",
+      accion: "—",
+      metaKey: "c3_predios_protegidos",
+      metaValue: 35,
+      currentValue: 2,
+      pct: 5.7, // 2/35 = 5.71% → 5.7 con 1 decimal
+      countPropuestas: 2,
+    });
+  });
 });
 
 describe("getMetasGlobal", () => {

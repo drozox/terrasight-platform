@@ -30,12 +30,15 @@ export const metadata = { title: "Metas del convenio — TerraSight" };
 // Labels "humanos" para cada Componente/Acción.
 //   Mapeo del par (C,A) al nombre que ve el cliente. Si en el futuro la BD
 //   tiene descripciones de las acciones, se reemplaza este dict por una query.
+//   `C3-—` es la meta a nivel componente (sin acción específica), introducida
+//   en migración 13.
 // -----------------------------------------------------------------------------
 const CA_LABELS: Record<string, string> = {
   "C1-A1": "Conservación del recurso hídrico",
   "C1-A2": "Conectividad, silvopastoril y agroforestal",
   "C2-A1": "Manejo del ciclo del agua y restauración de suelos",
   "C2-A2": "Estaciones limnimétricas y obras de captación",
+  "C3-—": "Acciones de reconversión productiva en áreas protegidas y páramos",
 };
 
 // -----------------------------------------------------------------------------
@@ -155,13 +158,15 @@ export default async function MetasPage() {
           {groupKeys.map((key) => {
             const items = groups.get(key)!;
             const [componente, accion] = key.split("-");
-            const label = CA_LABELS[key] ?? `Componente ${componente} · Acción ${accion}`;
+            // `accion` puede ser '—' para metas a nivel componente (C3).
+            const isComponentLevel = accion === "—";
+            const label = CA_LABELS[key] ?? `Componente ${componente}${isComponentLevel ? "" : ` · Acción ${accion}`}`;
             return (
               <Card key={key}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">
-                      {componente}{accion}
+                      {componente}{isComponentLevel ? "" : accion}
                       <span className="ml-2 text-sm font-normal text-on-surface-variant">
                         {label}
                       </span>
@@ -245,8 +250,10 @@ export default async function MetasPage() {
       </Card>
 
       <footer className="mt-10 border-t border-outline-variant pt-4 text-[11px] text-on-surface-variant">
-        Datos en tiempo real desde la BD. C3 (35 predios en áreas protegidas) requiere
-        migración 13 (acciones C3A1/C3A2) y se mostrará automáticamente cuando esté aplicada.
+        Datos en tiempo real desde la BD. C3 (35 predios en áreas protegidas) se
+        muestra como meta a nivel componente, sin sub-acción. Migración 13 agrega
+        las acciones C3A1/C3A2 y reasigna las 2 propuestas del seed mal catalogadas
+        (Bebedero + Tanque) a C3A1.
         <ChevronRight className="mx-1 inline size-3" />
         Vista drill-down por municipio: próxima fase.
       </footer>
