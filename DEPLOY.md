@@ -67,15 +67,15 @@ PostGIS viene **preinstalado** en Supabase free tier. Verificar:
 
 > **OJO**: el password que pones al crear el proyecto es el que va en la URL. Si lo pierdes, hay que resetear desde el dashboard.
 
-### 1.4. Aplicar las 9 migraciones
+### 1.4. Aplicar las 13 migraciones
 
-Las migraciones viven en `platform/scripts/db/init/`. El script `migrate.mjs` las aplica en orden.
+Las migraciones viven en `platform/scripts/db/init/`. El script `migrate.mjs` las aplica en orden. Es **idempotente**: las que ya están aplicadas se skipean (`already exists|duplicate key|IF NOT EXISTS`).
 
 **Desde tu maquina local** (con el repo clonado):
 
 ```bash
 # 1. Setear el DATABASE_URL (la "Direct connection" de Supabase, puerto 5432)
-$env:DATABASE_URL="postgresql://postgres.[ref]qwerty:[PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+$env:DATABASE_URL="postgresql://postgres.[ref]qwerty:[PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require"
 
 # 2. Dry-run para ver que va a hacer
 cd platform
@@ -87,19 +87,39 @@ node scripts/migrate.mjs
 
 > Reemplaza `[ref]qwerty` y `[PASSWORD]` con los tuyos. **OJO**: si tu password tiene caracteres especiales (`!`, `#`, `$`, etc.), escapalos o usa comillas. El `postgres-js` los maneja, pero el shell puede confundirse.
 
+**13 migraciones en orden** (las nuevas desde S1.A, S5.M y S5.M.13 están marcadas con ✨):
+
+| # | Archivo | Qué agrega | Idempotente |
+|---|---|---|---|
+| 01 | `01-schema.sql` | Schema base (32 tablas) + PostGIS | ✅ (IF NOT EXISTS) |
+| 02 | `02-datos-ejemplo.sql` | Seed demo (10 predios, 10 propuestas) | ❌ (re-correr falla por unique) |
+| 03 | `03-auth-schema.sql` | `sgs_adm_rol`, `sgs_adm_usuario`, `sgs_adm_auditoria_acceso` | ✅ (IF NOT EXISTS) |
+| 04 | `04-intervencion-estado.sql` | Columna `estado` en `sgs_pro_propuesta` | ✅ (ADD COLUMN IF NOT EXISTS) |
+| 05 | `05-catalogos-unique.sql` | UNIQUE constraints en catálogos | ✅ |
+| 06 | `06-propuesta-avance.sql` | Tabla `sgs_pro_propuesta_avance` | ✅ (IF NOT EXISTS) |
+| 07 | `07-monitoreo-punto.sql` | `sgs_amb_monitoreo_punto` | ✅ |
+| 08 | `08-cat-secundarios.sql` | Catálogos secundarios | ✅ |
+| 09 | `09-propuesta-avance-es-backfill.sql` | Backfill `es_backfill=TRUE` | ✅ |
+| 10 | `10-sgs-amb-alerta.sql` | Tabla `sgs_amb_alerta` | ✅ |
+| ✨ 11 | `11-auth-lockout.sql` | Lockout 5 intentos (`intentos_fallidos`, `bloqueado_hasta`) | ✅ |
+| ✨ 12 | `12-metas.sql` | 3 vistas metas (`sgs_v_metas_resumen`, `_global`, `_municipios_intervenidos`) | ✅ (CREATE OR REPLACE) |
+| ✨ 13 | `13-c3-metas.sql` | Acciones C3A1/C3A2 + re-define vista metas con fila C3 + reasigna 2 propuestas seed | ✅ (NOT EXISTS + UPDATE con WHERE) |
+
+**Aplicar SOLO las nuevas** (si la BD ya tiene las primeras 10 aplicadas):
+
+```bash
+# Por seguridad, dry-run primero
+node scripts/migrate.mjs --dry-run | Select-String "11|12|13"
+# Solo deberían listarse las 3 nuevas
+
+# Aplicar (las 10 anteriores se skipean automáticamente)
+node scripts/migrate.mjs
+```
+
 **Alternativa via SQL Editor** (si tenes problemas con el script):
 
 1. Ir a **SQL Editor** en Supabase.
-2. Abrir cada archivo en orden:
-   - `01-schema.sql` -> Run
-   - `02-datos-ejemplo.sql` -> Run (opcional, solo si queres seed demo)
-   - `03-auth-schema.sql` -> Run
-   - `04-intervencion-estado.sql` -> Run
-   - `05-catalogos-unique.sql` -> Run
-   - `06-propuesta-avance.sql` -> Run
-   - `07-monitoreo-punto.sql` -> Run
-   - `08-cat-secundarios.sql` -> Run
-   - `09-propuesta-avance-es-backfill.sql` -> Run
+2. Abrir SOLO los archivos nuevos (11, 12, 13) en orden, click **Run** en cada uno.
 3. Verificar que no haya errores en ninguno.
 
 ### 1.5. Verificar que las migraciones corrieron
@@ -117,11 +137,31 @@ SELECT count(*) FROM sgs_pro_propuesta;
 -- 10 predios
 SELECT count(*) FROM sgs_pre_predio;
 
--- 6 acciones
+-- ✨ 6 acciones (C1A1, C1A2, C2A1, C2A2, C3A1, C3A2)
 SELECT count(*) FROM sgs_com_accion;
 
 -- 5 alertas (DEBT-5)
 SELECT count(*) FROM sgs_amb_alerta;
+
+-- ✨ Lockout: 2 columnas nuevas en sgs_adm_usuario
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'sgs_adm_usuario'
+  AND column_name IN ('intentos_fallidos', 'bloqueado_hasta');
+-- esperado: 2 filas
+
+-- ✨ 3 vistas de metas
+SELECT viewname FROM pg_views
+WHERE schemaname = 'public' AND viewname LIKE 'sgs_v_metas%';
+-- esperado: sgs_v_metas_resumen, sgs_v_metas_resumen_global, sgs_v_municipios_intervenidos
+
+-- ✨ 10 metas (9 + 1 de C3)
+SELECT count(*) AS total_metas FROM sgs_v_metas_resumen;
+
+-- ✨ C3A1 y C3A2 existen
+SELECT a.nombre, c.nombre AS componente
+FROM sgs_com_accion a JOIN sgs_com_componente c ON a.id_componente = c.id_componente
+WHERE c.nombre = 'C3';
+-- esperado: A1, A2
 ```
 
 > **Nota**: el `02-datos-ejemplo.sql` actual carga **10 propuestas / 10 predios / 7 municipios** (no 151/2458 como en versiones iniciales del doc). La app funciona con este subset para demo; el cliente CAR Cundinamarca carga los datos reales despues del deploy.
