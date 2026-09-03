@@ -67,7 +67,7 @@ PostGIS viene **preinstalado** en Supabase free tier. Verificar:
 
 > **OJO**: el password que pones al crear el proyecto es el que va en la URL. Si lo pierdes, hay que resetear desde el dashboard.
 
-### 1.4. Aplicar las 13 migraciones
+### 1.4. Aplicar las 22 migraciones
 
 Las migraciones viven en `platform/scripts/db/init/`. El script `migrate.mjs` las aplica en orden. Es **idempotente**: las que ya están aplicadas se skipean (`already exists|duplicate key|IF NOT EXISTS`).
 
@@ -87,7 +87,7 @@ node scripts/migrate.mjs
 
 > Reemplaza `[ref]qwerty` y `[PASSWORD]` con los tuyos. **OJO**: si tu password tiene caracteres especiales (`!`, `#`, `$`, etc.), escapalos o usa comillas. El `postgres-js` los maneja, pero el shell puede confundirse.
 
-**13 migraciones en orden** (las nuevas desde S1.A, S5.M y S5.M.13 están marcadas con ✨):
+**22 migraciones en orden** (las del S5.M+ están marcadas con ✨):
 
 | # | Archivo | Qué agrega | Idempotente |
 |---|---|---|---|
@@ -104,22 +104,33 @@ node scripts/migrate.mjs
 | ✨ 11 | `11-auth-lockout.sql` | Lockout 5 intentos (`intentos_fallidos`, `bloqueado_hasta`) | ✅ |
 | ✨ 12 | `12-metas.sql` | 3 vistas metas (`sgs_v_metas_resumen`, `_global`, `_municipios_intervenidos`) | ✅ (CREATE OR REPLACE) |
 | ✨ 13 | `13-c3-metas.sql` | Acciones C3A1/C3A2 + re-define vista metas con fila C3 + reasigna 2 propuestas seed | ✅ (NOT EXISTS + UPDATE con WHERE) |
+| ✨ 14 | `14-import-gdb-nullable-fks.sql` | drop NOT NULL en FKs para import GDB (`sgs_pre_predio.id_vereda`, `id_propietario`, `bcs_lpa_vereda.id_municipio`) | ✅ |
+| ✨ 15 | `15-propuesta-nullable-quebrada.sql` | drop NOT NULL `id_quebrada` en `sgs_pro_propuesta` y `sgs_pro_propuesta_punto` (GDB no tiene quebrada) | ✅ |
+| ✨ 16 | `16-com-accion-check-u.sql` | permite 'U' en CHECK de `sgs_com_accion.nombre` (GDB tiene A1, A2, U) | ✅ |
+| ✨ 17 | `17-propuesta-nullable-predio.sql` | drop NOT NULL `id_predio` en `sgs_pro_propuesta` (puntos sin FK) | ✅ |
+| ✨ 18 | `18-propuesta-punto-check-relax.sql` | drop CHECK `tipo_punto`/`tipo_obra` en `sgs_pro_propuesta_punto` (GDB tiene 0,1,2,3) | ✅ |
+| ✨ 19 | `19-via-check-relax.sql` | drop CHECK `tipo_via`/`estado_superficie` en `sgs_inf_via` (GDB codifica con domain codes) | ✅ |
+| ✨ 20 | `20-via-nullable-municipio.sql` | drop NOT NULL `id_municipio` en `sgs_inf_via` (70% vias fuera de Cundinamarca) | ✅ |
+| ✨ 21 | `21-via-defaults.sql` | defaults para `tipo_via`/`estado_superficie`/`accesibilidad` | ✅ |
+| ✨ 22 | `22-drenaje-relax.sql` | drop NOT NULL `id_municipio` en `sgs_inf_drenaje_simple` y `sgs_inf_drenaje_doble` | ✅ |
 
-**Aplicar SOLO las nuevas** (si la BD ya tiene las primeras 10 aplicadas):
+> **Importante**: con `--no-seed`, `migrate.mjs` además strip la sección "DATOS DE PRUEBA" de `01-schema.sql` (Cali/Palmira/Yumbo de demo anterior). Las 22 migraciones NO incluyen ningún INSERT demo, todas son DDL/DDL-like.
+
+**Aplicar SOLO las nuevas** (si la BD ya tiene las primeras 13 aplicadas):
 
 ```bash
 # Por seguridad, dry-run primero
-node scripts/migrate.mjs --dry-run | Select-String "11|12|13"
-# Solo deberían listarse las 3 nuevas
+node scripts/migrate.mjs --dry-run | Select-String "1[4-9]|2[0-2]"
+# Solo deberían listarse las 9 nuevas
 
-# Aplicar (las 10 anteriores se skipean automáticamente)
-node scripts/migrate.mjs
+# Aplicar (las 13 anteriores se skipean automáticamente)
+node scripts/migrate.mjs --no-seed
 ```
 
 **Alternativa via SQL Editor** (si tenes problemas con el script):
 
 1. Ir a **SQL Editor** en Supabase.
-2. Abrir SOLO los archivos nuevos (11, 12, 13) en orden, click **Run** en cada uno.
+2. Abrir SOLO los archivos nuevos (14-22) en orden, click **Run** en cada uno.
 3. Verificar que no haya errores en ninguno.
 
 ### 1.5. Verificar que las migraciones corrieron
@@ -127,44 +138,44 @@ node scripts/migrate.mjs
 En SQL Editor:
 
 ```sql
--- 32 tablas
+-- 35 tablas (32 base + 3 nuevas: amb_monitoreo_punto, propuesta_avance, amb_alerta)
 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';
--- debe dar 32
+-- debe dar 35
 
--- 10 propuestas demo
-SELECT count(*) FROM sgs_pro_propuesta;
-
--- 10 predios
-SELECT count(*) FROM sgs_pre_predio;
-
--- ✨ 6 acciones (C1A1, C1A2, C2A1, C2A2, C3A1, C3A2)
-SELECT count(*) FROM sgs_com_accion;
-
--- 5 alertas (DEBT-5)
-SELECT count(*) FROM sgs_amb_alerta;
-
--- ✨ Lockout: 2 columnas nuevas en sgs_adm_usuario
-SELECT column_name FROM information_schema.columns
-WHERE table_name = 'sgs_adm_usuario'
-  AND column_name IN ('intentos_fallidos', 'bloqueado_hasta');
--- esperado: 2 filas
-
--- ✨ 3 vistas de metas
+-- 3 vistas de metas
 SELECT viewname FROM pg_views
 WHERE schemaname = 'public' AND viewname LIKE 'sgs_v_metas%';
 -- esperado: sgs_v_metas_resumen, sgs_v_metas_resumen_global, sgs_v_municipios_intervenidos
-
--- ✨ 10 metas (9 + 1 de C3)
-SELECT count(*) AS total_metas FROM sgs_v_metas_resumen;
-
--- ✨ C3A1 y C3A2 existen
-SELECT a.nombre, c.nombre AS componente
-FROM sgs_com_accion a JOIN sgs_com_componente c ON a.id_componente = c.id_componente
-WHERE c.nombre = 'C3';
--- esperado: A1, A2
 ```
 
-> **Nota**: el `02-datos-ejemplo.sql` actual carga **10 propuestas / 10 predios / 7 municipios** (no 151/2458 como en versiones iniciales del doc). La app funciona con este subset para demo; el cliente CAR Cundinamarca carga los datos reales despues del deploy.
+**Estado real de los datos (2026-09-03) — proyecto `pjcvewberfgwywfnutjv`:**
+
+Después del import del GDB, los counts esperados son:
+
+| Tabla | Filas | Comentario |
+|---|---|---|
+| `bcs_lpa_municipio` | 20 | Cundinamarca (sin Cali/Palmira/Yumbo — esos son demo) |
+| `bcs_lpa_vereda` | 560 | 577 GDB, 16 duplicados + 1 huérfana |
+| `bcs_dh_microcuenca` | 40 | 45 GDB, 5 duplicados |
+| `sgs_pre_propietario` | 56 | sintetizados desde `nom_prop` |
+| `sgs_pre_predio` | 132 | 137 GDB, 5 duplicados |
+| `sgs_com_componente` | 3 | C1, C2, C3 |
+| `sgs_com_accion` | 7 | 3 componentes × A1/A2 + U para C1 |
+| `sgs_pro_propuesta` (super) | 1,381 | 692+450+239 = sintetizada desde 3 capas hijas |
+| `sgs_pro_propuesta_punto` | 692 | |
+| `sgs_pro_propuesta_linea` | 450 | |
+| `sgs_pro_propuesta_poligono` | 239 | |
+| `sgs_amb_bioma` | 5 | pre-agregado por `bioma_iavh` (149→5) |
+| `sgs_amb_paramos` | 10 | pre-agregado por `nombre` (486→10) |
+| `sgs_amb_zonificacion_pomca` | 9 | pre-agregado por `codigo` (245→9) |
+| `sgs_amb_zonificacion_rfp` | 4 | pre-agregado por `cod_zonifi` (486→4) |
+| `sgs_inf_via` | ~17,877 | spatial join con municipio (puede ser mayor si re-corre) |
+| `sgs_inf_drenaje_simple` | ~1,260 | spatial join (puede ser mayor si re-corre) |
+
+Para verificar el estado actual, usar `node scripts/db-state.mjs` que muestra
+todas las tablas en una sola corrida.
+
+> **Nota**: el `02-datos-ejemplo.sql` carga **10 propuestas / 10 predios / 7 municipios** de demo (Cali, Palmira, Yumbo). El flag `--no-seed` lo omite Y además strip la sección "DATOS DE PRUEBA" de `01-schema.sql`. Para producción: **siempre usar `--no-seed`**.
 
 ---
 

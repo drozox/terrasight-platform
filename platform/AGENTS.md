@@ -105,15 +105,56 @@ node scripts/audit-screenshot.mjs  # regenerar screenshots
 - PRs chicos (1-3 files), tests E2E cuando tocan rutas.
 - Antes de push: `npm test && npx tsc --noEmit && npm run lint`.
 
-## Estado del proyecto (2026-07-24)
+## Estado del proyecto (2026-09-03)
 
 - **MVP-1 cerrado** (último commit `0144a58` pre-audit).
+- **Import GDB → Supabase COMPLETO** (Phase 1 + 2 + 2.5). Data REAL del
+  convenio CAR Cundinamarca en proyecto Supabase `pjcvewberfgwywfnutjv`:
+  - 20 municipios, 560 veredas, 132 predios, 56 propietarios
+  - 1,381 propuesta super-tipo + 692 punto + 450 linea + 239 poligono
+  - 5,959 vias (con spatial join municipio, ~30% match)
+  - 966 drenaje_simple (spatial join 100%)
+  - 28 spatial lookup (bioma/paramos/pomca/rfp pre-aggregated con ST_Union)
+- **22 migraciones** (`01-22-*.sql`). Las 14-22 son específicas del import GDB
+  (drop NOT NULL, CHECKs, defaults).
 - **Deuda técnica conocida**: 9 issues (DEBT-1 a DEBT-3.9) cerrados.
   Ver `docs/TECH-DEBT.md` para detalles.
 - **Audit UI/UX**: 80 issues identificados (6 P0, 18 P1, 15 P2, 8 P3).
   Ver `docs/ui-ux-audit-2026-07-24.md`.
 - **OneDrive Files On-Demand**: recordar que rompe `.git/` y `next-swc`
   (ver memoria del agente).
+
+## Scripts de import GDB (2026-09-03)
+
+Para regenerar la data del GDB en Supabase desde cero:
+
+```bash
+# 1. DESTRUCTIVO: wipe del schema (manual via SQL Editor o script)
+#    DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+#    GRANT ALL ON SCHEMA public TO postgres;
+#    GRANT ALL ON SCHEMA public TO public;
+
+# 2. Aplicar 22 migraciones SIN seed demo
+$env:DATABASE_URL = "postgresql://postgres:Nikoleta%2F20000@db.pjcvewberfgwywfnutjv.supabase.co:5432/postgres?sslmode=require"
+cd platform
+node scripts/migrate.mjs --no-seed
+
+# 3. Generar archivos GeoJSON desde la GDB
+py scripts/extract_gdb.py  # todos los layers
+py scripts/aggregate_v2.py # pre-agregar bioma/paramos/pomca/rfp (usa ogr2ogr con QGIS)
+
+# 4. Spatial join para vias y drenaje (usa ogr2ogr con ST_Intersects)
+py scripts/spatial_join_via_municipio.py
+py scripts/spatial_join_drenaje.py
+
+# 5. Importar todo a Supabase
+node scripts/import_gdb_to_pg.mjs --only=bcs_lpa_municipio,bcs_lpa_vereda,bcs_dh_microcuenca,sgs_pre_propietario,sgs_pre_predio
+node scripts/import_gdb_to_pg.mjs --only=sgs_amb_bioma,sgs_amb_paramos,sgs_amb_zonificacion_pomca,sgs_amb_zonificacion_rfp
+node scripts/import_gdb_to_pg.mjs --only=sgs_inf_via,sgs_inf_drenaje_simple
+node scripts/import_propuesta.mjs
+```
+
+Verificar: `node scripts/db-state.mjs`.
 
 ## Anti-patrones explícitos (NO hacer)
 
