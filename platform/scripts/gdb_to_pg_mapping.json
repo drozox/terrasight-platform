@@ -259,20 +259,36 @@
 
     {
       "table": "sgs_inf_via",
-      "file": "sgs_inf_via.geojson",
+      "file": "sgs_inf_via_with_municipio.geojson",
       "loader": "simple",
-      "_note": "GDB no tiene id_municipio para esta capa — el FK queda NULL. Phase 3 puede agregar spatial join.",
+      "_note": "Phase 2: spatial join con municipio via ogr2ogr ST_Intersects (~30% match). tipo_via/estado_superficie usan DEFAULT del schema (migration 21).",
+      "fk_lookups": {
+        "id_municipio": {
+          "from_column": "id_municipio",
+          "to_table": "bcs_lpa_municipio",
+          "to_column": "codigo_administrativo"
+        }
+      },
       "columns": {
-        "nombre_geo":   "nombre_geografico",
+        "id_municipio": "id_municipio",
         "__geometry": "geom"
       }
     },
     {
       "table": "sgs_inf_drenaje_simple",
-      "file": "sgs_inf_drenaje_simple.geojson",
+      "file": "sgs_inf_drenaje_simple_with_municipio.geojson",
       "loader": "simple",
+      "_note": "Phase 2: spatial join con municipio (100% match).",
+      "fk_lookups": {
+        "id_municipio": {
+          "from_column": "id_municipio",
+          "to_table": "bcs_lpa_municipio",
+          "to_column": "codigo_administrativo"
+        }
+      },
       "columns": {
-        "nombre_geo": "nombre_geografico",
+        "id_municipio": "id_municipio",
+        "nombre_geo":   "nombre_geografico",
         "__geometry": "geom"
       }
     },
@@ -280,6 +296,7 @@
       "table": "sgs_inf_drenaje_doble",
       "file": "sgs_inf_drenaje_doble.geojson",
       "loader": "simple",
+      "_note": "SKIP: GDB tiene MultiPolygon, schema pide MultiLineString. Phase 3.",
       "columns": {
         "nombre_geo": "nombre_geografico",
         "__geometry": "geom"

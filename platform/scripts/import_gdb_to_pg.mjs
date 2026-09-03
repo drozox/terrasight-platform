@@ -294,11 +294,12 @@ async function applyFKLookups(gdbRow, out, fkLookups) {
 // Insert helpers
 // ------------------------------------------------------------------
 async function insertOne(table, row) {
-  const cols = Object.keys(row).filter(k => row[k] !== undefined);
+  // Filtrar nulls/undefined para que SQL use DEFAULT si está definido
+  const cols = Object.keys(row).filter(k => row[k] !== undefined && row[k] !== null);
   const values = cols.map(k => row[k]);
-  // Cast geometry columns a ST_GeomFromText
+  // Cast geometry columns a ST_GeomFromText + ST_Multi (forzar tipo multi cuando el schema lo pide)
   const placeholders = cols.map((c, i) => {
-    if (c === "geom") return `ST_GeomFromText($${i + 1}, 4686)`;
+    if (c === "geom") return `ST_Multi(ST_GeomFromText($${i + 1}, 4686))`;
     return `$${i + 1}`;
   }).join(", ");
   const colsList = cols.map(c => c === "geom" ? "geom" : c).join(", ");
@@ -310,27 +311,45 @@ async function insertOne(table, row) {
 
 async function insertBatch(table, rows, batchSize = 100) {
   if (rows.length === 0) return;
-  // Multi-row INSERT en batches de 100 para reducir round-trips.
-  // El cast de `geom` se hace con ST_GeomFromText en cada row.
-  for (let i = 0; i < rows.length; i += batchSize) {
-    const chunk = rows.slice(i, i + batchSize);
-    const cols = Object.keys(chunk[0]).filter(k => chunk[0][k] !== undefined);
-    const colsList = cols.map(c => c === "geom" ? "geom" : c).join(", ");
-    const valueRows = chunk.map((row, ri) => {
-      const offset = ri * cols.length;
-      return "(" + cols.map((c, ci) => {
-        if (c === "geom") return `ST_GeomFromText($${offset + ci + 1}, 4686)`;
-        return `$${offset + ci + 1}`;
-      }).join(", ") + ")";
-    }).join(", ");
-    const values = [];
-    for (const row of chunk) {
-      for (const c of cols) values.push(row[c]);
+  // Agrupar rows por su set de "cols no-null" (excluyendo geom).
+  // Cada grupo puede hacer multi-row INSERT con las mismas cols.
+  // geom se incluye siempre (es requerida en casi todas las tablas).
+  const groups = new Map(); // key = sorted cols string -> rows[]
+  for (const r of rows) {
+    const nonNullCols = Object.keys(r).filter(k => k !== "geom" && r[k] !== undefined && r[k] !== null && r[k] !== "");
+    const key = [...nonNullCols].sort().join(",") + (r.geom ? ",geom" : "");
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
+  }
+  for (const [key, group] of groups) {
+    const cols = key.split(",").filter(Boolean);
+    if (cols.length === 0) {
+      // Solo geom: insertar uno por uno
+      for (const r of group) await insertOne(table, r);
+      continue;
     }
-    await sql.unsafe(
-      `INSERT INTO ${table} (${colsList}) VALUES ${valueRows} ON CONFLICT DO NOTHING`,
-      values,
-    );
+    // Multi-row insert en sub-batches
+    for (let i = 0; i < group.length; i += batchSize) {
+      const chunk = group.slice(i, i + batchSize);
+      const colsList = cols.map(c => c === "geom" ? "geom" : c).join(", ");
+      const valueRows = chunk.map((row, ri) => {
+        return "(" + cols.map((c, ci) => {
+          if (c === "geom") return `ST_Multi(ST_GeomFromText($${ri * cols.length + ci + 1}, 4686))`;
+          return `$${ri * cols.length + ci + 1}`;
+        }).join(", ") + ")";
+      }).join(", ");
+      const values = [];
+      for (const row of chunk) {
+        for (const c of cols) {
+          if (c === "geom") values.push(row.geom);
+          else values.push(row[c]);
+        }
+      }
+      await sql.unsafe(
+        `INSERT INTO ${table} (${colsList}) VALUES ${valueRows} ON CONFLICT DO NOTHING`,
+        values,
+      );
+    }
   }
 }
 
