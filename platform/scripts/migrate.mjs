@@ -25,7 +25,7 @@ const connectionString =
 
 const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
 
-const ORDER = ["01-schema.sql","02-datos-ejemplo.sql","03-auth-schema.sql","04-intervencion-estado.sql","05-catalogos-unique.sql","06-propuesta-avance.sql","07-monitoreo-punto.sql","08-cat-secundarios.sql","09-propuesta-avance-es-backfill.sql","10-sgs-amb-alerta.sql","11-auth-lockout.sql","12-metas.sql","13-c3-metas.sql"];
+const ORDER = ["01-schema.sql","02-datos-ejemplo.sql","03-auth-schema.sql","04-intervencion-estado.sql","05-catalogos-unique.sql","06-propuesta-avance.sql","07-monitoreo-punto.sql","08-cat-secundarios.sql","09-propuesta-avance-es-backfill.sql","10-sgs-amb-alerta.sql","11-auth-lockout.sql","12-metas.sql","13-c3-metas.sql","14-import-gdb-nullable-fks.sql"];
 
 const missing = ORDER.filter((f) => { try { readFileSync(join(initDir, f)); return false; } catch { return true; } });
 if (missing.length) { console.error("[migrate] Faltan archivos: " + missing.join(", ")); process.exit(2); }
@@ -39,10 +39,26 @@ if (dryRun) { console.log("[migrate] --dry-run: no se ejecuta nada"); await sql.
 
 try { await sql`SELECT 1 AS ping`; console.log("[migrate] Conexion OK"); } catch (err) { console.error("[migrate] Error: " + err.message); await sql.end({ timeout: 1 }); process.exit(1); }
 
+// Helper: cuando --no-seed está activo, tambien removemos la seccion
+// "DATOS DE PRUEBA (Ejemplo)" de 01-schema.sql (lineas 820-969 con INSERTs de
+// Valle del Cauca que no aplican al convenio real de Cundinamarca).
+function stripDemoDataFromSchema(content) {
+  const startMarker = "-- DATOS DE PRUEBA (Ejemplo)";
+  const endMarker = "-- FIN DEL SCRIPT";
+  const startIdx = content.indexOf(startMarker);
+  const endIdx = content.indexOf(endMarker);
+  if (startIdx === -1 || endIdx === -1) return content;
+  return content.slice(0, startIdx) + content.slice(endIdx);
+}
+
 let ok = 0, skipped = 0, failed = 0;
 for (const f of files) {
   const path = join(initDir, f);
-  const content = readFileSync(path, "utf8");
+  let content = readFileSync(path, "utf8");
+  if (noSeed && f === "01-schema.sql") {
+    content = stripDemoDataFromSchema(content);
+    console.log("[migrate]   (--no-seed: removida seccion DATOS DE PRUEBA del schema)");
+  }
   process.stdout.write("[migrate] Aplicando " + f + " ... ");
   try { await sql.unsafe(content); process.stdout.write("OK\n"); ok++; }
   catch (err) {

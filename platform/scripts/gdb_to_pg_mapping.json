@@ -54,15 +54,12 @@
       "table": "bcs_dh_microcuenca",
       "file": "bcs_dh_microcuenca.geojson",
       "loader": "simple",
+      "_note": "PG schema solo tiene codigo/nombre_microcuenca/area — se ignoran cuenca y subcuenca columns del GDB.",
       "columns": {
-        "codch":   "codigo_cuenca",
-        "nombch":  "nombre_cuenca",
-        "codsch":  "codigo_subcuenca",
-        "nombsch": "nombre_subcuenca",
-        "codmc":   "codigo_microcuenca",
-        "nombmc":  "nombre_microcuenca",
-        "area_ha": "area_ha",
-        "__geometry": "geom"
+        "codmc":          "codigo",
+        "nombmc":         "nombre_microcuenca",
+        "area_ha":        "area",
+        "__geometry":     "geom"
       }
     },
 
@@ -221,6 +218,7 @@
       "table": "sgs_pre_predio",
       "file": "sgs_pre_predio.geojson",
       "loader": "simple",
+      "_note": "cedula_ant, longitud_centroide, latitud_centroide dropped (schema no las tiene o son CTM12 que overflows DECIMAL(12,6))",
       "fk_lookups": {
         "id_propietario": {
           "from_column": "nom_prop",
@@ -239,8 +237,6 @@
         "area_ha":     "area_ha",
         "c_catstral":  "cedula_catastral",
         "cedula_ant":  "cedula_ant",
-        "longitud":    "longitud_centroide",
-        "latitud":     "latitud_centroide",
         "nucpredio":   "nucleo_predial",
         "comentario":  "observaciones",
         "perimetro":   "perimetro",

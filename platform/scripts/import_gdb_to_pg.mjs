@@ -308,10 +308,30 @@ async function insertOne(table, row) {
   );
 }
 
-async function insertBatch(table, rows) {
+async function insertBatch(table, rows, batchSize = 100) {
   if (rows.length === 0) return;
-  // Para simplicidad: insert uno por uno. 12k rows tarda segundos.
-  for (const r of rows) await insertOne(table, r);
+  // Multi-row INSERT en batches de 100 para reducir round-trips.
+  // El cast de `geom` se hace con ST_GeomFromText en cada row.
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const chunk = rows.slice(i, i + batchSize);
+    const cols = Object.keys(chunk[0]).filter(k => chunk[0][k] !== undefined);
+    const colsList = cols.map(c => c === "geom" ? "geom" : c).join(", ");
+    const valueRows = chunk.map((row, ri) => {
+      const offset = ri * cols.length;
+      return "(" + cols.map((c, ci) => {
+        if (c === "geom") return `ST_GeomFromText($${offset + ci + 1}, 4686)`;
+        return `$${offset + ci + 1}`;
+      }).join(", ") + ")";
+    }).join(", ");
+    const values = [];
+    for (const row of chunk) {
+      for (const c of cols) values.push(row[c]);
+    }
+    await sql.unsafe(
+      `INSERT INTO ${table} (${colsList}) VALUES ${valueRows} ON CONFLICT DO NOTHING`,
+      values,
+    );
+  }
 }
 
 // ------------------------------------------------------------------
@@ -428,23 +448,20 @@ function applyDefaultsOnMany(records, defaults) {
 // ------------------------------------------------------------------
 // Sequence reset
 // ------------------------------------------------------------------
-async function resetSequences() {
-  // Para todas las tablas con SERIAL/BIGSERIAL, setval a MAX(id).
-  // Listamos del information_schema.
-  const tables = await sql`
-    SELECT table_name FROM information_schema.tables
-    WHERE table_schema = 'public'
-      AND table_name IN ${sql(TABLES_CFG.map(t => t.table))}
-  `;
-  for (const { table_name } of tables) {
+async function resetSequences(tablesToReset) {
+  // Para todas las tablas con SERIAL/BIGSERIAL, setval a MAX(pk).
+  // Usamos PK_COLUMN para saber el nombre de la PK por tabla.
+  for (const table of tablesToReset) {
+    const pk = PK_COLUMN[table];
+    if (!pk) continue;
     try {
+      const seqName = `${table}_${pk}_seq`;
       await sql.unsafe(
-        `SELECT setval(pg_get_serial_sequence($1, 'id'), COALESCE((SELECT MAX(id) FROM ${table_name}), 0) + 1, false)`,
-        [table_name],
+        `SELECT setval($1, COALESCE((SELECT MAX("${pk}") FROM ${table}), 0) + 1, false)`,
+        [seqName],
       );
     } catch (err) {
-      // Algunas tablas no tienen id, no es error
-      console.warn(`  WARN: no se pudo resetear sequence de ${table_name}: ${err.message.split("\n")[0]}`);
+      console.warn(`  WARN: no se pudo resetear sequence de ${table}: ${err.message.split("\n")[0]}`);
     }
   }
 }
@@ -477,7 +494,7 @@ async function main() {
 
   if (!DRY_RUN) {
     console.log("\n[import] Reseteando sequences...");
-    await resetSequences();
+    await resetSequences(TABLES_CFG.map(t => t.table));
   }
 
   console.log("\n[import] Listo.");
