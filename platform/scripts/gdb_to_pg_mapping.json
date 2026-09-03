@@ -1,0 +1,422 @@
+{
+  "_doc": "Mapping GDB -> PG para el import. Editar columnas = { gdb_col: pg_col }. Si una columna GDB no aparece, se ignora. geometry se mapea como la columna GEOMETRY del PG. Derived = no viene de un archivo, se computa en el script. Loaders: 'simple' = lee archivo y mapea, 'junction' = lee archivo y solo inserta FK pairs, 'synthesize' = agrupa valores únicos de otra tabla.",
+
+  "tables": [
+    {
+      "table": "bcs_lpa_municipio",
+      "file": "bcs_lpa_municipio.geojson",
+      "loader": "simple",
+      "_note": "GDB codigo (DANE) → PG codigo_administrativo. Todos los municipios del convenio están en Cundinamarca (codigo_pro empieza con 25).",
+      "columns": {
+        "codigo":     "codigo_administrativo",
+        "nombre":     "nombre_municipio",
+        "_departamento": "departamento",
+        "__geometry": "geom"
+      },
+      "derivations": {
+        "departamento": {
+          "from": "codigo_pro",
+          "map": {
+            "250100": "CUNDINAMARCA",
+            "250200": "CUNDINAMARCA",
+            "250400": "CUNDINAMARCA",
+            "250500": "CUNDINAMARCA",
+            "250501": "CUNDINAMARCA",
+            "250600": "CUNDINAMARCA",
+            "250700": "CUNDINAMARCA",
+            "250800": "CUNDINAMARCA",
+            "251200": "CUNDINAMARCA",
+            "251600": "CUNDINAMARCA"
+          }
+        }
+      }
+    },
+    {
+      "table": "bcs_lpa_vereda",
+      "file": "bcs_lpa_vereda.geojson",
+      "loader": "simple",
+      "_note": "GDB cod_vereda → PG codigo_administrativo. id_municipio FK via codigo_mun lookup. area_ha/fuente/vigencia NOT in PG schema — dropped.",
+      "fk_lookups": {
+        "id_municipio": {
+          "from_column": "codigo_mun",
+          "to_table": "bcs_lpa_municipio",
+          "to_column": "codigo_administrativo"
+        }
+      },
+      "columns": {
+        "cod_vereda":   "codigo_administrativo",
+        "nombre":       "nombre_vereda",
+        "codigo_mun":   "id_municipio",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "bcs_dh_microcuenca",
+      "file": "bcs_dh_microcuenca.geojson",
+      "loader": "simple",
+      "columns": {
+        "codch":   "codigo_cuenca",
+        "nombch":  "nombre_cuenca",
+        "codsch":  "codigo_subcuenca",
+        "nombsch": "nombre_subcuenca",
+        "codmc":   "codigo_microcuenca",
+        "nombmc":  "nombre_microcuenca",
+        "area_ha": "area_ha",
+        "__geometry": "geom"
+      }
+    },
+
+    {
+      "table": "sgs_com_componente",
+      "loader": "derived",
+      "derived_from": {
+        "source_layers": ["sgs_pro_propuesta_punto", "sgs_pro_propuesta_linea", "sgs_pro_propuesta_poligono"],
+        "distinct_column": "componente"
+      },
+      "columns": { "componente": "nombre" }
+    },
+    {
+      "table": "sgs_com_accion",
+      "loader": "derived",
+      "derived_from": {
+        "source_layers": ["sgs_pro_propuesta_punto", "sgs_pro_propuesta_linea", "sgs_pro_propuesta_poligono"],
+        "distinct_columns": ["componente", "accion"]
+      },
+      "fk_lookups": {
+        "componente_nombre": {
+          "from_column": "componente",
+          "to_table": "sgs_com_componente",
+          "to_column": "nombre"
+        }
+      },
+      "columns": {
+        "componente_nombre": "id_componente",
+        "accion":            "nombre"
+      }
+    },
+
+    {
+      "table": "sgs_amb_cobertura_clc",
+      "file": "sgs_amb_cobertura_clc.geojson",
+      "loader": "simple",
+      "columns": {
+        "nombre":   "nombre_cobertura",
+        "municipio":"nombre_municipio_legacy",
+        "area_ha":  "area_ha",
+        "naturalida":"estado_naturalidad",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "sgs_amb_bioma",
+      "file": "sgs_amb_bioma.geojson",
+      "loader": "simple",
+      "columns": {
+        "bioma_iavh": "bioma_iavh",
+        "ecos_sinte":  "ecosistema_sintesis",
+        "ecos_gener":  "ecosistema_general",
+        "u_sintesis":  "unidad_sintesis",
+        "amb_acuati":  "ambiente_acuatico",
+        "subsistema":  "subsistema",
+        "nom_zh":      "nombre_zona_hidrografica",
+        "origen":      "origen",
+        "tipo_agua":   "tipo_agua",
+        "clima":       "clima",
+        "paisaje":     "paisaje",
+        "relieve":     "relieve",
+        "suelos":      "suelos",
+        "amb_edafog":  "ambiente_edafog",
+        "desc_amb_e":  "descripcion_ambiente",
+        "cob":         "cobertura",
+        "sustrato":    "sustrato",
+        "zona":        "zona",
+        "temperatur":  "temperatura",
+        "salinidad":   "salinidad",
+        "provincia":   "provincia",
+        "eco_region":  "eco_region",
+        "eco_zona":    "eco_zona",
+        "orig_marin":  "origen_marina",
+        "config_bio":  "configuracion_biogeografica",
+        "clasif_bio":  "clasificacion_biogeografica",
+        "subclasif_":  "subclasificacion",
+        "grupo_biot":  "grupo_biotico",
+        "sectores":    "sectores",
+        "area_ha":     "area_ha",
+        "u_biotica":   "unidad_biotica",
+        "anfibios":    "anfibios",
+        "aves":        "aves",
+        "magnoliops":  "magnoliopsida",
+        "mamiferos":   "mamiferos",
+        "reptiles":    "reptiles",
+        "no_anfibio":  "no_anfibios",
+        "no_aves":     "no_aves",
+        "no_magnoli":  "no_magnoliopsida",
+        "no_mamifer":  "no_mamiferos",
+        "no_reptile":  "no_reptiles",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "sgs_amb_paramos",
+      "file": "sgs_amb_paramos.geojson",
+      "loader": "simple",
+      "columns": {
+        "categoria":   "categoria_zonificacion",
+        "nombre":      "nombre_paramo",
+        "acto_delim":  "acto_delimitacion",
+        "acto_zonif":  "acto_zonificacion",
+        "cod_zonifi":  "codigo_zonificacion",
+        "zonificaci":  "zonificacion",
+        "sub_zonifi":  "sub_zonificacion",
+        "enlace_act":  "enlace_acto",
+        "acuerdo_pm":  "acuerdo_pm",
+        "area_ha":     "area_ha",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "sgs_amb_zonificacion_pomca",
+      "file": "sgs_amb_zonificacion_pomca.geojson",
+      "loader": "simple",
+      "columns": {
+        "codigo":   "codigo",
+        "cat_ord":  "categoria_orden",
+        "zon_uso_ma":"zona_uso_manejo",
+        "nomenclat": "nomenclatura",
+        "descrip":   "descripcion",
+        "area_ha":   "area_ha",
+        "zonificac": "zonificacion",
+        "za":        "zona_ambiental",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "sgs_amb_zonificacion_rfp",
+      "file": "sgs_amb_zonificacion_rfp.geojson",
+      "loader": "simple",
+      "columns": {
+        "categoria":   "categoria_zonificacion",
+        "nombre":      "nombre",
+        "acto_delim":  "acto_delimitacion",
+        "acto_zonif":  "acto_zonificacion",
+        "cod_zonifi":  "codigo_zonificacion",
+        "zonificaci":  "zonificacion",
+        "sub_zonifi":  "sub_zonificacion",
+        "enlace_act":  "enlace_acto",
+        "acuerdo_pm":  "acuerdo_pm",
+        "area_ha":     "area_ha",
+        "__geometry": "geom"
+      }
+    },
+
+    {
+      "table": "sgs_pre_propietario",
+      "loader": "synthesize",
+      "source_layer": "sgs_pre_predio",
+      "from_column": "nom_prop",
+      "columns": { "nom_prop": "nombre_razon_social" },
+      "defaults": { "telefono": "" }
+    },
+    {
+      "table": "sgs_pre_predio",
+      "file": "sgs_pre_predio.geojson",
+      "loader": "simple",
+      "fk_lookups": {
+        "id_propietario": {
+          "from_column": "nom_prop",
+          "to_table": "sgs_pre_propietario",
+          "to_column": "nombre_razon_social"
+        },
+        "id_vereda": {
+          "from_column": "cod_vereda",
+          "to_table": "bcs_lpa_vereda",
+          "to_column": "codigo_administrativo"
+        }
+      },
+      "columns": {
+        "id_predio":   "id_predio",
+        "nompredio":   "nombre_predio",
+        "area_ha":     "area_ha",
+        "c_catstral":  "cedula_catastral",
+        "cedula_ant":  "cedula_ant",
+        "longitud":    "longitud_centroide",
+        "latitud":     "latitud_centroide",
+        "nucpredio":   "nucleo_predial",
+        "comentario":  "observaciones",
+        "perimetro":   "perimetro",
+        "nom_prop":    "id_propietario",
+        "cod_vereda":  "id_vereda",
+        "__geometry": "geom"
+      }
+    },
+
+    {
+      "table": "sgs_pro_propuesta_punto",
+      "file": "sgs_pro_propuesta_punto.geojson",
+      "loader": "simple",
+      "fk_lookups": {
+        "id_predio": {
+          "from_column": "id_predio",
+          "to_table": "sgs_pre_predio",
+          "to_column": "id_predio"
+        }
+      },
+      "columns": {
+        "id_prop_pu":   "id_prop_punto",
+        "actividad":    "actividad",
+        "este":         "este",
+        "norte":        "norte",
+        "descripcion":  "descripcion",
+        "estado":       "estado",
+        "id_predio":    "id_predio",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "sgs_pro_propuesta_linea",
+      "file": "sgs_pro_propuesta_linea.geojson",
+      "loader": "simple",
+      "fk_lookups": {
+        "id_predio": {
+          "from_column": "id_predio",
+          "to_table": "sgs_pre_predio",
+          "to_column": "id_predio"
+        }
+      },
+      "columns": {
+        "id_pro_lin":   "id_prop_linea",
+        "actividad":    "actividad",
+        "long_m":       "longitud_m",
+        "long_km":      "longitud_km",
+        "estado":       "estado",
+        "id_predio":    "id_predio",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "sgs_pro_propuesta_poligono",
+      "file": "sgs_pro_propuesta_poligono.geojson",
+      "loader": "simple",
+      "fk_lookups": {
+        "id_predio": {
+          "from_column": "id_predio",
+          "to_table": "sgs_pre_predio",
+          "to_column": "id_predio"
+        }
+      },
+      "columns": {
+        "id_prop_po":   "id_prop_poligono",
+        "actividad":    "actividad",
+        "area_ha":      "area_ha",
+        "area_m2":      "area_m2",
+        "estado":       "estado",
+        "id_predio":    "id_predio",
+        "__geometry": "geom"
+      }
+    },
+
+    {
+      "table": "sgs_inf_via",
+      "file": "sgs_inf_via.geojson",
+      "loader": "simple",
+      "_note": "GDB no tiene id_municipio para esta capa — el FK queda NULL. Phase 3 puede agregar spatial join.",
+      "columns": {
+        "nombre_geo":   "nombre_geografico",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "sgs_inf_drenaje_simple",
+      "file": "sgs_inf_drenaje_simple.geojson",
+      "loader": "simple",
+      "columns": {
+        "nombre_geo": "nombre_geografico",
+        "__geometry": "geom"
+      }
+    },
+    {
+      "table": "sgs_inf_drenaje_doble",
+      "file": "sgs_inf_drenaje_doble.geojson",
+      "loader": "simple",
+      "columns": {
+        "nombre_geo": "nombre_geografico",
+        "__geometry": "geom"
+      }
+    },
+
+    {
+      "table": "sgs_rel_predio_cobertura",
+      "file": "sgs_rel_predio_cobertura.csv",
+      "loader": "junction",
+      "fk_lookups": {
+        "id_predio":    { "from_column": "id_predio",    "to_table": "sgs_pre_predio",           "to_column": "id_predio" },
+        "id_cobertura": { "from_column": "id_cobertura", "to_table": "sgs_amb_cobertura_clc",    "to_column": "id_cobertura" }
+      },
+      "columns": {
+        "id_predio":              "id_predio",
+        "id_cobertura":           "id_cobertura",
+        "area_interseccion_ha":   "area_interseccion_ha",
+        "porcentaje_predio":      "porcentaje_predio"
+      }
+    },
+    {
+      "table": "sgs_rel_predio_bioma",
+      "file": "sgs_rel_predio_bioma.csv",
+      "loader": "junction",
+      "fk_lookups": {
+        "id_predio": { "from_column": "id_predio", "to_table": "sgs_pre_predio", "to_column": "id_predio" },
+        "id_bioma":  { "from_column": "id_bioma",  "to_table": "sgs_amb_bioma",  "to_column": "id_bioma" }
+      },
+      "columns": {
+        "id_predio": "id_predio",
+        "id_bioma":  "id_bioma"
+      }
+    },
+    {
+      "table": "sgs_rel_predio_zonificacion_pomca",
+      "file": "sgs_rel_predio_zonificacion_pomca.csv",
+      "loader": "junction",
+      "fk_lookups": {
+        "id_predio":         { "from_column": "id_predio",         "to_table": "sgs_pre_predio",             "to_column": "id_predio" },
+        "id_zonificacion_pomca": { "from_column": "id_zonificacion", "to_table": "sgs_amb_zonificacion_pomca", "to_column": "id_zonificacion_pomca" }
+      },
+      "columns": {
+        "id_predio":         "id_predio",
+        "id_zonificacion_pomca": "id_zonificacion_pomca",
+        "area_interseccion_ha": "area_interseccion_ha",
+        "porcentaje_predio": "porcentaje_predio"
+      }
+    },
+    {
+      "table": "sgs_rel_predio_zonificacion_rfp",
+      "file": "sgs_rel_predio_zonificacion_rfp.csv",
+      "loader": "junction",
+      "fk_lookups": {
+        "id_predio":     { "from_column": "id_predio",     "to_table": "sgs_pre_predio",         "to_column": "id_predio" },
+        "id_zonificacion_rfp": { "from_column": "id_zonificacion_rfp", "to_table": "sgs_amb_zonificacion_rfp", "to_column": "id_zonificacion_rfp" }
+      },
+      "columns": {
+        "id_predio":         "id_predio",
+        "id_zonificacion_rfp": "id_zonificacion_rfp",
+        "area_interseccion_ha": "area_interseccion_ha",
+        "porcentaje_predio": "porcentaje_predio"
+      }
+    },
+    {
+      "table": "sgs_rel_predio_paramos",
+      "file": "sgs_rel_predio_paramos.csv",
+      "loader": "junction",
+      "fk_lookups": {
+        "id_predio":  { "from_column": "id_predio",  "to_table": "sgs_pre_predio",  "to_column": "id_predio" },
+        "id_paramos": { "from_column": "id_paramos", "to_table": "sgs_amb_paramos", "to_column": "id_paramos" }
+      },
+      "columns": {
+        "id_predio":  "id_predio",
+        "id_paramos": "id_paramos",
+        "area_interseccion_ha": "area_interseccion_ha",
+        "porcentaje_predio": "porcentaje_predio"
+      }
+    }
+  ]
+}
+

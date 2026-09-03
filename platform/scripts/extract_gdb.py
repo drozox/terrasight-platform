@@ -174,7 +174,14 @@ def export_layer(gdb, layer, out_dir, target_crs):
             gdf.to_file(out_file, driver="ESRI Shapefile", encoding="utf-8")
         except Exception as e:
             return (len(gdf), None, f"WRITE_SHP_FAIL: {type(e).__name__}: {str(e)[:200]}")
-        return (len(gdf), str(out_file), None)
+        # También exportamos GeoJSON (UTF-8 nativo, sin truncar cols). El script
+        # de import lo lee con JSON.parse — sin nuevas deps.
+        geojson_file = out_path / f"{layer}.geojson"
+        try:
+            gdf.to_file(geojson_file, driver="GeoJSON", encoding="utf-8")
+        except Exception as e:
+            return (len(gdf), None, f"WRITE_GEOJSON_FAIL: {type(e).__name__}: {str(e)[:200]}")
+        return (len(gdf), str(geojson_file), None)
     else:
         out_file = out_path / f"{layer}.csv"
         try:
