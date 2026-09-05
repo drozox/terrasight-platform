@@ -67,7 +67,7 @@ PostGIS viene **preinstalado** en Supabase free tier. Verificar:
 
 > **OJO**: el password que pones al crear el proyecto es el que va en la URL. Si lo pierdes, hay que resetear desde el dashboard.
 
-### 1.4. Aplicar las 22 migraciones
+### 1.4. Aplicar las 25 migraciones
 
 Las migraciones viven en `platform/scripts/db/init/`. El script `migrate.mjs` las aplica en orden. Es **idempotente**: las que ya están aplicadas se skipean (`already exists|duplicate key|IF NOT EXISTS`).
 
@@ -87,7 +87,7 @@ node scripts/migrate.mjs
 
 > Reemplaza `[ref]qwerty` y `[PASSWORD]` con los tuyos. **OJO**: si tu password tiene caracteres especiales (`!`, `#`, `$`, etc.), escapalos o usa comillas. El `postgres-js` los maneja, pero el shell puede confundirse.
 
-**22 migraciones en orden** (las del S5.M+ están marcadas con ✨):
+**25 migraciones en orden** (las del S5.M+ están marcadas con ✨):
 
 | # | Archivo | Qué agrega | Idempotente |
 |---|---|---|---|
@@ -113,24 +113,27 @@ node scripts/migrate.mjs
 | ✨ 20 | `20-via-nullable-municipio.sql` | drop NOT NULL `id_municipio` en `sgs_inf_via` (70% vias fuera de Cundinamarca) | ✅ |
 | ✨ 21 | `21-via-defaults.sql` | defaults para `tipo_via`/`estado_superficie`/`accesibilidad` | ✅ |
 | ✨ 22 | `22-drenaje-relax.sql` | drop NOT NULL `id_municipio` en `sgs_inf_drenaje_simple` y `sgs_inf_drenaje_doble` | ✅ |
+| ✨ 23 | `23-fase6-analisis-tables.sql` | 5 indicator tables (`sgs_ind_*`) + junction tables extendidas con `area_interseccion_ha`/`porcentaje_predio`/`geom` + `bcs_dh_quebrada` | ✅ (IF NOT EXISTS) |
+| ✨ 24 | `24-fase6-lookup-extended.sql` | columnas extendidas en `sgs_amb_cobertura_clc`/`sgs_amb_zonificacion_pomca`/`sgs_amb_zonificacion_rfp` (`objectid_gdb`, `nombre`, `nomenclatura`, `geom`) | ✅ (ADD COLUMN IF NOT EXISTS) |
+| ✨ 25 | `25-relajarcheck-cobertura.sql` | drop CHECK `estado_naturalidad` en `sgs_amb_cobertura_clc` (GDB tiene valores inconsistentes) | ✅ (DROP CONSTRAINT IF EXISTS) |
 
-> **Importante**: con `--no-seed`, `migrate.mjs` además strip la sección "DATOS DE PRUEBA" de `01-schema.sql` (Cali/Palmira/Yumbo de demo anterior). Las 22 migraciones NO incluyen ningún INSERT demo, todas son DDL/DDL-like.
+> **Importante**: con `--no-seed`, `migrate.mjs` además strip la sección "DATOS DE PRUEBA" de `01-schema.sql` (Cali/Palmira/Yumbo de demo anterior). Las 25 migraciones NO incluyen ningún INSERT demo, todas son DDL/DDL-like.
 
-**Aplicar SOLO las nuevas** (si la BD ya tiene las primeras 13 aplicadas):
+**Aplicar SOLO las nuevas** (si la BD ya tiene las primeras 22 aplicadas):
 
 ```bash
 # Por seguridad, dry-run primero
-node scripts/migrate.mjs --dry-run | Select-String "1[4-9]|2[0-2]"
-# Solo deberían listarse las 9 nuevas
+node scripts/migrate.mjs --dry-run | Select-String "2[3-5]"
+# Solo deberían listarse las 3 nuevas (23-25)
 
-# Aplicar (las 13 anteriores se skipean automáticamente)
+# Aplicar (las 22 anteriores se skipean automáticamente)
 node scripts/migrate.mjs --no-seed
 ```
 
 **Alternativa via SQL Editor** (si tenes problemas con el script):
 
 1. Ir a **SQL Editor** en Supabase.
-2. Abrir SOLO los archivos nuevos (14-22) en orden, click **Run** en cada uno.
+2. Abrir SOLO los archivos nuevos (14-25) en orden, click **Run** en cada uno.
 3. Verificar que no haya errores en ninguno.
 
 ### 1.5. Verificar que las migraciones corrieron
@@ -167,10 +170,46 @@ Después del import del GDB, los counts esperados son:
 | `sgs_pro_propuesta_poligono` | 239 | |
 | `sgs_amb_bioma` | 5 | pre-agregado por `bioma_iavh` (149→5) |
 | `sgs_amb_paramos` | 10 | pre-agregado por `nombre` (486→10) |
-| `sgs_amb_zonificacion_pomca` | 9 | pre-agregado por `codigo` (245→9) |
-| `sgs_amb_zonificacion_rfp` | 4 | pre-agregado por `cod_zonifi` (486→4) |
+| `sgs_amb_zonificacion_pomca` | 245 | re-import Fase 6 con TODOS los features del GDB (no pre-aggregate) |
+| `sgs_amb_zonificacion_rfp` | 486 | re-import Fase 6 con TODOS los features del GDB (no pre-aggregate) |
+| `sgs_amb_cobertura_clc` | 162 | re-import Fase 6 (antes vacía) |
 | `sgs_inf_via` | ~17,877 | spatial join con municipio (puede ser mayor si re-corre) |
 | `sgs_inf_drenaje_simple` | ~1,260 | spatial join (puede ser mayor si re-corre) |
+
+### 1.5.b. Phase 7 — Importar las 10 tablas de análisis (Fase 6 GDB → PG)
+
+Después de las migraciones 23-25, hay que poblar las 10 tablas de Fase 6 desde el GDB.
+
+**Paso 1**: Generar los archivos CSV/GeoJSON de Fase 6 desde el GDB (one-time).
+
+```bash
+# Solo si todavía no los generaste. Output: C:\dev\scratch\gdb_export\phase6\
+py C:\dev\scratch\extract_phase6_tables.py
+```
+
+**Paso 2**: Re-importar las 3 lookup tables (cobertura + RFP + POMCA) con TODOS los features del GDB:
+
+```bash
+$env:DATABASE_URL="postgresql://postgres:[PASSWORD]@db.pjcvewberfgwywfnutjv.supabase.co:5432/postgres?sslmode=require"
+node scripts/import_phase6_lookups.mjs
+# Esperado: cobertura 162, rfp 486, pomca 245
+```
+
+**Paso 3**: Importar las 5 junction tables + 5 indicator tables:
+
+```bash
+node scripts/import_phase6.mjs
+# Esperado: cobertura 128, bioma 114, paramos 33, pomca 102, rfp 33
+# Indicator tables: 132 (de 137 CSV), ind_municipio 14
+```
+
+**Nota sobre los counts**: los counts son la versión deduplicada por PK constraint. El GDB tiene duplicados (mismo id_predio + mismo target aparece varias veces) que el `ON CONFLICT DO NOTHING` colapsa. Ej: `sgs_rel_predio_zonificacion_rfp` tiene 426 rows en GDB pero 33 (id_predio, NOMBRE) únicos.
+
+Para resetear y re-importar (CUIDADO, destructive):
+```bash
+node scripts/reset_phase6.mjs   # TRUNCATE 10 tablas
+node scripts/import_phase6.mjs   # re-import
+```
 
 Para verificar el estado actual, usar `node scripts/db-state.mjs` que muestra
 todas las tablas en una sola corrida.

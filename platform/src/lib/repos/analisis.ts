@@ -176,10 +176,11 @@ const getCoberturaVegetalImpl = async (): Promise<CoberturaTotal[]> => {
     const rows = await sql<{ nombre: string; area: number | string }[]>`
       SELECT
         c.nombre_cobertura AS nombre,
-        pc.area_ha_parcial AS area
+        COALESCE(SUM(pc.area_interseccion_ha), 0)::numeric AS area
       FROM sgs_rel_predio_cobertura pc
       JOIN sgs_amb_cobertura_clc c ON c.id_cobertura = pc.id_cobertura
-      ORDER BY pc.area_ha_parcial DESC;
+      GROUP BY c.nombre_cobertura
+      ORDER BY area DESC;
     `;
     const total = rows.reduce((acc, r) => acc + pgNum(r.area), 0);
     if (total === 0) {

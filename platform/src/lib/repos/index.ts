@@ -15,3 +15,4 @@ export * from "./reportes";
 export * from "./analisis";
 export * from "./monitoreo";
 export * from "./metas";
+export * from "./fase6";

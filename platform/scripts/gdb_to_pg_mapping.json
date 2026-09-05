@@ -94,11 +94,12 @@
 
     {
       "table": "sgs_amb_cobertura_clc",
-      "file": "sgs_amb_cobertura_clc.geojson",
+      "file": "phase6_4686/sgs_amb_cobertura_clc.geojson",
       "loader": "simple",
+      "_note": "Phase 7 (Fase 6): re-import con TODOS los 162 features del GDB (no pre-aggregate). PK = i+1 porque OBJECTID tiene duplicados. Script: scripts/import_phase6_lookups.mjs",
       "columns": {
         "nombre":   "nombre_cobertura",
-        "municipio":"nombre_municipio_legacy",
+        "municipio":"municipio_predio",
         "area_ha":  "area_ha",
         "naturalida":"estado_naturalidad",
         "__geometry": "geom"
@@ -127,28 +128,29 @@
     },
     {
       "table": "sgs_amb_zonificacion_pomca",
-      "file": "sgs_amb_zonificacion_pomca_agg.geojson",
+      "file": "phase6_4686/sgs_amb_zonificacion_pomca.geojson",
       "loader": "simple",
-      "_note": "Phase 2: archivo _agg es dissolve por codigo (9 unique). PG schema no tiene geom.",
+      "_note": "Phase 7 (Fase 6): re-import con TODOS los 245 features del GDB (no pre-aggregate). PK = i+1. Schema extendido con codigo/nomenclatura/descripcion/geom.",
       "columns": {
-        "categoria_zonificacion": "categoria_zonificacion",
-        "area_ha":                "area_ha"
+        "cat_ord":     "categoria_zonificacion",
+        "codigo":      "codigo",
+        "nomenclat":   "nomenclatura",
+        "descrip":     "descripcion",
+        "area_ha":     "area_ha",
+        "__geometry":  "geom"
       }
     },
     {
       "table": "sgs_amb_zonificacion_rfp",
-      "file": "sgs_amb_zonificacion_rfp_agg.geojson",
+      "file": "phase6_4686/sgs_amb_zonificacion_rfp.geojson",
       "loader": "simple",
-      "_note": "Phase 2: archivo _agg es dissolve por cod_zonifi (4 unique). PG schema no tiene geom.",
+      "_note": "Phase 7 (Fase 6): re-import con TODOS los 486 features del GDB (no pre-aggregate). PK = i+1. Schema extendido con nombre/sub_zonificacion/geom.",
       "columns": {
-        "cod_zonifi":         "categoria_zonificacion",
-        "area_ha":            "area_ha",
-        "objectid":           "objectid",
-        "sector_cod":         "sector_cod",
-        "complejo_nombre":    "complejo_nombre",
-        "distrito_nombre":    "distrito_nombre",
-        "complejo_codigo":    "complejo_codigo",
-        "distrito_codigo":    "distrito_codigo"
+        "categoria":     "categoria_zonificacion",
+        "nombre":        "nombre",
+        "sub_zonifi":    "sub_zonificacion",
+        "area_ha":       "area_ha",
+        "__geometry":    "geom"
       }
     },
 
