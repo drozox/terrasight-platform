@@ -1,6 +1,6 @@
 # Deploy en Vercel + Supabase (free tier)
 
-Guia paso a paso para desplegar TerraSight en produccion con cuentas free.
+Guia paso a paso para desplegar SIG TERRITORIO en produccion con cuentas free.
 
 ## TL;DR (automatizado)
 
@@ -306,7 +306,7 @@ Si todo OK: **listo para entregar al cliente CAR Cundinamarca**.
 
 ## 5. Limitaciones del free tier (a tener en cuenta)
 
-| Servicio | Limitacion | Impacto TerraSight |
+| Servicio | Limitacion | Impacto SIG TERRITORIO |
 |---|---|---|
 | Supabase BD | 500 MB | OK para MVP (~50 MB con seed). Cuidado si el cliente sube muchos SHP. |
 | Supabase BD | Pausa tras 1 semana de inactividad | **CRITICO**: el cliente CAR no entrara todos los dias. Si el proyecto se pausa, hay que reactivarlo manualmente desde el dashboard. |

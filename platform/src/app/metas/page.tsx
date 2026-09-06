@@ -24,7 +24,7 @@ import {
 import type { MetaResumen } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Metas del convenio — TerraSight" };
+export const metadata = { title: "Metas del convenio — SIG TERRITORIO" };
 
 // -----------------------------------------------------------------------------
 // Labels "humanos" para cada Componente/Acción.

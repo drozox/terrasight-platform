@@ -1,13 +1,13 @@
 import * as React from "react";
 
-/** Logo institucional TerraSight — hoja + gota de agua (SVG inline, escala libre). */
-export function TerraSightLogo({ className }: { className?: string }) {
+/** Logo institucional SIG TERRITORIO — hoja + gota de agua (SVG inline, escala libre). */
+export function SigTerritorioLogo({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 40 40"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      aria-label="TerraSight logo"
+      aria-label="SIG TERRITORIO logo"
     >
       <rect width="40" height="40" rx="8" fill="#006d37" />
       <path

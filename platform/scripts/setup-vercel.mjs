@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// setup-vercel.mjs — One-shot setup para deploy de TerraSight en Vercel
+// setup-vercel.mjs — One-shot setup para deploy de SIG TERRITORIO en Vercel
 //
 // Hace en orden lo que antes era 10+ clicks manuales:
 //   1. Verifica auth (gh + vercel)

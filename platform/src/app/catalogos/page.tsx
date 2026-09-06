@@ -37,7 +37,7 @@ import type {
 import { CatalogosTable } from "./catalogos-table";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Catálogos — TerraSight" };
+export const metadata = { title: "Catálogos — SIG TERRITORIO" };
 
 export default async function CatalogosPage() {
   await requireAdmin();

@@ -11,7 +11,7 @@ import { requireRole } from "@/lib/auth-guard";
 import { listMunicipios } from "@/lib/repos";
 import { crearQuebradaAction } from "../actions";
 
-export const metadata = { title: "Nueva quebrada — TerraSight" };
+export const metadata = { title: "Nueva quebrada — SIG TERRITORIO" };
 
 export default async function NuevaQuebradaPage({
   searchParams,

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 /**
  * MapTools — toolbar horizontal con herramientas SIG básicas.
  * Inspirado en `map-panel.tsx` del dashboard de referencia, adaptado al theme
- * TerraSight. Por ahora los handlers son no-op (visualmente preparados para
+ * SIG TERRITORIO. Por ahora los handlers son no-op (visualmente preparados para
  * las próximas HU de análisis espacial).
  */
 

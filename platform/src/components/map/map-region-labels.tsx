@@ -31,7 +31,7 @@ const DEFAULT_REGIONS: RegionLabel[] = [
 ];
 
 /**
- * Construye un divIcon HTML con el label estilizado según el theme TerraSight.
+ * Construye un divIcon HTML con el label estilizado según el theme SIG TERRITORIO.
  */
 function regionDivIcon(name: string, variant: "primary" | "secondary") {
   const bg = variant === "primary"

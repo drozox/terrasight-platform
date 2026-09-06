@@ -14,7 +14,7 @@ import { getIntervencionCompleta } from "@/lib/repos";
 import { IntervencionDetail } from "./intervencion-detail";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Intervención — TerraSight" };
+export const metadata = { title: "Intervención — SIG TERRITORIO" };
 
 export default async function IntervencionDetailPage({
   params,

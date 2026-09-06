@@ -17,7 +17,7 @@ import { MonitoreoView } from "./monitoreo-view";
 import { formatInt } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Monitoreo — TerraSight" };
+export const metadata = { title: "Monitoreo — SIG TERRITORIO" };
 
 type SearchParams = Promise<{
   tipo?: string;

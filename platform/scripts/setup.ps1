@@ -1,5 +1,5 @@
 # =============================================================================
-# Setup de primera corrida (o reset completo) para TerraSight.
+# Setup de primera corrida (o reset completo) para SIG TERRITORIO.
 #
 #   cd platform
 #   powershell -ExecutionPolicy Bypass -File scripts/setup.ps1

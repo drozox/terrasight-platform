@@ -12,7 +12,7 @@ import {
 } from "@/lib/repos";
 import type { AuditEvento, AuditFiltros } from "@/lib/types";
 
-export const metadata = { title: "Auditoría de accesos — TerraSight" };
+export const metadata = { title: "Auditoría de accesos — SIG TERRITORIO" };
 
 const PAGE_SIZE = 50;
 

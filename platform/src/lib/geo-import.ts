@@ -1,6 +1,6 @@
 // =============================================================================
 // Importador de capas geográficas para el módulo de Acciones del Convenio
-// CAR–WWF–Fundación Natura (TerraSight / TG-Nikoll).
+// CAR–WWF–Fundación Natura (SIG TERRITORIO / TG-Nikoll).
 //
 // Acepta dos formatos:
 //   - GeoJSON (FeatureCollection con Point, LineString, Polygon y Multi*)

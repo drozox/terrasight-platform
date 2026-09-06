@@ -17,7 +17,7 @@ import {
 import { MunicipiosView } from "./municipios-view";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Municipios — TerraSight" };
+export const metadata = { title: "Municipios — SIG TERRITORIO" };
 
 export default async function MunicipiosPage() {
   await requireAdmin();

@@ -28,7 +28,7 @@ import { ReporteViewer } from "./reporte-viewer";
 import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Reportes — TerraSight" };
+export const metadata = { title: "Reportes — SIG TERRITORIO" };
 
 const RENDERERS: Record<ReporteTipo, () => Promise<unknown[]>> = {
   R1:  () => getReporteR1()  as unknown as Promise<unknown[]>,

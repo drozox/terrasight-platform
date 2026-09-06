@@ -17,7 +17,7 @@ import {
 import { PropietariosView } from "./propietarios-view";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Propietarios — TerraSight" };
+export const metadata = { title: "Propietarios — SIG TERRITORIO" };
 
 export default async function PropietariosPage() {
   await requireAdmin();

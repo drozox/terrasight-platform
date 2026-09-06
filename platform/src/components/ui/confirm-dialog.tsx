@@ -6,7 +6,7 @@
 // UX-55 (audit 2026-07-24): antes usabamos `confirm()` nativo de JS para
 // eliminar componentes/acciones en /catalogos y descartar alertas en /alertas.
 // El modal nativo:
-//   - Rompe la estetica (look OS, no del design system TerraSight)
+//   - Rompe la estetica (look OS, no del design system SIG TERRITORIO)
 //   - No respeta focus trap ni ESC (inconsistente entre browsers)
 //   - No es accesible para screen readers (sin aria-label, sin title)
 //   - Bloquea el thread del UI thread (mala UX percibida)

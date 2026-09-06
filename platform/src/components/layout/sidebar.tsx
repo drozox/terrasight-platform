@@ -36,7 +36,7 @@ import {
   Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TerraSightLogo } from "@/components/icons";
+import { SigTerritorioLogo } from "@/components/icons";
 import type { RolSistema } from "@/lib/auth";
 
 type Item = {
@@ -85,7 +85,7 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
     >
       <div className="mb-lg px-md">
         <Link href="/" className="flex items-center gap-3">
-          <TerraSightLogo className="h-10 w-10 rounded-lg" />
+          <SigTerritorioLogo className="h-10 w-10 rounded-lg" />
           <div>
             <p className="text-lg font-bold leading-tight text-secondary">
               Cundinamarca

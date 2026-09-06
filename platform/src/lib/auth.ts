@@ -1,5 +1,5 @@
 // =============================================================================
-// NextAuth v5 — configuración de autenticación para TerraSight.
+// NextAuth v5 — configuración de autenticación para SIG TERRITORIO.
 //
 // Decisiones:
 // - Provider: Credentials (email + password). No OAuth en MVP.

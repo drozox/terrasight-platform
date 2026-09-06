@@ -31,7 +31,7 @@ function record(name, expected, got) {
 }
 
 try {
-  // -- Query 1: tablas sgs_* y bcs_* (core de TerraSight)
+  // -- Query 1: tablas sgs_* y bcs_* (core de SIG TERRITORIO)
   //    (Supabase puede tener tablas extra del usuario; verificamos las nuestras)
   {
     const r = await sql`

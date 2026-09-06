@@ -18,7 +18,7 @@ import {
 import { VeredasView } from "./veredas-view";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Veredas — TerraSight" };
+export const metadata = { title: "Veredas — SIG TERRITORIO" };
 
 export default async function VeredasPage() {
   await requireAdmin();

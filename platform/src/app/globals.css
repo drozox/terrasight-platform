@@ -1,6 +1,6 @@
 /* =============================================================================
- * TerraSight — paleta institucional
- * Basada en el sistema "TerraSight Intelligence" del Stitch, mapeada a tokens
+ * SIG TERRITORIO — paleta institucional
+ * Basada en el sistema "SIG TERRITORIO" del Stitch, mapeada a tokens
  * Material-3 / shadcn-style (HSL friendly con Tailwind v4 `@theme`).
  * ============================================================================= */
 
@@ -194,7 +194,7 @@
 }
 
 /* =============================================================================
- * Custom utilities para los tokens de spacing TerraSight.
+ * Custom utilities para los tokens de spacing SIG TERRITORIO.
  * Tailwind v4 los lee automáticamente del namespace `--spacing-terrasight-*`
  * para utilities genéricos (p-*, m-*, gap-*, etc.), pero los nombres como
  * `gutter` y `margin-edge` NO son keywords estándar — necesitamos declararlos

@@ -17,7 +17,7 @@ import {
 import { PredioDetail } from "./predio-detail";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Predio — TerraSight" };
+export const metadata = { title: "Predio — SIG TERRITORIO" };
 
 export default async function PredioDetailPage({
   params,

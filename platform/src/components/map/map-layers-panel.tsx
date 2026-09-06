@@ -36,7 +36,7 @@ interface MapLayersPanelProps {
 /**
  * MapLayersPanel — panel "Capas Activas" reorganizado por grupos temáticos.
  * Inspirado en `map-panel.tsx` del dashboard de referencia, adaptado a
- * TerraSight.
+ * SIG TERRITORIO.
  *
  * Grupos:
  *  - Límites Administrativos: municipios, veredas

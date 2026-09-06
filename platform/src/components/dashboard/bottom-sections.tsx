@@ -14,7 +14,7 @@ import Link from "next/link";
 /**
  * BottomSections — fila inferior del dashboard.
  * Inspirado en `bottom-sections.tsx` del dashboard de referencia, pero
- * reutilizando los componentes TerraSight existentes (IntervencionesTable
+ * reutilizando los componentes SIG TERRITORIO existentes (IntervencionesTable
  * y CoberturaChart) para mantener consistencia con el resto del theme.
  *
  * Tres tarjetas en fila:
@@ -70,7 +70,7 @@ export function BottomSections({
 /**
  * SummaryBar — barra horizontal con KPIs clave.
  * Inspirado en `SummaryBar` del dashboard de referencia, adaptado a tokens
- * TerraSight (primary en lugar del verde del cliente).
+ * SIG TERRITORIO (primary en lugar del verde del cliente).
  */
 export function SummaryBar({ footer }: { footer: FooterKpis }) {
   const items = [

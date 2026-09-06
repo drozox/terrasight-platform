@@ -17,7 +17,7 @@ import {
 import { MicrocuencasView } from "./microcuencas-view";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Microcuencas — TerraSight" };
+export const metadata = { title: "Microcuencas — SIG TERRITORIO" };
 
 export default async function MicrocuencasPage() {
   await requireAdmin();

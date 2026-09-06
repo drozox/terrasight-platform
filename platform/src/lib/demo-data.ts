@@ -1,5 +1,5 @@
 // =============================================================================
-// Datos demo para TerraSight
+// Datos demo para SIG TERRITORIO
 //
 // Se usan como fallback automático cuando la BD PostgreSQL/PostGIS no está
 // disponible (entornos de demo, presentaciones offline, CI, dev local sin

@@ -1,4 +1,4 @@
-# AGENTS.md — TerraSight Platform
+# AGENTS.md — SIG TERRITORIO Platform
 
 > Convenciones y referencia para agentes IA que trabajen en `platform/`
 > (Next.js 15 + React 19 + Tailwind v4 + Radix UI + Leaflet + Recharts +
@@ -7,7 +7,7 @@
 ## Antes de empezar
 
 1. **Lee el design system** — `../Stich/DESIGN.md` define la paleta,
-   tipografía, espaciado y elevación de TerraSight Intelligence. Es la
+   tipografía, espaciado y elevación de SIG TERRITORIO. Es la
    **fuente única de verdad visual**. Si tu trabajo toca UI, alineate con
    esa guía antes de proponer cambios.
 2. **Lee el audit UI/UX vivo** — `docs/ui-ux-audit-2026-07-24.md`. Es la
@@ -50,7 +50,7 @@ platform/
 ├── src/
 │   ├── app/                  # App Router de Next.js
 │   │   ├── layout.tsx        # Shell: Sidebar + TopBar + main
-│   │   ├── globals.css       # @theme tokens TerraSight
+│   │   ├── globals.css       # @theme tokens SIG TERRITORIO
 │   │   ├── login/            # /login (sin sidebar)
 │   │   ├── api/              # Route handlers (auth, geo, interventions, etc.)
 │   │   ├── (módulos)         # /, /mapa, /predios, /intervenciones, etc.

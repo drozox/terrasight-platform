@@ -18,7 +18,7 @@ import {
 import { BeneficiariosView } from "./beneficiarios-view";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Beneficiarios — TerraSight" };
+export const metadata = { title: "Beneficiarios — SIG TERRITORIO" };
 
 export default async function BeneficiariosPage() {
   await requireAdmin();

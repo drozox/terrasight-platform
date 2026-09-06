@@ -7,9 +7,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { LoginForm } from "./login-form";
-import { TerraSightLogo, PartnerLogo } from "@/components/icons";
+import { SigTerritorioLogo, PartnerLogo } from "@/components/icons";
 
-export const metadata = { title: "Iniciar sesión — TerraSight" };
+export const metadata = { title: "Iniciar sesión — SIG TERRITORIO" };
 
 export default async function LoginPage({
   searchParams,
@@ -29,9 +29,9 @@ export default async function LoginPage({
     <main className="flex h-screen w-full flex-col items-center justify-center gap-6 bg-surface-container-lowest px-4 py-6 sm:flex-row sm:gap-10 sm:py-0">
       <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-8 shadow-lg">
         <div className="mb-6 flex items-center gap-3">
-          <TerraSightLogo className="h-12 w-12 rounded-xl" />
+          <SigTerritorioLogo className="h-12 w-12 rounded-xl" />
           <div>
-            <h1 className="text-xl font-bold text-primary">TerraSight</h1>
+            <h1 className="text-xl font-bold text-primary">SIG TERRITORIO</h1>
             <p className="text-body-sm text-on-surface-variant">
               Plataforma SIG Integrada · CAR · WWF · Natura
             </p>

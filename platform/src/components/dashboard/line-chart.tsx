@@ -26,7 +26,7 @@ const FILL: Record<LineSeries["color"], string> = {
 /**
  * LineChart multi-serie con SVG puro (sin dependencias externas).
  * Inspirado en `charts.tsx` del dashboard de referencia (geoportal-data-dashboard),
- * adaptado al sistema de tokens de TerraSight (primary/secondary/tertiary).
+ * adaptado al sistema de tokens de SIG TERRITORIO (primary/secondary/tertiary).
  *
  * - Gridlines: 4 líneas horizontales
  * - Cada serie: línea + área translúcida debajo

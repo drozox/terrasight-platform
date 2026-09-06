@@ -5,7 +5,7 @@
 //
 // El botón HelpCircle del topbar (UX-P3 backlog) era no-op. Ahora abre este
 // dialog con:
-//  - Información del producto (qué es TerraSight, para quién)
+//  - Información del producto (qué es SIG TERRITORIO, para quién)
 //  - Atajos de teclado básicos (búsqueda, navegación sidebar)
 //  - Contacto del equipo (mailto)
 //
@@ -88,7 +88,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                 id="help-dialog-desc"
                 className="mt-1 text-body-sm text-on-surface-variant"
               >
-                TerraSight es la plataforma SIG del convenio CAR Cundinamarca –
+                SIG TERRITORIO es la plataforma SIG del convenio CAR Cundinamarca –
                 WWF – Fundación Natura para monitoreo ambiental y gestión
                 territorial. Aquí encuentras cómo usarla y cómo contactarnos.
               </Dialog.Description>
@@ -179,7 +179,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
               </Button>
             </Dialog.Close>
             <a
-              href="mailto:soporte@terrasight.local?subject=Soporte%20TerraSight&body=Hola%2C%20necesito%20ayuda%20con..."
+              href="mailto:soporte@terrasight.local?subject=Soporte%20SIG TERRITORIO&body=Hola%2C%20necesito%20ayuda%20con..."
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-label-lg font-bold text-on-primary transition-[background-color,box-shadow] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest"
             >
               <Mail className="size-4" />

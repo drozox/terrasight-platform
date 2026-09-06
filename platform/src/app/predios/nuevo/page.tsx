@@ -10,7 +10,7 @@ import { requireRole } from "@/lib/auth-guard";
 import { listPropietarios, listVeredas } from "@/lib/repos";
 import { PredioForm } from "../predio-form";
 
-export const metadata = { title: "Nuevo predio — TerraSight" };
+export const metadata = { title: "Nuevo predio — SIG TERRITORIO" };
 
 export default async function NuevoPredioPage({
   searchParams,

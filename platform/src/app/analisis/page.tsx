@@ -27,7 +27,7 @@ import { IntersectionResults } from "./intersection-results";
 import { requireRole } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Análisis Espacial — TerraSight" };
+export const metadata = { title: "Análisis Espacial — SIG TERRITORIO" };
 
 type SearchParams = Promise<{
   btipo?: string;

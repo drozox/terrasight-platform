@@ -1,7 +1,7 @@
-# TerraSight — Plataforma SIG Integrada (Convenio CAR – WWF – Fundación Natura)
+# SIG TERRITORIO — Plataforma SIG Integrada (Convenio CAR – WWF – Fundación Natura)
 
 > Frontend del modelo BDG (PostgreSQL/PostGIS) ya diseñado por Nikoll Tatiana Ordoñez Diaz
-> (Universidad del Valle, 2026) + sistema visual **"TerraSight Intelligence"** (Stitch v1).
+> (Universidad del Valle, 2026) + sistema visual **"SIG TERRITORIO"** (Stitch v1).
 
 ## Stack
 
@@ -64,13 +64,13 @@ platform/
 │   │   ├── dashboard/           # ComponentRibbon, KpiSidebar, IntervencionesTable, etc.
 │   │   ├── map/                 # LeafletMap (carga dinámica)
 │   │   ├── ui/                  # Card, Button, Badge, Input
-│   │   └── icons.tsx            # SVGs inline (TerraSightLogo, partners, etc.)
+│   │   └── icons.tsx            # SVGs inline (SigTerritorioLogo, partners, etc.)
 │   ├── lib/
 │   │   ├── db.ts                # postgres-js singleton + helpers pgNum/pgInt/pgDate
 │   │   ├── repository.ts        # queries del dashboard
 │   │   ├── types.ts             # tipos compartidos
 │   │   └── utils.ts             # cn, formatInt, formatHa, formatPct, formatDate
-│   └── app/globals.css          # tokens @theme (TerraSight Intelligence)
+│   └── app/globals.css          # tokens @theme (SIG TERRITORIO)
 └── .env.example
 ```
 
@@ -83,7 +83,7 @@ platform/
 | **3 — Análisis + Reportes** | Cruces espaciales, exportes PDF/CSV | HU-CO-04, HU-AA-03/04 |
 | **4 — Auth + Alertas** | Roles, Supabase-style RLS, alertas | HU-AD-01..04 |
 
-## Sistema visual "TerraSight Intelligence"
+## Sistema visual "SIG TERRITORIO"
 
 - **Primary emerald** `#006d37` — conservación, métricas positivas
 - **Secondary deep ocean blue** `#2f6388` — agua, navegación

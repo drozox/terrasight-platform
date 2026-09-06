@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // =============================================================================
-// Playwright config — TerraSight e2e smoke tests (HU-CA-02).
+// Playwright config — SIG TERRITORIO e2e smoke tests (HU-CA-02).
 //
 // Estrategia:
 // - Local:    reusa el dev server que ya está corriendo (npm run dev) si existe.

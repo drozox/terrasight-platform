@@ -10,7 +10,7 @@ import { getCurrentUser } from "@/lib/auth-guard";
 // UX-01/UX-32 (audit 2026-07-24): Hanken Grotesk DECLARADA en globals.css:77
 // pero NUNCA CARGADA. Sin esta linea, el browser cae a ui-sans-serif / Segoe
 // UI en Windows. El design system (Stich/DESIGN.md) define Hanken Grotesk
-// como la tipografia unica de TerraSight. Sin esta fuente se pierde el
+// como la tipografia unica de SIG TERRITORIO. Sin esta fuente se pierde el
 // premium "Modern Corporate + Soft Minimalism" del design.
 //
 // next/font: subset latin + 5 weights + display swap. Self-hosted en
@@ -23,7 +23,7 @@ const hankenGrotesk = Hanken_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "TerraSight — Plataforma SIG Integrada | Convenio CAR-WWF-Natura",
+  title: "SIG TERRITORIO — Plataforma SIG Integrada | Convenio CAR-WWF-Natura",
   description:
     "Plataforma de Sistemas de Información Geográfica para el monitoreo ambiental y la gestión territorial en Cundinamarca.",
 };

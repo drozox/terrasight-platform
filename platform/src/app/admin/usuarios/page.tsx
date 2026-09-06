@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/auth-guard";
 import { listUsuarios, listRoles } from "@/lib/repos";
 import { AdminUsuariosTable } from "./usuarios-table";
 
-export const metadata = { title: "Gestión de usuarios — TerraSight" };
+export const metadata = { title: "Gestión de usuarios — SIG TERRITORIO" };
 
 export default async function AdminUsuariosPage() {
   await requireAdmin();

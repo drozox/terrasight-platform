@@ -23,7 +23,7 @@ import type {
 /**
  * RightPanel — columna derecha del dashboard.
  * Inspirado en `right-panel.tsx` del dashboard de referencia (geoportal-data-dashboard),
- * adaptado al theme TerraSight (primary/secondary/tertiary) y usando datos reales de BD.
+ * adaptado al theme SIG TERRITORIO (primary/secondary/tertiary) y usando datos reales de BD.
  *
  * Secciones:
  *  1. Indicadores Generales (grid 2x2)

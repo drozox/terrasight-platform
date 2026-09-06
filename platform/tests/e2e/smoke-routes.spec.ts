@@ -426,7 +426,7 @@ test.describe("DEBT-3.2 — Runtime smoke /reportes", () => {
 // --------------------------------------------------------------------
 test.describe("DEBT-3.2 — Runtime smoke 14 rutas (con sesión)", () => {
   const rutas = [
-    { path: "/",                  expect: /Cundinamarca|TerraSight/i },
+    { path: "/",                  expect: /Cundinamarca|SIG TERRITORIO/i },
     { path: "/dashboard",         expect: null },
     { path: "/intervenciones",    expect: null },
     { path: "/mapa",              expect: /mapa|Leaflet/i },
