@@ -39,6 +39,26 @@ desktop.ini
 
 # Modelo BDG zip (14 MB — se regenera desde el entregable del cliente)
 MODELO BDG-*.zip
+DOCS/03_GDB.zip
+
+# GDB descomprimida (carpeta pesada — backup local, no en repo)
+DOCS/03_GDB/
+
+# Mensajes de commit locales (no se versionan)
+commit_msg.txt
+**/commit_msg.txt
+
+# Screenshots de UI/UX (referencia local, no en repo)
+platform/docs/ui-ux-screenshots/
+
+# Scripts de debug one-shot (no son parte del producto, se regeneran si hace falta)
+platform/scripts/check-*.mjs
+platform/scripts/audit_testing.mjs
+platform/scripts/test_*.mjs
+platform/scripts/diag_*.mjs
+
+# Roadmap y notas locales (referencia personal, no del repo)
+roadmap.md
 
 # Shapefiles del cliente (datos pesados, se regeneran desde el entregable)
 *.shp
