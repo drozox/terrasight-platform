@@ -378,3 +378,58 @@ export const DEMO_SERIES_COMPONENTES: Record<"C1" | "C2" | "C3", SerieTemporal[]
     { etiqueta: "Acum.", valor: 40 },
   ],
 };
+
+// -----------------------------------------------------------------------------
+// Metas del convenio (HU-CO-04) — fallback cuando la DB no responde
+// -----------------------------------------------------------------------------
+
+export const DEMO_METAS_CONVENIO = {
+  c1a1: {
+    componente: "C1", accion: "A1",
+    descripcion: "Conservación del Recurso Hídrico a través de Medidas de Adaptación al Cambio Climático",
+    indicadores: [
+      { label: "Cercos vivos", actual: 11.1, meta: 12, unidad: "km", pct: 92 },
+      { label: "Aislamientos (cerco de alambre)", actual: 8.9, meta: 12, unidad: "km", pct: 74 },
+      { label: "Cercas multiestratificadas (extra)", actual: 0.15, meta: 0, unidad: "km", pct: 0 },
+    ],
+  },
+  c1a2: {
+    componente: "C1", accion: "A2",
+    descripcion: "Conectividad y reconversión agroforestal",
+    indicadores: [
+      { label: "Franjas de conectividad", actual: 0, meta: 15, unidad: "ha", pct: 0 },
+      { label: "Sistemas silvopastoriles", actual: 6.46, meta: 15, unidad: "ha", pct: 43 },
+      { label: "Sistemas agroforestales", actual: 3.17, meta: 15, unidad: "ha", pct: 21 },
+    ],
+  },
+  c2a1: {
+    componente: "C2", accion: "A1",
+    descripcion: "Manejo del Ciclo del Agua y Restauración de Suelos",
+    indicadores: [
+      { label: "Cosecha de agua", actual: 79, meta: 79, unidad: "obras", pct: 100 },
+      { label: "Kit de compostaje", actual: 79, meta: 79, unidad: "kits", pct: 100 },
+    ],
+  },
+  c2a2: {
+    componente: "C2", accion: "A2",
+    descripcion: "Estaciones limnimétricas y obras de captación",
+    indicadores: [
+      { label: "Estaciones limnimétricas", actual: 6, meta: 7, unidad: "estaciones", pct: 86 },
+      { label: "Obras de captación", actual: 95, meta: 48, unidad: "obras", pct: 198 },
+    ],
+  },
+  c3: {
+    componente: "C3", accion: "*",
+    descripcion: "Reconversión Productiva en Áreas Protegidas y Páramos",
+    indicadores: [
+      { label: "Predios intervenidos en áreas protegidas", actual: 39, meta: 35, unidad: "predios", pct: 111 },
+    ],
+  },
+  municipios_intervenidos: [
+    { id_municipio: 1, nombre: "Guatavita", num_propuestas: 120 },
+    { id_municipio: 2, nombre: "El Rosal", num_propuestas: 115 },
+  ],
+  veredas_intervenidas: [
+    { id_vereda: 1, nombre: "Aposentos", id_municipio: 1, nombre_municipio: "Guatavita", num_propuestas: 12 },
+  ],
+};
