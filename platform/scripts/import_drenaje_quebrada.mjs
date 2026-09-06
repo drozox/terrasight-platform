@@ -33,8 +33,11 @@ function geojsonToWkt(g) {
 // =============================================================================
 // sgs_inf_drenaje_doble (7 features, MultiPolygon)
 // =============================================================================
-console.log("[drenaje-quebrada] TRUNCATE sgs_inf_drenaje_doble + bcs_dh_quebrada...");
-await sql`TRUNCATE sgs_inf_drenaje_doble, bcs_dh_quebrada RESTART IDENTITY CASCADE`;
+// NOTA: NO usamos TRUNCATE porque las FKs CASCADE borrarian las propuestas.
+// En lugar de eso, hacemos DELETE para respetar ON DELETE SET NULL.
+console.log("[drenaje-quebrada] DELETE FROM sgs_inf_drenaje_doble + bcs_dh_quebrada (respeta FK)...");
+await sql`DELETE FROM sgs_inf_drenaje_doble`;
+await sql`DELETE FROM bcs_dh_quebrada`;
 
 console.log("\n[drenaje-quebrada] sgs_inf_drenaje_doble");
 const dbl = JSON.parse(readFileSync(join(PHASE6_4686, "sgs_inf_drenaje_doble.geojson"), "utf-8"));
