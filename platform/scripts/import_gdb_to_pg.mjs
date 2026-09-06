@@ -240,8 +240,13 @@ async function getFKCache(table, column) {
 // ------------------------------------------------------------------
 function mapRow(gdbRow, cfg) {
   const out = {};
+  const pgPK = PK_COLUMN[cfg.table];
   for (const [gdbCol, pgCol] of Object.entries(cfg.columns)) {
     let val = gdbRow[gdbCol];
+    // Filtrar PKs 0/null para que SERIAL asigne (GDB a veces tiene id=0 en lugar de null)
+    if (pgCol === pgPK && (val === undefined || val === null || val === "" || val === 0 || val === "0")) {
+      continue;
+    }
     if (val === undefined || val === "") val = null;
     if (pgCol === "geom" && val) {
       // gdbRow.__geometry is GeoJSON; build WKT

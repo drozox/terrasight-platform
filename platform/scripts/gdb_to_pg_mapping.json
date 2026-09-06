@@ -198,6 +198,7 @@
       "table": "sgs_pro_propuesta_punto",
       "file": "sgs_pro_propuesta_punto.geojson",
       "loader": "simple",
+      "_note": "estado está en sgs_pro_propuesta (super), no en las hijas",
       "fk_lookups": {
         "id_predio": {
           "from_column": "id_predio",
@@ -211,7 +212,6 @@
         "este":         "este",
         "norte":        "norte",
         "descripcion":  "descripcion",
-        "estado":       "estado",
         "id_predio":    "id_predio",
         "__geometry": "geom"
       }
@@ -220,6 +220,7 @@
       "table": "sgs_pro_propuesta_linea",
       "file": "sgs_pro_propuesta_linea.geojson",
       "loader": "simple",
+      "_note": "estado está en sgs_pro_propuesta (super), no en las hijas",
       "fk_lookups": {
         "id_predio": {
           "from_column": "id_predio",
@@ -232,7 +233,6 @@
         "actividad":    "actividad",
         "long_m":       "longitud_m",
         "long_km":      "longitud_km",
-        "estado":       "estado",
         "id_predio":    "id_predio",
         "__geometry": "geom"
       }
@@ -241,6 +241,7 @@
       "table": "sgs_pro_propuesta_poligono",
       "file": "sgs_pro_propuesta_poligono.geojson",
       "loader": "simple",
+      "_note": "estado está en sgs_pro_propuesta (super), no en las hijas",
       "fk_lookups": {
         "id_predio": {
           "from_column": "id_predio",
@@ -253,7 +254,6 @@
         "actividad":    "actividad",
         "area_ha":      "area_ha",
         "area_m2":      "area_m2",
-        "estado":       "estado",
         "id_predio":    "id_predio",
         "__geometry": "geom"
       }
