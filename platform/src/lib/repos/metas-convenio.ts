@@ -81,34 +81,50 @@ async function getC1A1(): Promise<MetaComponente> {
 }
 
 // =============================================================================
-// C1A2: 15 ha conectividad + 15 ha silvopastoril + 15 ha agroforestal (polígonos)
+// C1A2: 15 km conectividad + 15 ha silvopastoril + 15 ha agroforestal
+//
+// Conectividad operativa = Franjas de Conectividad (líneas) → km lineales.
+// Silvopastoril/Agroforestal = polígonos con actividades relacionadas → ha.
 // =============================================================================
 async function getC1A2(): Promise<MetaComponente> {
   const rows = await sql<{
-    ha_conectividad: number | string;
+    km_conectividad: number | string;
     ha_silvopastoril: number | string;
     ha_agroforestal: number | string;
   }[]>`
     SELECT
-      round(SUM(CASE WHEN unaccent(pq.actividad) ILIKE unaccent('%conectividad%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%franja%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%arreglo perimetral%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%perimetral%')
-                      THEN pq.area_ha ELSE 0 END)::numeric, 2) AS ha_conectividad,
+      -- Conectividad: suma km de líneas con "Franja de Conectividad"
+      round((
+        SELECT COALESCE(SUM(pl.longitud_km), 0)
+        FROM sgs_pro_propuesta_linea pl
+        JOIN sgs_pro_propuesta pp2 ON pp2.id_propuesta = pl.id_propuesta
+        JOIN sgs_com_accion a2 ON a2.id_accion = pp2.id_accion
+        JOIN sgs_com_componente c2 ON c2.id_componente = a2.id_componente
+        WHERE c2.nombre = 'C1' AND a2.nombre = 'A2'
+          AND (unaccent(pl.actividad) ILIKE unaccent('%franja%conectividad%')
+               OR unaccent(pl.actividad) ILIKE unaccent('%conectividad%'))
+      )::numeric, 3) AS km_conectividad,
+      -- Silvopastoril: polígonos con actividades silvopastoriles
       round(SUM(CASE WHEN unaccent(pq.actividad) ILIKE unaccent('%silvopastoril%')
                        OR unaccent(pq.actividad) ILIKE unaccent('%silvopast%')
                        OR unaccent(pq.actividad) ILIKE unaccent('%pastos arbolados%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%enriquecimiento%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%enriquecimiento%pastos%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%enriquecimiento%arbol%dispers%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%arboles dispersos%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%rastrojo%')
                        OR unaccent(pq.actividad) ILIKE unaccent('%pradera%')
                        OR unaccent(pq.actividad) ILIKE unaccent('%potrero%')
                        OR unaccent(pq.actividad) ILIKE unaccent('%ssp%')
                       THEN pq.area_ha ELSE 0 END)::numeric, 2) AS ha_silvopastoril,
+      -- Agroforestal: polígonos con actividades agroforestales
       round(SUM(CASE WHEN unaccent(pq.actividad) ILIKE unaccent('%agroforestal%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%bosque%comestible%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%modulo%alta densidad%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%modulo%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%banco%proteina%')
+                       OR unaccent(pq.actividad) ILIKE unaccent('%banco%')
                        OR unaccent(pq.actividad) ILIKE unaccent('%huerta%')
                        OR unaccent(pq.actividad) ILIKE unaccent('%callejon%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%modulo%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%banco%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%bosque comestible%')
                       THEN pq.area_ha ELSE 0 END)::numeric, 2) AS ha_agroforestal
     FROM sgs_pro_propuesta_poligono pq
     JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
@@ -117,7 +133,7 @@ async function getC1A2(): Promise<MetaComponente> {
     WHERE c.nombre = 'C1' AND a.nombre = 'A2'
   `;
   const r = rows[0];
-  const conectividad = pgNum(r.ha_conectividad);
+  const conectividad = pgNum(r.km_conectividad);
   const silvopastoril = pgNum(r.ha_silvopastoril);
   const agroforestal = pgNum(r.ha_agroforestal);
   return {
@@ -125,7 +141,8 @@ async function getC1A2(): Promise<MetaComponente> {
     accion: "A2",
     descripcion: "Conectividad y reconversión agroforestal",
     indicadores: [
-      { label: "Franjas de conectividad", actual: conectividad, meta: 15, unidad: "ha", pct: pct(conectividad, 15) },
+      // Conectividad se mide en km (franjas lineales), no en ha.
+      { label: "Franjas de conectividad", actual: conectividad, meta: 15, unidad: "km", pct: pct(conectividad, 15) },
       { label: "Sistemas silvopastoriles", actual: silvopastoril, meta: 15, unidad: "ha", pct: pct(silvopastoril, 15) },
       { label: "Sistemas agroforestales", actual: agroforestal, meta: 15, unidad: "ha", pct: pct(agroforestal, 15) },
     ],
@@ -220,30 +237,71 @@ async function getC3(): Promise<MetaComponente> {
 
 // =============================================================================
 // Adicional: Municipios y veredas intervenidos
+//
+// Cubre los dos casos del spec:
+//   1) Propuestas con id_predio → municipio/vereda del predio (lookup)
+//   2) Propuestas con geom (líneas/polígonos) → intersección espacial con municipio/vereda
+//   3) Propuestas_punto sin geom ni id_predio (C2 obras) → se excluyen del detalle geográfico
 // =============================================================================
 async function getMunicipiosIntervenidos() {
   return sql<{ id_municipio: number; nombre: string; num_propuestas: number }[]>`
-    SELECT m.id_municipio, m.nombre_municipio AS nombre, count(DISTINCT pp.id_propuesta)::int AS num_propuestas
-    FROM sgs_pro_propuesta pp
-    JOIN sgs_pre_predio p ON p.id_predio = pp.id_predio
-    JOIN bcs_lpa_vereda v ON v.id_vereda = p.id_vereda
-    JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
-    WHERE pp.id_predio IS NOT NULL
-    GROUP BY m.id_municipio, m.nombre_municipio
-    ORDER BY num_propuestas DESC, m.nombre_municipio
+    WITH propuestas_geo AS (
+      -- (1) Propuestas con id_predio: municipio via vereda
+      SELECT DISTINCT pp.id_propuesta, m.id_municipio, m.nombre_municipio
+      FROM sgs_pro_propuesta pp
+      JOIN sgs_pre_predio p ON p.id_predio = pp.id_predio
+      JOIN bcs_lpa_vereda v ON v.id_vereda = p.id_vereda
+      JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
+      WHERE pp.id_predio IS NOT NULL
+      UNION
+      -- (2) Líneas: intersección espacial
+      SELECT DISTINCT pp.id_propuesta, m.id_municipio, m.nombre_municipio
+      FROM sgs_pro_propuesta_linea pl
+      JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pl.id_propuesta
+      JOIN bcs_lpa_municipio m ON ST_Intersects(m.geom, pl.geom)
+      UNION
+      -- (2) Polígonos: intersección espacial
+      SELECT DISTINCT pp.id_propuesta, m.id_municipio, m.nombre_municipio
+      FROM sgs_pro_propuesta_poligono pq
+      JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
+      JOIN bcs_lpa_municipio m ON ST_Intersects(m.geom, pq.geom)
+    )
+    SELECT id_municipio, nombre_municipio AS nombre, count(DISTINCT id_propuesta)::int AS num_propuestas
+    FROM propuestas_geo
+    GROUP BY id_municipio, nombre_municipio
+    ORDER BY num_propuestas DESC, nombre_municipio
   `;
 }
 
 async function getVeredasIntervenidas() {
   return sql<{ id_vereda: number; nombre: string; id_municipio: number; nombre_municipio: string; num_propuestas: number }[]>`
-    SELECT v.id_vereda, v.nombre_vereda AS nombre, m.id_municipio, m.nombre_municipio, count(DISTINCT pp.id_propuesta)::int AS num_propuestas
-    FROM sgs_pro_propuesta pp
-    JOIN sgs_pre_predio p ON p.id_predio = pp.id_predio
-    JOIN bcs_lpa_vereda v ON v.id_vereda = p.id_vereda
-    JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
-    WHERE pp.id_predio IS NOT NULL
-    GROUP BY v.id_vereda, v.nombre_vereda, m.id_municipio, m.nombre_municipio
-    ORDER BY num_propuestas DESC, m.nombre_municipio, v.nombre_vereda
+    WITH propuestas_geo AS (
+      -- (1) Propuestas con id_predio: vereda directa
+      SELECT DISTINCT pp.id_propuesta, v.id_vereda, v.nombre_vereda, m.id_municipio, m.nombre_municipio
+      FROM sgs_pro_propuesta pp
+      JOIN sgs_pre_predio p ON p.id_predio = pp.id_predio
+      JOIN bcs_lpa_vereda v ON v.id_vereda = p.id_vereda
+      JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
+      WHERE pp.id_predio IS NOT NULL
+      UNION
+      -- (2) Líneas: intersección espacial con vereda
+      SELECT DISTINCT pp.id_propuesta, v.id_vereda, v.nombre_vereda, m.id_municipio, m.nombre_municipio
+      FROM sgs_pro_propuesta_linea pl
+      JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pl.id_propuesta
+      JOIN bcs_lpa_vereda v ON ST_Intersects(v.geom, pl.geom)
+      JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
+      UNION
+      -- (2) Polígonos: intersección espacial con vereda
+      SELECT DISTINCT pp.id_propuesta, v.id_vereda, v.nombre_vereda, m.id_municipio, m.nombre_municipio
+      FROM sgs_pro_propuesta_poligono pq
+      JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
+      JOIN bcs_lpa_vereda v ON ST_Intersects(v.geom, pq.geom)
+      JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
+    )
+    SELECT id_vereda, nombre_vereda AS nombre, id_municipio, nombre_municipio, count(DISTINCT id_propuesta)::int AS num_propuestas
+    FROM propuestas_geo
+    GROUP BY id_vereda, nombre_vereda, id_municipio, nombre_municipio
+    ORDER BY num_propuestas DESC, nombre_municipio, nombre_vereda
   `;
 }
 

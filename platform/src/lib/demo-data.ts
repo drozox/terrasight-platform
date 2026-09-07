@@ -397,9 +397,9 @@ export const DEMO_METAS_CONVENIO = {
     componente: "C1", accion: "A2",
     descripcion: "Conectividad y reconversión agroforestal",
     indicadores: [
-      { label: "Franjas de conectividad", actual: 0, meta: 15, unidad: "ha", pct: 0 },
+      { label: "Franjas de conectividad", actual: 5.2, meta: 15, unidad: "km", pct: 35 },
       { label: "Sistemas silvopastoriles", actual: 6.46, meta: 15, unidad: "ha", pct: 43 },
-      { label: "Sistemas agroforestales", actual: 3.17, meta: 15, unidad: "ha", pct: 21 },
+      { label: "Sistemas agroforestales", actual: 4.44, meta: 15, unidad: "ha", pct: 30 },
     ],
   },
   c2a1: {
