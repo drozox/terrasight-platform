@@ -84,6 +84,7 @@ export function MapToolFeedback({
     <div
       role="status"
       aria-live="polite"
+      aria-label={meta.title}
       className={cn(
         "pointer-events-auto absolute right-4 top-4 z-[700] w-72 max-w-[calc(100vw-2rem)]",
         "rounded-xl border border-outline-variant/50 bg-surface-container-lowest/98 p-4 shadow-2xl backdrop-blur",

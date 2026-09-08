@@ -30,6 +30,8 @@
 
 **Última actualización**: 2026-08-15 19:10. **41/55 items cerrados** (75%). 14 commits. **214/214 unit+component** + 6 e2e + build 14/14 verde + tsc 0 errors.
 
+> **2026-09-08 (sprint batch 17)**: 5 items adicionales cerrados (UX-17, UX-18, UX-45, UX-63, UX-80) → **46/55 items (84%)**. 1 export PDF nuevo para tomadores (F1, fuera del audit).
+
 **Top 3 P0 a cerrar antes de la demo al cliente cañero + CAR**:
 
 1. ~~**UX-01** — La tipografía `Hanken Grotesk` está declarada en CSS pero **no se carga**~~ ✅ Cerrado en `40baf25` (next/font/google).
@@ -525,6 +527,8 @@ Error: Failed to set Next.js data cache, items over 2MB can not be cached (11420
 | UX-14/UX-59 (login logos aliados) | Panel lateral WWF/CAR/Natura + copy institucional | ✅ | `19e6c22` |
 | UX-15/UX-62 (ModulePlaceholder) | Pill "Próxima fase · roadmap" + CTA "Pedir esta función" (mailto) | ✅ | `19e6c22` |
 | UX-29 (search debounce feedback) | Loader2 (animate-spin) mientras espera 300ms | ✅ | `19e6c22` |
+| **UX-63** (breadcrumb drill-downs) | Componente `Breadcrumb` en `components/ui/` + integrado en `/metas/convenio/[id_municipio]` y `/metas/convenio/propuestas` | ✅ | sprint batch 17 (2026-09-08) |
+| **UX-80** (sort en tablas) | `SortableHeader` con `aria-sort` + iconos chevron; server-side en `/predios` (codigo/nombre/componente/areaHa) y `/intervenciones` (id/actividad/predio/municipio/componente/estado/avance) | ✅ | sprint batch 17 (2026-09-08) |
 | UX-43 (animate-in keyframes) | Definidas nativas en globals.css (no más dependencia de tailwindcss-animate) | ✅ | `19e6c22` |
 | UX-44 (map zoom 600ms) | → 350ms (recomendación skill) | ✅ | `19e6c22` |
 | UX-46 (glassmorphism decisión) | Mantener solo en overlays de mapa; sólido en otros | ✅ | (decisión documentada, sin código) |
@@ -562,6 +566,9 @@ Error: Failed to set Next.js data cache, items over 2MB can not be cached (11420
 | UX-45 | Map zoom button min size 44px | ⏳ | (nice-to-have) |
 | UX-61 | Topbar búsqueda global | ⏳ | (sprint +1) |
 | **Topbar HelpCircle** (nuevo) | Botón Ayuda era no-op | ✅ **HelpDialog** con info + atajos + mailto | sprint batch 14 |
+| **UX-18** (loading skeletons) | Componente `Skeleton` + `SkeletonCard` + `SkeletonSection` + `SkeletonTable`; `loading.tsx` en `/metas/convenio`, `/metas/convenio/[id_municipio]`, `/metas/convenio/propuestas` | ✅ | sprint batch 17 (2026-09-08) |
+| **UX-17** (aria-label toasts) | `aria-label={meta.title}` en `map-tool-feedback.tsx` (toast del mapa) | ✅ | sprint batch 17 (2026-09-08) |
+| **UX-45** (zoom button min 44px) | CSS global `.leaflet-control-zoom a { width/height: 44px }` en `globals.css` | ✅ | sprint batch 17 (2026-09-08) |
 | **MapSearchBar Bookmark** (nuevo) | Marcadores guardados no-op | ✅ **BookmarksDialog** con preview + features + CTA | sprint batch 14 |
 | **MapSearchBar Layers** (nuevo) | Botón duplicado del MapLayersPanel | ✅ **eliminado** (duplicado) | sprint batch 14 |
 

@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import { Building2, Search, MapPin, Filter } from "lucide-react";
 import Link from "next/link";
 import { getPrediosGeoJSON } from "@/lib/repos";
@@ -11,7 +12,7 @@ import { formatDecimal } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ q?: string }>;
+type SearchParams = Promise<{ q?: string; sort?: string; order?: "asc" | "desc" }>;
 
 const COMPONENT_COLOR: Record<string, "primary" | "secondary" | "tertiary"> = {
   C1: "primary",
@@ -29,6 +30,8 @@ export default async function PrediosPage({
     getCurrentUser(),
   ]);
   const q = (params.q ?? "").trim().toLowerCase();
+  const sort = params.sort ?? "nombre";
+  const order = params.order === "desc" ? "desc" : "asc";
   const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
   const geojson = await getPrediosGeoJSON();
@@ -41,6 +44,19 @@ export default async function PrediosPage({
         (f.properties.componente ?? "").toLowerCase().includes(q),
       )
     : all;
+
+  // UX-80: sort server-side sobre el array filtrado
+  const sorted = [...filtered].sort((a, b) => {
+    const av = (a.properties as Record<string, unknown>)[sort];
+    const bv = (b.properties as Record<string, unknown>)[sort];
+    let cmp = 0;
+    if (av == null && bv == null) cmp = 0;
+    else if (av == null) cmp = 1;
+    else if (bv == null) cmp = -1;
+    else if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv), "es-CO", { numeric: true });
+    return order === "asc" ? cmp : -cmp;
+  });
 
   // Calcular KPIs
   const totalArea = all.reduce((acc, f) => acc + (f.properties.areaHa || 0), 0);
@@ -128,7 +144,7 @@ export default async function PrediosPage({
               <span>
                 Mostrando{" "}
                 <span className="font-bold text-on-surface">
-                  {filtered.length}
+                  {sorted.length}
                 </span>{" "}
                 de {all.length}
               </span>
@@ -139,10 +155,26 @@ export default async function PrediosPage({
             <table className="w-full border-collapse text-left text-body-sm">
               <thead>
                 <tr className="bg-surface-container-low text-[11px] font-bold uppercase text-on-surface-variant">
-                  <th className="px-4 py-3">Código</th>
-                  <th className="px-4 py-3">Nombre</th>
-                  <th className="px-4 py-3">Componente</th>
-                  <th className="px-4 py-3 text-right">Área (ha)</th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="codigo" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={{ q }}>
+                      Código
+                    </SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="nombre" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={{ q }}>
+                      Nombre
+                    </SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="componente" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={{ q }}>
+                      Componente
+                    </SortableHeader>
+                  </th>
+                  <th className="px-4 py-3 text-right">
+                    <SortableHeader field="areaHa" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={{ q }} className="justify-end">
+                      Área (ha)
+                    </SortableHeader>
+                  </th>
                   <th className="px-4 py-3 text-right">Lat / Lon</th>
                   <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
@@ -151,7 +183,7 @@ export default async function PrediosPage({
                 {/* UX-67 (audit 2026-07-24): empty state con icono + accion.
                    Antes era <tr> con <td colSpan> + texto plano. Ahora
                    EmptyState component (reusable). */}
-                {filtered.length === 0 && all.length > 0 && (
+                {sorted.length === 0 && all.length > 0 && (
                   <tr>
                     <td colSpan={6} className="p-0">
                       <EmptyState
@@ -164,7 +196,7 @@ export default async function PrediosPage({
                     </td>
                   </tr>
                 )}
-                {filtered.length === 0 && all.length === 0 && (
+                {sorted.length === 0 && all.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-0">
                       <EmptyState
@@ -181,7 +213,7 @@ export default async function PrediosPage({
                     </td>
                   </tr>
                 )}
-                {filtered.map((f) => (
+                {sorted.map((f) => (
                   <tr
                     key={f.properties.id}
                     className="border-b border-outline-variant/30 transition-colors hover:bg-surface-container-low"

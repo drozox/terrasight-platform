@@ -6,9 +6,9 @@
 // Patrón: server component con params como Promise (Next 15).
 // =============================================================================
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChevronRight, MapPin, Building2 } from "lucide-react";
+import { MapPin, Building2 } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getDetalleMunicipio } from "@/lib/repos/metas-convenio";
 import { withFallback } from "@/lib/repos/_helpers";
 import { DEMO_DETALLE_MUNICIPIO } from "@/lib/demo-data";
@@ -92,13 +92,12 @@ function DetalleMunicipioView({
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-on-surface-variant">
-          <Link href="/metas/convenio" className="hover:text-primary inline-flex items-center gap-1">
-            <ArrowLeft className="size-4" /> Metas del convenio
-          </Link>
-          <ChevronRight className="size-4" />
-          <span className="text-on-surface font-medium">{data.municipio.nombre}</span>
-        </nav>
+        <Breadcrumb
+          items={[
+            { label: "Metas del convenio", href: "/metas/convenio" },
+            { label: data.municipio.nombre },
+          ]}
+        />
 
         <header>
           <h1 className="text-3xl font-bold text-on-surface inline-flex items-center gap-2">

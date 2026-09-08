@@ -9,7 +9,8 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChevronRight, Building2, MapPin, ExternalLink } from "lucide-react";
+import { Building2, MapPin, ExternalLink } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { INDICADORES_META, getPropuestasPorIndicador, type IndicadorKey } from "@/lib/repos/metas-convenio";
 
 export const dynamic = "force-dynamic";
@@ -57,13 +58,12 @@ export default async function PropuestasIndicadorPage({
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-on-surface-variant">
-          <Link href="/metas/convenio" className="hover:text-primary inline-flex items-center gap-1">
-            <ArrowLeft className="size-4" /> Metas del convenio
-          </Link>
-          <ChevronRight className="size-4" />
-          <span className="text-on-surface font-medium">{meta.label}</span>
-        </nav>
+        <Breadcrumb
+          items={[
+            { label: "Metas del convenio", href: "/metas/convenio" },
+            { label: meta.label },
+          ]}
+        />
 
         <header>
           <div className="text-xs uppercase tracking-wide text-on-surface-variant mb-1">

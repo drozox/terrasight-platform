@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { ArrowRight, AlertTriangle, MapPin, Building2, Target } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { Printer } from "lucide-react";
 import { getMetasConvenio, INDICADORES_META, type IndicadorKey } from "@/lib/repos/metas-convenio";
 import { withFallback } from "@/lib/repos/_helpers";
 import { DEMO_METAS_CONVENIO } from "@/lib/demo-data";
@@ -237,13 +238,22 @@ function MetasConvenioView({
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold text-on-surface inline-flex items-center gap-2">
-            <Target className="size-7 text-primary" /> Metas del convenio
-          </h1>
-          <p className="mt-2 text-on-surface-variant">
-            Convenio CAR Cundinamarca – WWF – Fundación Natura. Avance operativo por componente y acción.
-          </p>
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-on-surface inline-flex items-center gap-2">
+              <Target className="size-7 text-primary" /> Metas del convenio
+            </h1>
+            <p className="mt-2 text-on-surface-variant">
+              Convenio CAR Cundinamarca – WWF – Fundación Natura. Avance operativo por componente y acción.
+            </p>
+          </div>
+          <Link
+            href="/metas/convenio/imprimir"
+            className="inline-flex items-center gap-2 rounded-md border border-outline-variant bg-surface-container px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-high focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary no-print"
+          >
+            <Printer className="size-4" />
+            Imprimir / PDF
+          </Link>
         </header>
 
         {/* Banner de calidad de datos */}

@@ -193,6 +193,16 @@
   }
 }
 
+/* UX-45: zoom buttons de Leaflet cumplen WCAG 2.5.5 (min 44x44px) */
+.leaflet-control-zoom a,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 22px !important;
+}
+
 /* =============================================================================
  * Custom utilities para los tokens de spacing SIG TERRITORIO.
  * Tailwind v4 los lee automáticamente del namespace `--spacing-terrasight-*`

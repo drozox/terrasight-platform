@@ -1,6 +1,7 @@
 ﻿import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import { Wrench, ArrowRight, Inbox } from "lucide-react";
 import Link from "next/link";
 import { getIntervencionesRecientes, getComponentes } from "@/lib/repos";
@@ -10,7 +11,7 @@ import { EstadoIntervencionDropdown } from "./estado-dropdown";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ componente?: string; page?: string }>;
+type SearchParams = Promise<{ componente?: string; page?: string; sort?: string; order?: "asc" | "desc" }>;
 
 // UX-65 (audit 2026-07-24): paginacion basica via searchParams.
 const PAGE_SIZE = 25;
@@ -49,6 +50,8 @@ export default async function IntervencionesPage({
   // UX-65 (audit 2026-07-24): paginacion. page=1 default. Cap a 9999
   // (mas alla es claramente input malicioso).
   const pageNum = Math.max(1, Math.min(9999, Number(params.page ?? "1") || 1));
+  const sort = params.sort ?? "id";
+  const order = params.order === "desc" ? "desc" : "asc";
   const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
   // Pedimos 1 fila extra para saber si hay mas paginas sin un COUNT extra.
@@ -65,7 +68,29 @@ export default async function IntervencionesPage({
   // UX-65: aplicamos paginacion client-side sobre la lista que ya vino
   // del server. Cortamos a PAGE_SIZE (la fila +1 era para detectar "hay mas").
   const hasNextPage = intervenciones.length > PAGE_SIZE;
-  const intervencionesPage = intervenciones.slice(0, PAGE_SIZE);
+  // UX-80: sort server-side sobre la lista de la página
+  const sorted = [...intervenciones].sort((a, b) => {
+    const fieldMap: Record<string, string> = {
+      id: "id",
+      actividad: "actividad",
+      nombrePredio: "nombrePredio",
+      municipio: "municipio",
+      componente: "componente",
+      estado: "estado",
+      avance: "avance",
+    };
+    const key = fieldMap[sort] ?? "id";
+    const av = (a as unknown as Record<string, unknown>)[key];
+    const bv = (b as unknown as Record<string, unknown>)[key];
+    let cmp = 0;
+    if (av == null && bv == null) cmp = 0;
+    else if (av == null) cmp = 1;
+    else if (bv == null) cmp = -1;
+    else if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv), "es-CO", { numeric: true });
+    return order === "asc" ? cmp : -cmp;
+  });
+  const intervencionesPage = sorted.slice(0, PAGE_SIZE);
   const offset = (pageNum - 1) * PAGE_SIZE;
 
   return (
@@ -163,13 +188,27 @@ export default async function IntervencionesPage({
             <table className="w-full border-collapse text-left text-body-sm">
               <thead>
                 <tr className="bg-surface-container-low text-[11px] font-bold uppercase text-on-surface-variant">
-                  <th className="px-4 py-3">ID</th>
-                  <th className="px-4 py-3">Actividad</th>
-                  <th className="px-4 py-3">Predio</th>
-                  <th className="px-4 py-3">Municipio</th>
-                  <th className="px-4 py-3">Componente</th>
-                  <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3 text-right">Avance</th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="id" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>ID</SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="actividad" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Actividad</SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="nombrePredio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Predio</SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="municipio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Municipio</SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="componente" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Componente</SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="estado" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Estado</SortableHeader>
+                  </th>
+                  <th className="px-4 py-3 text-right">
+                    <SortableHeader field="avance" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }} className="justify-end">Avance</SortableHeader>
+                  </th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
