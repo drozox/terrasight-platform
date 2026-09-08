@@ -49,6 +49,278 @@ export interface DetalleMunicipio {
 }
 
 // =============================================================================
+// Metadata de los 10 indicadores: para drill-down a propuestas específicas
+//
+// kind = "lineas" | "poligonos" | "puntos" | "super"
+// patterns = OR de LIKE para filtrar la actividad (unaccent + ILIKE)
+// ca = "C1A1" | "C1A2" | "C2A1" | "C2A2" | "C3"
+//
+// Cada card de meta usa esto para construir el link "Ver X propuestas →"
+// que apunta a /metas/convenio/propuestas?ca=...&kind=...&pat=...
+// =============================================================================
+export type IndicadorKey =
+  | "cercos_vivos"
+  | "alambre"
+  | "conectividad"
+  | "silvopastoril"
+  | "agroforestal"
+  | "cosecha"
+  | "compostaje"
+  | "estaciones"
+  | "obras_captacion"
+  | "predios_c3";
+
+export interface IndicadorMeta {
+  key: IndicadorKey;
+  label: string;
+  ca: "C1A1" | "C1A2" | "C2A1" | "C2A2" | "C3";
+  kind: "lineas" | "poligonos" | "puntos" | "super";
+  patterns: string[]; // OR de LIKE patterns
+  meta: number;
+  unidad: string;
+}
+
+export const INDICADORES_META: Record<IndicadorKey, IndicadorMeta> = {
+  cercos_vivos: {
+    key: "cercos_vivos",
+    label: "Cercos vivos",
+    ca: "C1A1",
+    kind: "lineas",
+    patterns: ["%cerco vivo%", "%cerca viva%"],
+    meta: 12,
+    unidad: "km",
+  },
+  alambre: {
+    key: "alambre",
+    label: "Aislamientos (cerco de alambre)",
+    ca: "C1A1",
+    kind: "lineas",
+    patterns: ["%alambre%"],
+    meta: 12,
+    unidad: "km",
+  },
+  conectividad: {
+    key: "conectividad",
+    label: "Franjas de conectividad",
+    ca: "C1A2",
+    kind: "lineas",
+    patterns: ["%franja%conectividad%", "%conectividad%"],
+    meta: 15,
+    unidad: "km",
+  },
+  silvopastoril: {
+    key: "silvopastoril",
+    label: "Sistemas silvopastoriles",
+    ca: "C1A2",
+    kind: "poligonos",
+    patterns: [
+      "%silvopastoril%", "%silvopast%", "%pastos arbolados%",
+      "%enriquecimiento%pastos%", "%enriquecimiento%arbol%dispers%",
+      "%arboles dispersos%", "%rastrojo%", "%pradera%", "%potrero%", "%ssp%",
+    ],
+    meta: 15,
+    unidad: "ha",
+  },
+  agroforestal: {
+    key: "agroforestal",
+    label: "Sistemas agroforestales",
+    ca: "C1A2",
+    kind: "poligonos",
+    patterns: [
+      "%agroforestal%", "%bosque%comestible%", "%modulo%alta densidad%",
+      "%modulo%", "%banco%proteina%", "%banco%", "%huerta%", "%callejon%",
+    ],
+    meta: 15,
+    unidad: "ha",
+  },
+  cosecha: {
+    key: "cosecha",
+    label: "Cosecha de agua",
+    ca: "C2A1",
+    kind: "puntos",
+    patterns: ["%cosecha%"],
+    meta: 79,
+    unidad: "obras",
+  },
+  compostaje: {
+    key: "compostaje",
+    label: "Kit de compostaje",
+    ca: "C2A1",
+    kind: "puntos",
+    patterns: ["%compostaje%", "%compost%"],
+    meta: 79,
+    unidad: "kits",
+  },
+  estaciones: {
+    key: "estaciones",
+    label: "Estaciones limnimétricas",
+    ca: "C2A2",
+    kind: "puntos",
+    patterns: ["%estacion%limnimet%", "%limnimet%"],
+    meta: 7,
+    unidad: "estaciones",
+  },
+  obras_captacion: {
+    key: "obras_captacion",
+    label: "Obras de captación",
+    ca: "C2A2",
+    kind: "puntos",
+    patterns: ["%captacion%", "%captaci%"],
+    meta: 48,
+    unidad: "obras",
+  },
+  predios_c3: {
+    key: "predios_c3",
+    label: "Predios intervenidos en áreas protegidas",
+    ca: "C3",
+    kind: "super",
+    patterns: [], // C3 = filtro por componente, no por actividad
+    meta: 35,
+    unidad: "predios",
+  },
+};
+
+export interface PropuestaIndicador {
+  id_propuesta: number;
+  actividad: string;
+  nombre_predio: string | null;
+  nombre_municipio: string | null;
+  nombre_vereda: string | null;
+  hectareas: number | null;
+  longitud_km: number | null;
+}
+
+// =============================================================================
+// Lista de propuestas de un indicador (drill-down desde /metas/convenio/propuestas)
+//
+// Construye un WHERE dinámico según kind + patterns. Devuelve hasta `limit`
+// propuestas con datos del predio y municipio cuando están disponibles.
+// =============================================================================
+const getPropuestasPorIndicadorImpl = async (
+  key: IndicadorKey,
+  limit: number = 100,
+): Promise<PropuestaIndicador[]> => {
+  const meta: IndicadorMeta | undefined = INDICADORES_META[key];
+  if (!meta) return [];
+  try {
+    if (meta.kind === "super") {
+      return await queryPropuestasSuper(limit);
+    }
+    return await queryPropuestasHija(meta, limit);
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[terrasight] getPropuestasPorIndicador(${key}) failed:`, (err as Error).message);
+    }
+    return [];
+  }
+};
+export const getPropuestasPorIndicador = cached(getPropuestasPorIndicadorImpl, {
+  tags: ["metas", "convenio", "propuestas"],
+  ttl: 60,
+});
+
+async function queryPropuestasSuper(limit: number): Promise<PropuestaIndicador[]> {
+  const rows = await sql<
+    {
+      id_propuesta: number | string;
+      actividad: string;
+      nombre_predio: string | null;
+      nombre_municipio: string | null;
+      nombre_vereda: string | null;
+    }[]
+  >`
+    SELECT DISTINCT
+      pp.id_propuesta,
+      COALESCE(pp.tipo, 'PREDIO')::text AS actividad,
+      pr.nombre_predio,
+      m.nombre_municipio,
+      v.nombre_vereda
+    FROM sgs_pro_propuesta pp
+    JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
+    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+    JOIN sgs_pre_predio pr ON pr.id_predio = pp.id_predio
+    LEFT JOIN bcs_lpa_vereda v ON v.id_vereda = pr.id_vereda
+    LEFT JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
+    WHERE c.nombre = 'C3' AND pp.id_predio IS NOT NULL
+    ORDER BY pp.id_propuesta
+    LIMIT ${limit}
+  `;
+  return rows.map((r: any) => ({
+    id_propuesta: pgInt(r.id_propuesta),
+    actividad: pgText(r.actividad),
+    nombre_predio: r.nombre_predio ? pgText(r.nombre_predio) : null,
+    nombre_municipio: r.nombre_municipio ? pgText(r.nombre_municipio) : null,
+    nombre_vereda: r.nombre_vereda ? pgText(r.nombre_vereda) : null,
+    hectareas: null,
+    longitud_km: null,
+  }));
+}
+
+async function queryPropuestasHija(meta: IndicadorMeta, limit: number): Promise<PropuestaIndicador[]> {
+  // Para los demás kinds: WHERE dinámico con patterns OR
+  // Los patterns vienen de INDICADORES_META (hardcoded), no de input del usuario.
+  const table = meta.kind === "lineas" ? "sgs_pro_propuesta_linea"
+              : meta.kind === "poligonos" ? "sgs_pro_propuesta_poligono"
+              : "sgs_pro_propuesta_punto";
+  const medidaCol: string = meta.kind === "lineas" ? "t.longitud_km"
+                          : meta.kind === "poligonos" ? "t.area_ha"
+                          : "NULL::numeric";
+
+  // Construir whereParts con sql`` fragments (patrón del proyecto)
+  const whereParts: ReturnType<typeof sql>[] = [
+    sql`c.nombre = ${meta.ca.substring(0, 2)}`,
+    sql`a.nombre = ${meta.ca.substring(2, 3)}`,
+  ];
+  if (meta.patterns.length > 0) {
+    const patternFragments = meta.patterns.map((p) =>
+      sql`unaccent(t.actividad) ILIKE unaccent(${p})`,
+    );
+    whereParts.push(
+      sql`(${patternFragments.reduce((acc, p, i) => (i === 0 ? p : sql`${acc} OR ${p}`))})`,
+    );
+  }
+  const whereSql = sql`WHERE ${whereParts.reduce((acc, p, i) => (i === 0 ? p : sql`${acc} AND ${p}`))}`;
+
+  const rows = await sql<
+    {
+      id_propuesta: number | string;
+      actividad: string;
+      nombre_predio: string | null;
+      nombre_municipio: string | null;
+      nombre_vereda: string | null;
+      medida: number | string | null;
+    }[]
+  >`
+    SELECT DISTINCT
+      t.id_propuesta,
+      t.actividad,
+      pr.nombre_predio,
+      m.nombre_municipio,
+      v.nombre_vereda,
+      ${sql.unsafe(medidaCol)} AS medida
+    FROM ${sql.unsafe(table)} t
+    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = t.id_propuesta
+    JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
+    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+    LEFT JOIN sgs_pre_predio pr ON pr.id_predio = pp.id_predio
+    LEFT JOIN bcs_lpa_vereda v ON v.id_vereda = pr.id_vereda
+    LEFT JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
+    ${whereSql}
+    ORDER BY t.id_propuesta
+    LIMIT ${limit}
+  `;
+  return rows.map((r: any) => ({
+    id_propuesta: pgInt(r.id_propuesta),
+    actividad: pgText(r.actividad),
+    nombre_predio: r.nombre_predio ? pgText(r.nombre_predio) : null,
+    nombre_municipio: r.nombre_municipio ? pgText(r.nombre_municipio) : null,
+    nombre_vereda: r.nombre_vereda ? pgText(r.nombre_vereda) : null,
+    hectareas: meta.kind === "poligonos" && r.medida != null ? pgNum(r.medida) : null,
+    longitud_km: meta.kind === "lineas" && r.medida != null ? pgNum(r.medida) : null,
+  }));
+}
+
+// =============================================================================
 // C1A1: Conservación del Recurso Hídrico (líneas)
 // =============================================================================
 async function getC1A1(): Promise<MetaComponente> {
