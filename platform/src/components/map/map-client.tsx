@@ -39,6 +39,8 @@ import { GeoJsonLayer } from "./geojson-layer";
 import { MapToolFeedback } from "./map-tool-feedback";
 import { MapMeasureLayer, MapMeasureCursor } from "./map-measure-layer";
 import { MapResultPanel } from "./map-result-panel";
+import { MapIdentifyPanel } from "./map-identify-panel";
+import type { IdentifiedFeature } from "@/lib/repos/identify";
 import type { MapInteraction, LngLat } from "./map-types";
 
 type BasemapKey = "osm" | "topo" | "satellite";
@@ -85,6 +87,13 @@ export default function MapClient({
   const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
   // Sprint 18: discriminated union con payload por herramienta
   const [interaction, setInteraction] = React.useState<MapInteraction>({ kind: "none" });
+  // Sprint 18.2: estado para el panel de identificar
+  const [identify, setIdentify] = React.useState<{
+    features: IdentifiedFeature[];
+    isLoading: boolean;
+    error: string | null;
+    query: { lng: number; lat: number } | null;
+  }>({ features: [], isLoading: false, error: null, query: null });
 
   const onSelectTool = React.useCallback((tool: MapToolKey) => {
     setActiveTool((prev) => {
@@ -107,6 +116,7 @@ export default function MapClient({
   const onClearTool = React.useCallback(() => {
     setActiveTool(null);
     setInteraction({ kind: "none" });
+    setIdentify({ features: [], isLoading: false, error: null, query: null });
   }, []);
 
   // Sprint 18.1: handlers de medición
@@ -121,6 +131,53 @@ export default function MapClient({
       return prev;
     });
   }, []);
+
+  // Sprint 18.2: handler de click para herramienta "Identificar"
+  const onIdentifyClick = React.useCallback(async (lngLat: LngLat) => {
+    setIdentify((prev) => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+      query: { lng: lngLat[0], lat: lngLat[1] },
+    }));
+    try {
+      const r = await fetch(
+        `/api/geo/identify?lng=${lngLat[0]}&lat=${lngLat[1]}&tol=50&limit=10`,
+      );
+      const data = await r.json();
+      if (!r.ok) {
+        setIdentify((prev) => ({ ...prev, isLoading: false, error: data.error || "Error" }));
+        return;
+      }
+      setIdentify({
+        features: data.features as IdentifiedFeature[],
+        isLoading: false,
+        error: null,
+        query: { lng: lngLat[0], lat: lngLat[1] },
+      });
+    } catch (err) {
+      setIdentify((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: (err as Error).message,
+      }));
+    }
+  }, []);
+
+  // Routing del click del mapa según la herramienta activa
+  const onMapClick = React.useCallback(
+    (lngLat: LngLat) => {
+      if (interaction.kind === "identify") {
+        onIdentifyClick(lngLat);
+      } else if (
+        interaction.kind === "measure-distance" ||
+        interaction.kind === "measure-area"
+      ) {
+        onMeasureClick(lngLat);
+      }
+    },
+    [interaction.kind, onIdentifyClick, onMeasureClick],
+  );
 
   const onRecenter = React.useCallback(() => {
     // UX-44 (audit 2026-07-24): era 0.6s. La skill ui-ux-pro-max recomienda
@@ -253,7 +310,7 @@ export default function MapClient({
       {/* Sprint 18.1: visual de medición (polyline, polygon, vertex markers) */}
       <MapMeasureLayer
         interaction={interaction}
-        onClick={onMeasureClick}
+        onClick={onMapClick}
         onMouseMove={() => {}}
       />
 
@@ -263,6 +320,16 @@ export default function MapClient({
 
       {/* Sprint 18.1: panel con resultado de la medición (PostGIS) */}
       <MapResultPanel interaction={interaction} onClear={onClearTool} />
+
+      {/* Sprint 18.2: panel con features identificadas */}
+      <MapIdentifyPanel
+        features={identify.features}
+        isLoading={identify.isLoading}
+        error={identify.error}
+        lastQuery={identify.query}
+        onClose={onClearTool}
+        onClear={() => setIdentify({ features: [], isLoading: false, error: null, query: null })}
+      />
 
       {/* Brújula flotante */}
       <MapCompass />
