@@ -42,8 +42,11 @@ import { MapResultPanel } from "./map-result-panel";
 import { MapIdentifyPanel } from "./map-identify-panel";
 import { MapBufferLayer } from "./map-buffer-layer";
 import { MapBufferPanel } from "./map-buffer-panel";
+import { MapSpatialSelectLayer } from "./map-spatial-select-layer";
+import { MapSpatialSelectPanel } from "./map-spatial-select-panel";
 import type { IdentifiedFeature } from "@/lib/repos/identify";
 import type { BufferResult } from "@/lib/repos/buffer";
+import type { SpatialSelectResult } from "@/lib/repos/spatial-select";
 import type { MapInteraction, LngLat } from "./map-types";
 
 type BasemapKey = "osm" | "topo" | "satellite";
@@ -105,6 +108,12 @@ export default function MapClient({
     result: BufferResult | null;
     origin: [number, number] | null;
   }>({ distance: 200, isLoading: false, error: null, result: null, origin: null });
+  // Sprint 18.4: estado para selección por rectángulo (bbox)
+  const [spatialSelect, setSpatialSelect] = React.useState<{
+    isLoading: boolean;
+    error: string | null;
+    result: SpatialSelectResult | null;
+  }>({ isLoading: false, error: null, result: null });
 
   const onSelectTool = React.useCallback((tool: MapToolKey) => {
     setActiveTool((prev) => {
@@ -118,6 +127,7 @@ export default function MapClient({
       else if (tool === "draw") setInteraction({ kind: "measure-area", points: [] });
       else if (tool === "select") setInteraction({ kind: "identify", lastClick: null });
       else if (tool === "markers") setInteraction({ kind: "buffer", center: null, distanceMeters: 200 });
+      else if (tool === "bbox") setInteraction({ kind: "select-rectangle", start: null, end: null });
       else setInteraction({ kind: "none" });
       return tool;
     });
@@ -130,6 +140,7 @@ export default function MapClient({
     setInteraction({ kind: "none" });
     setIdentify({ features: [], isLoading: false, error: null, query: null });
     setBuffer({ distance: 200, isLoading: false, error: null, result: null, origin: null });
+    setSpatialSelect({ isLoading: false, error: null, result: null });
   }, []);
 
   // Sprint 18.1: handlers de medición
@@ -214,6 +225,46 @@ export default function MapClient({
     }
   }, []);
 
+  // Sprint 18.4: handler de click para selección por rectángulo (2 clicks)
+  const onSpatialSelectClick = React.useCallback(async (lngLat: LngLat) => {
+    setInteraction((prev) => {
+      if (prev.kind !== "select-rectangle") return prev;
+      // Sin start → primer click: define start
+      if (!prev.start) {
+        return { ...prev, start: lngLat, end: null };
+      }
+      // Con start sin end → segundo click: define end y dispara fetch
+      if (!prev.end) {
+        // Disparar fetch async; retornar estado nuevo con end ya seteado
+        const minLng = Math.min(prev.start[0], lngLat[0]);
+        const maxLng = Math.max(prev.start[0], lngLat[0]);
+        const minLat = Math.min(prev.start[1], lngLat[1]);
+        const maxLat = Math.max(prev.start[1], lngLat[1]);
+        setSpatialSelect({ isLoading: true, error: null, result: null });
+        void (async () => {
+          try {
+            const r = await fetch("/api/analysis/spatial-select", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ minLng, minLat, maxLng, maxLat }),
+            });
+            const data = await r.json();
+            if (!r.ok) {
+              setSpatialSelect({ isLoading: false, error: data.error || "Error", result: null });
+              return;
+            }
+            setSpatialSelect({ isLoading: false, error: null, result: data as SpatialSelectResult });
+          } catch (err) {
+            setSpatialSelect({ isLoading: false, error: (err as Error).message, result: null });
+          }
+        })();
+        return { ...prev, end: lngLat };
+      }
+      // Ya tiene start + end → tercer click: reinicia con nuevo start
+      return { ...prev, start: lngLat, end: null };
+    });
+  }, []);
+
   // Routing del click del mapa según la herramienta activa
   const onMapClick = React.useCallback(
     (lngLat: LngLat) => {
@@ -226,9 +277,11 @@ export default function MapClient({
         onMeasureClick(lngLat);
       } else if (interaction.kind === "buffer") {
         onBufferClick(lngLat);
+      } else if (interaction.kind === "select-rectangle") {
+        onSpatialSelectClick(lngLat);
       }
     },
-    [interaction.kind, onIdentifyClick, onMeasureClick, onBufferClick],
+    [interaction.kind, onIdentifyClick, onMeasureClick, onBufferClick, onSpatialSelectClick],
   );
 
   const onRecenter = React.useCallback(() => {
@@ -390,6 +443,18 @@ export default function MapClient({
         error={buffer.error}
         result={buffer.result}
         distance={buffer.distance}
+        onClose={onClearTool}
+      />
+
+      {/* Sprint 18.4: layer + panel de selección por rectángulo */}
+      <MapSpatialSelectLayer
+        interaction={interaction}
+        result={spatialSelect.result ? { bbox: spatialSelect.result.bbox } : null}
+      />
+      <MapSpatialSelectPanel
+        isLoading={spatialSelect.isLoading}
+        error={spatialSelect.error}
+        result={spatialSelect.result}
         onClose={onClearTool}
       />
 

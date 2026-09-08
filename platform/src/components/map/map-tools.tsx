@@ -7,6 +7,7 @@ import {
   PencilLine,
   Bookmark,
   Crosshair,
+  BoxSelect,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,9 +16,12 @@ import { cn } from "@/lib/utils";
  * Inspirado en `map-panel.tsx` del dashboard de referencia, adaptado al theme
  * SIG TERRITORIO. Por ahora los handlers son no-op (visualmente preparados para
  * las próximas HU de análisis espacial).
+ *
+ * Sprint 18.4: añade `bbox` (BoxSelect) para selección por rectángulo,
+ * distinto de `select` que sigue siendo la herramienta de identificación.
  */
 
-export type MapToolKey = "measure" | "select" | "draw" | "markers";
+export type MapToolKey = "measure" | "select" | "draw" | "markers" | "bbox";
 
 export function MapTools({
   onSelect,
@@ -38,19 +42,25 @@ export function MapTools({
       />
       <ToolButton
         icon={SquareCheck}
-        label="Seleccionar feature"
+        label="Identificar feature"
         active={activeTool === "select"}
         onClick={() => onSelect("select")}
       />
       <ToolButton
+        icon={BoxSelect}
+        label="Seleccionar por rectángulo"
+        active={activeTool === "bbox"}
+        onClick={() => onSelect("bbox")}
+      />
+      <ToolButton
         icon={PencilLine}
-        label="Dibujar anotación"
+        label="Dibujar área (medición)"
         active={activeTool === "draw"}
         onClick={() => onSelect("draw")}
       />
       <ToolButton
         icon={Bookmark}
-        label="Marcadores guardados"
+        label="Marcadores / Buffer"
         active={activeTool === "markers"}
         onClick={() => onSelect("markers")}
       />

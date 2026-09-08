@@ -25,15 +25,18 @@ describe("<MapToolFeedback>", () => {
   it("renderiza el titulo del tool cuando se pasa", () => {
     render(<MapToolFeedback tool="measure" onClose={() => {}} />);
     expect(screen.getByText(/Medir distancia/)).toBeInTheDocument();
-    expect(screen.getByText(/Próxima fase/)).toBeInTheDocument();
+    expect(screen.getByText(/disponible/i)).toBeInTheDocument();
   });
 
   it("renderiza la descripcion especifica por tool", () => {
     const { rerender } = render(<MapToolFeedback tool="draw" onClose={() => {}} />);
-    expect(screen.getByText(/Anotaciones temporales/)).toBeInTheDocument();
+    expect(screen.getByText(/definir un pol/i)).toBeInTheDocument();
 
     rerender(<MapToolFeedback tool="markers" onClose={() => {}} />);
-    expect(screen.getByText(/Guarda la vista actual/)).toBeInTheDocument();
+    expect(screen.getByText(/buffer geod/i)).toBeInTheDocument();
+
+    rerender(<MapToolFeedback tool="bbox" onClose={() => {}} />);
+    expect(screen.getByText(/dos esquinas opuestas/i)).toBeInTheDocument();
   });
 
   it("role=status + aria-live=polite para accesibilidad", () => {

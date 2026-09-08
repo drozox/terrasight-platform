@@ -3,20 +3,13 @@
 // =============================================================================
 // MapToolFeedback — toast inline en la esquina superior derecha del mapa.
 //
-// UX-11/MapTools (audit 2026-07-24): los 4 tools del MapTools (Medir
-// distancia, Seleccionar feature, Dibujar anotacion, Marcadores guardados)
-// solo seteaban `activeTool` en state pero no hacian NADA. El usuario
-// clickeaba y nada pasaba — UI placebo.
+// UX-11/MapTools (audit 2026-07-24): antes mostraba "Próximamente" para los
+// tools no implementados. Después del Sprint 18, todas las herramientas del
+// toolbar están implementadas y muestran resultado en su panel propio
+// (MapResultPanel, MapIdentifyPanel, MapBufferPanel, MapSpatialSelectPanel).
 //
-// Fix: cuando el usuario selecciona un tool que no esta implementado,
-// aparece un toast inline con:
-//  - Icono del tool + titulo
-//  - Mensaje "Proximamente" + copy de que viene en el roadmap
-//  - Boton "Entendido" para cerrar
-//  - Auto-dismiss a los 5s (UX-44 dice < 6s para toasts informativos)
-//
-// Para tools implementados (futuro: measure con Leaflet.draw, etc) el
-// feedback cambia y muestra resultados. Por ahora todos son "próximamente".
+// Ahora el feedback es un "instructor" corto: nombre del tool + instrucción
+// de uso + auto-dismiss a 6s (UX-44). Cero "próximamente".
 // =============================================================================
 
 import * as React from "react";
@@ -25,37 +18,39 @@ import {
   SquareCheck,
   PencilLine,
   Bookmark,
+  BoxSelect,
   X,
-  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type ToolKey = "measure" | "select" | "draw" | "markers";
+type ToolKey = "measure" | "select" | "draw" | "markers" | "bbox";
 
-const TOOL_META: Record<ToolKey, { icon: typeof Ruler; title: string; description: string; eta: string }> = {
+const TOOL_META: Record<ToolKey, { icon: typeof Ruler; title: string; description: string }> = {
   measure: {
     icon: Ruler,
     title: "Medir distancia",
-    description: "Click en dos puntos del mapa para ver la distancia geodésica. PostGIS calcula el segmento y dibuja la línea.",
-    eta: "Próxima fase · Q3",
+    description: "Click en dos o más puntos del mapa. PostGIS calcula la distancia geodésica total y muestra el segmento en el panel.",
   },
   select: {
     icon: SquareCheck,
-    title: "Seleccionar feature",
-    description: "Click en un predio, quebrada o área protegida para abrir su ficha con atributos, fotos y reportes asociados.",
-    eta: "Próxima fase · Q3",
+    title: "Identificar feature",
+    description: "Click en el mapa para ver las features cercanas (predio, propuesta, vía, drenaje, municipio, vereda).",
   },
   draw: {
     icon: PencilLine,
-    title: "Dibujar anotación",
-    description: "Anotaciones temporales (flechas, polígonos, texto) para destacar zonas en una vista compartida con el equipo.",
-    eta: "Próxima fase · Q4",
+    title: "Medir área",
+    description: "Click en tres o más puntos del mapa para definir un polígono. PostGIS devuelve el área en hectáreas.",
   },
   markers: {
     icon: Bookmark,
-    title: "Marcadores guardados",
-    description: "Guarda la vista actual (centro + zoom + capas activas) con un nombre y recargarala desde cualquier dispositivo.",
-    eta: "Próxima fase · Q4",
+    title: "Buffer",
+    description: "Click en un punto del mapa. PostGIS dibuja un buffer geodésico y cuenta features por capa.",
+  },
+  bbox: {
+    icon: BoxSelect,
+    title: "Selección por rectángulo",
+    description: "Click en dos esquinas opuestas del rectángulo. PostGIS cuenta features de 11 capas dentro del bbox.",
   },
 };
 
@@ -102,11 +97,11 @@ export function MapToolFeedback({
           <div className="flex items-center gap-1.5">
             <p className="text-label-lg font-bold text-on-surface">{meta.title}</p>
             <span
-              className="inline-flex items-center gap-0.5 rounded-full bg-tertiary-container/40 px-1.5 py-0.5 text-[9px] font-bold uppercase text-tertiary"
-              title="Próximamente en el roadmap"
+              className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary"
+              title="Herramienta disponible"
             >
-              <Sparkles className="size-2.5" />
-              {meta.eta}
+              <CheckCircle2 className="size-2.5" />
+              disponible
             </span>
           </div>
           <p className="mt-1 text-body-sm leading-snug text-on-surface-variant">
