@@ -1,3 +1,27 @@
+# ⚠️ HISTÓRICO — Checklist de revisión del producto (2026-07-23)
+
+> **Este documento está obsoleto.** Fue creado el 2026-07-23 contra una versión inicial de
+> TerraSight con datos demo. Desde entonces:
+>
+> - 2026-08: rename a "SIG TERRITORIO" (commit `a5ddcc2`)
+> - 2026-09: cierre de fases 1–7 con datos **reales** del GDB del cliente (1,381 propuestas,
+>   132 predios, 5,959 vías, cobertura CLC/POMCA/RFP/páramos, etc.)
+> - 2026-09-08: implementación de las 5 metas del convenio + drill-down municipio/propuestas +
+>   export PDF (commits `8fb2217`..`9adb285`)
+>
+> Para el estado actual del proyecto, ver:
+>
+> - **`docs/SPRINT-STATUS.md`** — qué hay hecho, qué falta, próximos pasos
+> - **`docs/ARCHITECTURE.md`** — capas, decisiones, modelo de datos
+> - **`README.md`** — entry point para nuevos developers/reviewers
+> - **`docs/REVIEW-GUIDE.md`** — checklist para code review
+>
+> ---
+>
+> El contenido original se preserva a continuación solo como referencia histórica.
+>
+> ---
+
 # Checklist de revisión del producto — TerraSight (CAR Cundinamarca)
 
 > **Para**: dueño del producto (CAR Cundinamarca – WWF – Fundación Natura)

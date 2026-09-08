@@ -6,17 +6,25 @@
 
 ## Antes de empezar
 
-1. **Lee el design system** — `../Stich/DESIGN.md` define la paleta,
+1. **Lee el README.md** — entry point con stack, comandos, estructura,
+   estado del proyecto. Si vienes de fuera, este es tu primer documento.
+2. **Lee el design system** — `../Stich/DESIGN.md` define la paleta,
    tipografía, espaciado y elevación de SIG TERRITORIO. Es la
    **fuente única de verdad visual**. Si tu trabajo toca UI, alineate con
    esa guía antes de proponer cambios.
-2. **Lee el audit UI/UX vivo** — `docs/ui-ux-audit-2026-07-24.md`. Es la
+3. **Lee `docs/ARCHITECTURE.md`** — capas, modelo de datos, decisiones
+   arquitectónicas. Antes de cambiar queries, schema o auth, revisalo.
+4. **Lee el audit UI/UX vivo** — `docs/ui-ux-audit-2026-07-24.md`. Es la
    lista priorizada (P0–P3) de issues conocidos con archivo y línea
    citados. Antes de "mejorar la UI", revisalo: es probable que el issue
    ya esté reportado y haya un patrón acordado.
-3. **Lee TECH-DEBT** — `docs/TECH-DEBT.md` lista los bugs ya cerrados y
+5. **Lee TECH-DEBT** — `docs/TECH-DEBT.md` lista los bugs ya cerrados y
    los lessons learned (DEBT-3.X). No repitas errores viejos.
-4. **Sigue las convenciones**:
+6. **Lee `docs/SPRINT-STATUS.md`** — qué hay hecho y qué falta en el
+   sprint actual.
+7. **Si vas a hacer code review** — lee `docs/REVIEW-GUIDE.md` con el
+   checklist.
+8. **Sigue las convenciones**:
    - Componentes UI primitivos en `src/components/ui/` (Button, Card, Input, Badge).
    - Composición con `cn()` de `lib/utils.ts`.
    - Tailwind v4 — NO redefinir `--spacing-{sm,md,lg,...}` ni
