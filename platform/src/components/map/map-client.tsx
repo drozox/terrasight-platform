@@ -37,6 +37,9 @@ import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
 import { MapToolFeedback } from "./map-tool-feedback";
+import { MapMeasureLayer, MapMeasureCursor } from "./map-measure-layer";
+import { MapResultPanel } from "./map-result-panel";
+import type { MapInteraction, LngLat } from "./map-types";
 
 type BasemapKey = "osm" | "topo" | "satellite";
 
@@ -80,14 +83,44 @@ export default function MapClient({
     reservas: false,
   });
   const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
+  // Sprint 18: discriminated union con payload por herramienta
+  const [interaction, setInteraction] = React.useState<MapInteraction>({ kind: "none" });
 
   const onSelectTool = React.useCallback((tool: MapToolKey) => {
-    setActiveTool((prev) => (prev === tool ? null : tool));
+    setActiveTool((prev) => {
+      if (prev === tool) {
+        // toggle off
+        setInteraction({ kind: "none" });
+        return null;
+      }
+      // Activar tool + mapear a interaction
+      if (tool === "measure") setInteraction({ kind: "measure-distance", points: [] });
+      else if (tool === "draw") setInteraction({ kind: "measure-area", points: [] });
+      else if (tool === "select") setInteraction({ kind: "identify", lastClick: null });
+      else setInteraction({ kind: "none" });
+      return tool;
+    });
   }, []);
 
   // UX-11 (audit 2026-07-24): el MapToolFeedback necesita un onClose
   // explicito para limpiar el tool (en vez de re-togglear via onSelectTool).
-  const onClearTool = React.useCallback(() => setActiveTool(null), []);
+  const onClearTool = React.useCallback(() => {
+    setActiveTool(null);
+    setInteraction({ kind: "none" });
+  }, []);
+
+  // Sprint 18.1: handlers de medición
+  const onMeasureClick = React.useCallback((lngLat: LngLat) => {
+    setInteraction((prev) => {
+      if (prev.kind === "measure-distance") {
+        return { ...prev, points: [...prev.points, lngLat] };
+      }
+      if (prev.kind === "measure-area") {
+        return { ...prev, points: [...prev.points, lngLat] };
+      }
+      return prev;
+    });
+  }, []);
 
   const onRecenter = React.useCallback(() => {
     // UX-44 (audit 2026-07-24): era 0.6s. La skill ui-ux-pro-max recomienda
@@ -217,9 +250,19 @@ export default function MapClient({
         onRecenter={onRecenter}
       />
 
+      {/* Sprint 18.1: visual de medición (polyline, polygon, vertex markers) */}
+      <MapMeasureLayer
+        interaction={interaction}
+        onClick={onMeasureClick}
+        onMouseMove={() => {}}
+      />
+
       {/* UX-11: feedback inline cuando un tool no-implementado se selecciona.
          Aparece esquina sup-der, auto-dismiss a los 6s. */}
       <MapToolFeedback tool={activeTool} onClose={onClearTool} />
+
+      {/* Sprint 18.1: panel con resultado de la medición (PostGIS) */}
+      <MapResultPanel interaction={interaction} onClear={onClearTool} />
 
       {/* Brújula flotante */}
       <MapCompass />
