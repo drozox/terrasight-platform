@@ -40,7 +40,10 @@ import { MapToolFeedback } from "./map-tool-feedback";
 import { MapMeasureLayer, MapMeasureCursor } from "./map-measure-layer";
 import { MapResultPanel } from "./map-result-panel";
 import { MapIdentifyPanel } from "./map-identify-panel";
+import { MapBufferLayer } from "./map-buffer-layer";
+import { MapBufferPanel } from "./map-buffer-panel";
 import type { IdentifiedFeature } from "@/lib/repos/identify";
+import type { BufferResult } from "@/lib/repos/buffer";
 import type { MapInteraction, LngLat } from "./map-types";
 
 type BasemapKey = "osm" | "topo" | "satellite";
@@ -94,6 +97,14 @@ export default function MapClient({
     error: string | null;
     query: { lng: number; lat: number } | null;
   }>({ features: [], isLoading: false, error: null, query: null });
+  // Sprint 18.3: estado para el panel de buffer
+  const [buffer, setBuffer] = React.useState<{
+    distance: number;
+    isLoading: boolean;
+    error: string | null;
+    result: BufferResult | null;
+    origin: [number, number] | null;
+  }>({ distance: 200, isLoading: false, error: null, result: null, origin: null });
 
   const onSelectTool = React.useCallback((tool: MapToolKey) => {
     setActiveTool((prev) => {
@@ -106,6 +117,7 @@ export default function MapClient({
       if (tool === "measure") setInteraction({ kind: "measure-distance", points: [] });
       else if (tool === "draw") setInteraction({ kind: "measure-area", points: [] });
       else if (tool === "select") setInteraction({ kind: "identify", lastClick: null });
+      else if (tool === "markers") setInteraction({ kind: "buffer", center: null, distanceMeters: 200 });
       else setInteraction({ kind: "none" });
       return tool;
     });
@@ -117,6 +129,7 @@ export default function MapClient({
     setActiveTool(null);
     setInteraction({ kind: "none" });
     setIdentify({ features: [], isLoading: false, error: null, query: null });
+    setBuffer({ distance: 200, isLoading: false, error: null, result: null, origin: null });
   }, []);
 
   // Sprint 18.1: handlers de medición
@@ -131,6 +144,43 @@ export default function MapClient({
       return prev;
     });
   }, []);
+
+  // Sprint 18.3: handler de click para buffer
+  const onBufferClick = React.useCallback(async (lngLat: LngLat) => {
+    setBuffer((prev) => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+      origin: lngLat,
+    }));
+    try {
+      const r = await fetch("/api/analysis/buffer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          geometry: { type: "Point", coordinates: lngLat },
+          distance: buffer.distance,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setBuffer((prev) => ({ ...prev, isLoading: false, error: data.error || "Error" }));
+        return;
+      }
+      setBuffer((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: null,
+        result: data as BufferResult,
+      }));
+    } catch (err) {
+      setBuffer((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: (err as Error).message,
+      }));
+    }
+  }, [buffer.distance]);
 
   // Sprint 18.2: handler de click para herramienta "Identificar"
   const onIdentifyClick = React.useCallback(async (lngLat: LngLat) => {
@@ -174,9 +224,11 @@ export default function MapClient({
         interaction.kind === "measure-area"
       ) {
         onMeasureClick(lngLat);
+      } else if (interaction.kind === "buffer") {
+        onBufferClick(lngLat);
       }
     },
-    [interaction.kind, onIdentifyClick, onMeasureClick],
+    [interaction.kind, onIdentifyClick, onMeasureClick, onBufferClick],
   );
 
   const onRecenter = React.useCallback(() => {
@@ -329,6 +381,16 @@ export default function MapClient({
         lastQuery={identify.query}
         onClose={onClearTool}
         onClear={() => setIdentify({ features: [], isLoading: false, error: null, query: null })}
+      />
+
+      {/* Sprint 18.3: layer + panel de buffer */}
+      <MapBufferLayer buffer={buffer.result?.buffer ?? null} origin={buffer.origin} />
+      <MapBufferPanel
+        isLoading={buffer.isLoading}
+        error={buffer.error}
+        result={buffer.result}
+        distance={buffer.distance}
+        onClose={onClearTool}
       />
 
       {/* Brújula flotante */}
