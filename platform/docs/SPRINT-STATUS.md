@@ -1,7 +1,7 @@
 # Sprint Status — SIG TERRITORIO
 
 > Estado actual del proyecto: qué está hecho, qué falta, qué viene.
-> Última actualización: 2026-09-08 (sprint batch 17, post-push de 4 commits).
+> Última actualización: 2026-09-08 (Sprint 18.1, post-push de medir distancia + área).
 
 ---
 
@@ -9,13 +9,14 @@
 
 | Indicador | Valor |
 |-----------|-------|
-| **Commits en `main`** | `9adb285` (HEAD) |
-| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding |
+| **Commits en `main`** | `d1e4c72` (HEAD) |
+| **Tag baseline** | `v0.1.0-pre-final` |
+| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18.1 (medir)** |
 | **Datos reales en Supabase** | 1,381 propuestas, 132 predios, 5,959 vías, 656 quebradas, 20 municipios |
 | **Migraciones aplicadas** | 31 |
 | **Audit UI/UX** | 46/55 (84%) cerrados |
 | **TECH-DEBT** | 0 items abiertos |
-| **Tests** | 156+ unit, 6 E2E, smoke 55/56 (sin regresión) |
+| **Tests** | 156+ unit (ahora +20 = 176+), 6 E2E, smoke 55/56 (sin regresión) |
 | **Última URL de Vercel** | ver https://vercel.com/drozox/terrasight-platform |
 
 ---
@@ -151,14 +152,21 @@ c9a16a7 fix(platform): Phase 7c — fix propuesta re-import + serial PKs
 
 ## 7. Plan sprint +1 (siguiente)
 
-Por orden de impacto / esfuerzo:
+Sprint 18 en curso (herramientas SIG). Plan:
 
-1. **UX-66 Tablas virtualizadas** (`@tanstack/react-virtual`) en `/intervenciones` y `/predios` —
-   medio esfuerzo, alto impacto cuando crezca el dataset.
-2. **UX-61 Topbar búsqueda global** de predios — medio esfuerzo, alta utilidad diaria.
-3. **F4 (review-producto) Importación masiva Excel/CSV** — medio esfuerzo, facilita onboarding.
-4. **F2 (review-producto) Upload de archivos** (KML, SHP, GeoJSON) — alto esfuerzo, sprint +2.
-5. **UX-33 Clustering del mapa** — alto esfuerzo (refactor a MVT), sprint +2.
+- [x] **18.1** Medir distancia + área ✅ (commit `d1e4c72`)
+- [ ] **18.2** Identificar (2 días) — click sobre feature → popup con metadata
+- [ ] **18.3** Buffer (2 días) — ST_Buffer + ST_DWithin para análisis
+- [ ] **18.4** Selección espacial (1 día) — rectángulo + counts por capa
+- [ ] **18.5** MVT para drenajes (UX-31 hotfix) — `/api/tiles/[layer]/[z]/[x]/[y]`
+
+Después:
+
+- [ ] **19** Búsqueda transversal + dashboard /admin/calidad
+- [ ] **20** Workflow de intervenciones (BORRADOR → EN_REVISION → ...)
+- [ ] **21** Importación CSV/XLSX + KML
+- [ ] **22** Versionado + histórico de metas
+- [ ] **23** Reportes restantes + auditoría R1-R10
 
 ---
 
