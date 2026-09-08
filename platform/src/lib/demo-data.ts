@@ -414,8 +414,8 @@ export const DEMO_METAS_CONVENIO = {
     componente: "C2", accion: "A2",
     descripcion: "Estaciones limnimétricas y obras de captación",
     indicadores: [
-      { label: "Estaciones limnimétricas", actual: 6, meta: 7, unidad: "estaciones", pct: 86 },
-      { label: "Obras de captación", actual: 95, meta: 48, unidad: "obras", pct: 198 },
+      { label: "Estaciones limnimétricas", actual: 7, meta: 7, unidad: "estaciones", pct: 100 },
+      { label: "Obras de captación", actual: 96, meta: 48, unidad: "obras", pct: 200 },
     ],
   },
   c3: {
@@ -431,5 +431,34 @@ export const DEMO_METAS_CONVENIO = {
   ],
   veredas_intervenidas: [
     { id_vereda: 1, nombre: "Aposentos", id_municipio: 1, nombre_municipio: "Guatavita", num_propuestas: 12 },
+  ],
+};
+
+// -----------------------------------------------------------------------------
+// Detalle por municipio (drill-down /metas/convenio/[id_municipio])
+// Datos demo para el municipio GUATAVITA (id=8 en la BD real).
+// -----------------------------------------------------------------------------
+export const DEMO_DETALLE_MUNICIPIO = {
+  municipio: { id_municipio: 8, nombre: "Guatavita" },
+  indicadores: [
+    { label: "Cercos vivos", actual: 1.4, meta: 12, unidad: "km", pct: 12 },
+    { label: "Aislamientos (alambre)", actual: 0.65, meta: 12, unidad: "km", pct: 5 },
+    { label: "Franjas de conectividad", actual: 0, meta: 15, unidad: "km", pct: 0 },
+    { label: "Sistemas silvopastoriles", actual: 0, meta: 15, unidad: "ha", pct: 0 },
+    { label: "Sistemas agroforestales", actual: 0, meta: 15, unidad: "ha", pct: 0 },
+    { label: "Cosecha de agua", actual: 0, meta: 79, unidad: "obras", pct: 0 },
+    { label: "Kit de compostaje", actual: 0, meta: 79, unidad: "kits", pct: 0 },
+    { label: "Estaciones limnimétricas", actual: 0, meta: 7, unidad: "estaciones", pct: 0 },
+    { label: "Obras de captación", actual: 0, meta: 48, unidad: "obras", pct: 0 },
+    { label: "Predios C3 (áreas protegidas)", actual: 10, meta: 35, unidad: "predios", pct: 29 },
+  ],
+  veredas: [
+    { id_vereda: 0, nombre: "Chaleche", num_propuestas: 55 },
+    { id_vereda: 0, nombre: "Carbonera Baja", num_propuestas: 46 },
+    { id_vereda: 0, nombre: "Carbonera Alta", num_propuestas: 19 },
+  ],
+  propuestas_por_componente: [
+    { componente: "1", accion: "1", n: 2 },
+    { componente: "3", accion: "1", n: 124 },
   ],
 };

@@ -5,6 +5,7 @@
 // intervenidos. Datos de src/lib/repos/metas-convenio.ts.
 // =============================================================================
 
+import Link from "next/link";
 import { getMetasConvenio } from "@/lib/repos/metas-convenio";
 import { withFallback } from "@/lib/repos/_helpers";
 import { DEMO_METAS_CONVENIO } from "@/lib/demo-data";
@@ -85,6 +86,20 @@ export default async function MetasConvenioPage() {
 }
 
 function MetasConvenioView({ data }: { data: Awaited<ReturnType<typeof getMetasConvenio>> }) {
+  // Resumen global: cuenta metas cumplidas (>= 100%) y atrasadas (< 50%)
+  const allIndicadores = [
+    ...data.c1a1.indicadores,
+    ...data.c1a2.indicadores,
+    ...data.c2a1.indicadores,
+    ...data.c2a2.indicadores,
+    ...data.c3.indicadores,
+  ];
+  const totalMetas = allIndicadores.filter((i) => i.meta > 0).length;
+  const cumplidas = allIndicadores.filter((i) => i.meta > 0 && i.pct >= 100).length;
+  const cerca = allIndicadores.filter((i) => i.meta > 0 && i.pct >= 80 && i.pct < 100).length;
+  const atrasadas = allIndicadores.filter((i) => i.meta > 0 && i.pct < 50).length;
+  const pctGlobal = totalMetas > 0 ? Math.round((cumplidas / totalMetas) * 100) : 0;
+
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -94,6 +109,28 @@ function MetasConvenioView({ data }: { data: Awaited<ReturnType<typeof getMetasC
             Convenio CAR Cundinamarca – WWF – Fundación Natura. Avance operativo por componente y acción.
           </p>
         </header>
+
+        {/* Resumen global: X/Y metas cumplidas */}
+        <section className="rounded-xl border border-outline-variant bg-surface-container p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
+            <h2 className="text-xl font-bold text-on-surface">Cumplimiento global</h2>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-on-surface">{cumplidas}/{totalMetas}</span>
+              <span className="text-sm text-on-surface-variant">metas cumplidas</span>
+            </div>
+          </div>
+          <div className="h-3 w-full rounded-full bg-surface-container-high overflow-hidden">
+            <div
+              className={pctGlobal >= 80 ? "h-full bg-emerald-600" : pctGlobal >= 50 ? "h-full bg-amber-500" : "h-full bg-red-500"}
+              style={{ width: `${Math.min(100, pctGlobal)}%` }}
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-on-surface-variant">
+            <span>🟢 Cumplidas: {cumplidas}</span>
+            <span>🟡 Cerca (80–99%): {cerca}</span>
+            <span>🔴 Atrasadas (&lt;50%): {atrasadas}</span>
+          </div>
+        </section>
 
         <BloqueComponente
           titulo={`${data.c1a1.componente}${data.c1a1.accion} · ${data.c1a1.descripcion}`}
@@ -139,9 +176,14 @@ function MetasConvenioView({ data }: { data: Awaited<ReturnType<typeof getMetasC
               <h3 className="font-semibold text-on-surface mb-2">Municipios intervenidos</h3>
               <ul className="divide-y divide-outline-variant">
                 {data.municipios_intervenidos.map((m) => (
-                  <li key={m.id_municipio} className="flex items-baseline justify-between py-2">
-                    <span className="text-sm text-on-surface">{m.nombre}</span>
-                    <span className="text-xs text-on-surface-variant">{m.num_propuestas} propuestas</span>
+                  <li key={m.id_municipio}>
+                    <Link
+                      href={`/metas/convenio/${m.id_municipio}`}
+                      className="flex items-baseline justify-between py-2 px-2 -mx-2 rounded hover:bg-surface-container-high transition-colors group"
+                    >
+                      <span className="text-sm text-on-surface group-hover:text-primary">{m.nombre}</span>
+                      <span className="text-xs text-on-surface-variant">{m.num_propuestas} propuestas →</span>
+                    </Link>
                   </li>
                 ))}
               </ul>

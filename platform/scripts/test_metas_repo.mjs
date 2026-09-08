@@ -92,11 +92,8 @@ r = await sql`
               THEN 1 ELSE 0 END)::int AS n_obras
   FROM sgs_pro_propuesta_punto pt
   JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pt.id_propuesta
-  JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-  JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-  WHERE c.nombre = 'C2' AND a.nombre = 'A2'
 `;
-console.log(" ", r[0], "  meta: 7 estaciones, 48 obras");
+console.log(" ", r[0], "  meta: 7 estaciones, 48 obras (sin filtro C-A, suma total)");
 
 console.log("\n=== C3: 35 predios en áreas protegidas ===");
 r = await sql`
