@@ -34,6 +34,7 @@ import {
   Droplet,
   BookMarked,
   Target,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SigTerritorioLogo } from "@/components/icons";
@@ -60,6 +61,7 @@ const ALL_ITEMS: Item[] = [
   { href: "/analisis",       label: "Análisis Espacial",  icon: PieChart,    roles: ["ADMIN", "ANALISTA"] },
   { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
   { href: "/alertas",        label: "Alertas",            icon: Bell,        roles: ["ADMIN", "ANALISTA"] },
+  { href: "/admin/calidad",  label: "Calidad de datos",   icon: ShieldCheck, roles: ["ADMIN"] },
   { href: "/configuracion",  label: "Configuración",      icon: SettingsIcon, roles: ["ADMIN"] },
 ];
 

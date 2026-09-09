@@ -20,6 +20,7 @@ import {
 import { signOut } from "next-auth/react";
 import { PartnerLogo } from "@/components/icons";
 import { HelpDialog } from "@/components/layout/help-dialog";
+import { TopbarSearch } from "@/components/layout/topbar-search";
 import type { Alerta } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth-guard";
 import { cn } from "@/lib/utils";
@@ -97,6 +98,13 @@ export function TopBar({
           </p>
         </div>
       </div>
+
+      {/* Sprint 19 — UX-61: búsqueda global con pg_trgm + unaccent. */}
+      {usuario && (
+        <div className="hidden flex-1 justify-center px-6 md:flex">
+          <TopbarSearch />
+        </div>
+      )}
 
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-6">
