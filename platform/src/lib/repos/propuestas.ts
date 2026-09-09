@@ -33,7 +33,6 @@ interface IntervencionCompletaBase {
   tipo: "punto" | "linea" | "poligono";
   actividad: string;
   estado: EstadoIntervencion;
-  createdAt: Date | null;
   predio: { id: number; nombre: string; codigo: string; areaHa: number } | null;
   vereda: { id: number; nombre: string } | null;
   municipio: { id: number; nombre: string; departamento: string } | null;
@@ -194,7 +193,6 @@ export async function getIntervencionCompleta(
     tipo: string;
     actividad: string;
     estado: string;
-    created_at: Date | string | null;
     id_predio: number | string | null;
     nombre_predio: string | null;
     codigo_predio: string | null;
@@ -215,7 +213,6 @@ export async function getIntervencionCompleta(
       pp.tipo,
       pp.actividad,
       pp.estado,
-      pp.created_at,
       pr.id_predio,
       pr.nombre_predio,
       ('PR-' || LPAD(pr.id_predio::text, 5, '0')) AS codigo_predio,
@@ -339,7 +336,6 @@ export async function getIntervencionCompleta(
     tipo,
     actividad: pgText(row.actividad),
     estado,
-    createdAt: row.created_at ? new Date(pgText(row.created_at)) : null,
     predio:
       row.id_predio != null
         ? {

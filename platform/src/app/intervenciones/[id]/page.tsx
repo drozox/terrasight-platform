@@ -11,6 +11,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth-guard";
 import { getIntervencionCompleta } from "@/lib/repos";
+import { getHistorial, type EstadoPropuesta } from "@/lib/repos/workflow";
+import { WorkflowPanel } from "@/components/workflow/workflow-panel";
 import { IntervencionDetail } from "./intervencion-detail";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +30,9 @@ export default async function IntervencionDetailPage({
 
   const intervencion = await getIntervencionCompleta(idNum);
   if (!intervencion) notFound();
+
+  // Sprint 20: cargar historial del workflow + estado actual
+  const historial = await getHistorial(idNum);
 
   // Permiso: ADMIN o GESTOR pueden editar. ANALISTA queda read-only.
   const canEdit = user.rol === "ADMIN" || user.rol === "GESTOR";
@@ -84,6 +89,16 @@ export default async function IntervencionDetailPage({
           </div>
 
           <IntervencionDetail initial={intervencion} canEdit={canEdit} />
+        </Card>
+
+        <Card className="p-6">
+          <WorkflowPanel
+            idPropuesta={idNum}
+            estadoActual={intervencion.estado as EstadoPropuesta}
+            rol={user.rol}
+            email={user.email}
+            historialInicial={historial}
+          />
         </Card>
       </div>
     </div>

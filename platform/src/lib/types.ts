@@ -341,7 +341,6 @@ interface IntervencionCompletaBase {
   tipo: "punto" | "linea" | "poligono";
   actividad: string;
   estado: EstadoIntervencion;
-  createdAt: Date | null;
   // Joins (nullable: la propuesta podría no tener predio/municipio/etc.)
   predio: { id: number; nombre: string; codigo: string; areaHa: number } | null;
   vereda: { id: number; nombre: string } | null;

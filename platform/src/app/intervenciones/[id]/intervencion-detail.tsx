@@ -29,7 +29,14 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import type { IntervencionCompleta } from "@/lib/types";
 import { EstadoIntervencionDropdown } from "../estado-dropdown";
-import { IntervencionMapa } from "./mapa-mini";
+// Sprint 20 fix: leaflet/react-leaflet requires `window` (browser only).
+// Next.js intenta SSR client components para el HTML inicial, lo cual rompe.
+// Cargamos el mapa con dynamic import ssr:false — solo se monta en el cliente.
+import dynamic from "next/dynamic";
+const IntervencionMapa = dynamic(() => import("./mapa-mini").then(m => m.IntervencionMapa), {
+  ssr: false,
+  loading: () => <div className="h-64 rounded-lg bg-surface-container animate-pulse" />,
+});
 import { AvanceForm } from "./avance-form";
 import { Timeline } from "./timeline";
 
@@ -144,13 +151,6 @@ export function IntervencionDetail({
 
           <Field label="Quebrada" icon={<Droplets className="size-3.5" />}>
             {initial.quebrada?.nombre ?? <span className="text-on-surface-variant/60">N/A</span>}
-          </Field>
-
-          <Field
-            label="Fecha de creación"
-            icon={<Calendar className="size-3.5" />}
-          >
-            {formatDate(initial.createdAt)}
           </Field>
 
           <Field label="Actividad">
