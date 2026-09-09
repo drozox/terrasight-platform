@@ -9,11 +9,11 @@
 
 | Indicador | Valor |
 |-----------|-------|
-| **Commits en `main`** | `c325660` (HEAD) |
+| **Commits en `main`** | `3473ac3` (HEAD) |
 | **Tag baseline** | `v0.1.0-pre-final` |
-| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)**, **Sprint 21 (importación CSV)** |
+| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)**, **Sprint 21 (importación CSV)**, **Sprint 22 (versionado de metas)** |
 | **Datos reales en Supabase** | 1,381 propuestas, 132 predios, 5,959 vías, 656 quebradas, 14 municipios |
-| **Migraciones aplicadas** | 34 |
+| **Migraciones aplicadas** | 35 |
 | **Audit UI/UX** | 46/55 (84%) cerrados |
 | **TECH-DEBT** | 0 items abiertos |
 | **Tests** | 313+ unit, 6 E2E, smoke 55/56 (sin regresión) |
@@ -134,14 +134,28 @@ EN_EJECUCION → BORRADOR (re-apertura)
 - /admin/importaciones → 200 con historial
 - /admin/importaciones/8 → 200 con tabla de errores
 
+### Sprint 22 — Versionado de metas con snapshots (P1)
+
+| Commit | Feature |
+|--------|---------|
+| `3473ac3` | Versionado de metas con snapshots |
+
+**Backend**:
+- Migration 35: `sgs_adm_meta_snapshot` (JSONB + UNIQUE fecha_corte) + `sgs_adm_meta_comparacion` (diffs)
+- `versionado.ts`: `crearSnapshotMetas()`, `listarSnapshots()`, `getSnapshot()`, `compararSnapshots()` (diff por IndicadorKey)
+- `POST /api/metas/snapshots` (ADMIN/ANALISTA)
+- `GET /api/metas/snapshots` (lista últimos 30)
+- `POST /api/metas/comparar` (persiste diff)
+- `scripts/apply_migration.mjs` helper genérico (workaround check constraint post-33)
+
+**Verificado E2E**:
+- 2 snapshots creados (2026-01-01 + 2026-09-08)
+- GET lista ambos
+- comparar(1, 2) → diff de 10 indicadores
+
 ---
 
 ## 4. Por hacer (sprints siguientes)
-
-### Sprint 22 — Versionado + histórico de metas (P1)
-- `sgs_adm_version` con snapshots
-- `/comparar` con diff visual
-- `fecha_corte` en metas
 
 ### Sprint 23 — Reportes restantes + auditoría R1-R10
 - Faltan R2, R4, R5, R6, R7, R10
