@@ -35,6 +35,7 @@ import {
   BookMarked,
   Target,
   ShieldCheck,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SigTerritorioLogo } from "@/components/icons";
@@ -62,6 +63,7 @@ const ALL_ITEMS: Item[] = [
   { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
   { href: "/alertas",        label: "Alertas",            icon: Bell,        roles: ["ADMIN", "ANALISTA"] },
   { href: "/admin/calidad",  label: "Calidad de datos",   icon: ShieldCheck, roles: ["ADMIN"] },
+  { href: "/admin/importaciones", label: "Importaciones",  icon: Upload,      roles: ["ADMIN", "GESTOR"] },
   { href: "/configuracion",  label: "Configuración",      icon: SettingsIcon, roles: ["ADMIN"] },
 ];
 

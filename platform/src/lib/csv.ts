@@ -72,3 +72,67 @@ export function slugFilename(label: string, ext: string): string {
   const date = new Date().toISOString().slice(0, 10);
   return `${slug}-${date}.${ext}`;
 }
+
+// =============================================================================
+// Parser CSV — Sprint 21
+//
+// Parser RFC 4180-compatible sin dependencias externas.
+// Maneja:
+//   - separador configurable (default `;` para Excel es)
+//   - comillas dobles escapadas ("" → ")
+//   - comillas que encierran campos con separador o saltos de línea
+//   - BOM UTF-8 al inicio
+//   - line endings \n, \r\n
+// =============================================================================
+
+export interface ParsedCsv {
+  headers: string[];
+  rows: Record<string, string>[];
+}
+
+export function parseCsv(input: string, separator: string = ";"): ParsedCsv {
+  // Strip BOM
+  const text = input.charCodeAt(0) === 0xfeff ? input.slice(1) : input;
+  const rows: string[][] = [];
+  let cur: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === separator) { cur.push(field); field = ""; }
+      else if (ch === "\n") { cur.push(field); rows.push(cur); cur = []; field = ""; }
+      else if (ch === "\r") {
+        if (text[i + 1] === "\n") i++;
+        cur.push(field); rows.push(cur); cur = []; field = "";
+      }
+      else { field += ch; }
+    }
+  }
+  // Última fila sin newline
+  if (field.length > 0 || cur.length > 0) {
+    cur.push(field);
+    rows.push(cur);
+  }
+
+  if (rows.length === 0) return { headers: [], rows: [] };
+  const headers = rows[0].map((h) => h.trim());
+  const dataRows: Record<string, string>[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].length === 1 && rows[i][0] === "") continue; // skip empty
+    const obj: Record<string, string> = {};
+    for (let j = 0; j < headers.length; j++) {
+      obj[headers[j]] = (rows[i][j] ?? "").trim();
+    }
+    dataRows.push(obj);
+  }
+  return { headers, rows: dataRows };
+}
