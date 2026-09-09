@@ -9,14 +9,14 @@
 
 | Indicador | Valor |
 |-----------|-------|
-| **Commits en `main`** | `6b5a76b` (HEAD) |
+| **Commits en `main`** | `c325660` (HEAD) |
 | **Tag baseline** | `v0.1.0-pre-final` |
-| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)** |
+| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)**, **Sprint 21 (importación CSV)** |
 | **Datos reales en Supabase** | 1,381 propuestas, 132 predios, 5,959 vías, 656 quebradas, 14 municipios |
-| **Migraciones aplicadas** | 33 |
+| **Migraciones aplicadas** | 34 |
 | **Audit UI/UX** | 46/55 (84%) cerrados |
 | **TECH-DEBT** | 0 items abiertos |
-| **Tests** | 294+ unit, 6 E2E, smoke 55/56 (sin regresión) |
+| **Tests** | 313+ unit, 6 E2E, smoke 55/56 (sin regresión) |
 | **Última URL de Vercel** | ver https://vercel.com/drozox/terrasight-platform |
 
 ---
@@ -112,14 +112,31 @@ EN_EJECUCION → BORRADOR (re-apertura)
 - ADMIN EN_REVISION→APROBADA ✅
 - historial muestra 3 entries en orden cronológico inverso
 
+### Sprint 21 — Importación masiva desde CSV (P1)
+
+| Commit | Feature |
+|--------|---------|
+| `c325660` | Importación masiva de predios desde CSV |
+
+**Backend**:
+- Migration 34: `sgs_adm_importacion` (header con estado + totales) + `sgs_adm_importacion_error` (errores por fila/columna)
+- `parseCsv()` RFC 4180-compatible (sin deps, separador configurable, comillas escapadas, BOM, `\r\n`)
+- `validatePredioRow()` + `commitPrediosImport()` con rollback por fila
+- Genera `cedula_catastral` temporal (`IMP-{id}-{n}`) por NOT NULL
+
+**Frontend**:
+- `/admin/importaciones` form para pegar CSV + historial (50 últimas)
+- `/admin/importaciones/[id]` detalle con tabla de errores
+- Sidebar: nuevo item "Importaciones" (ADMIN/GESTOR)
+
+**Verificado E2E**:
+- CSV "Predio A 12.5 / Predio B abc / Predio C 8.0" → 2 exitosas + 1 con error, estado COMPLETADO_CON_ERRORES
+- /admin/importaciones → 200 con historial
+- /admin/importaciones/8 → 200 con tabla de errores
+
 ---
 
 ## 4. Por hacer (sprints siguientes)
-
-### Sprint 21 — Importación CSV/XLSX + KML (P1)
-- Tabla `sgs_adm_importacion` + `sgs_adm_importacion_error`
-- `/admin/importaciones` UI con preview de errores
-- Parser KML (papaparse o togeojson)
 
 ### Sprint 22 — Versionado + histórico de metas (P1)
 - `sgs_adm_version` con snapshots
