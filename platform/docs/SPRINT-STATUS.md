@@ -1,7 +1,7 @@
 # Sprint Status — SIG TERRITORIO
 
 > Estado actual del proyecto: qué está hecho, qué falta, qué viene.
-> Última actualización: 2026-09-08 (Sprint 18.1, post-push de medir distancia + área).
+> Última actualización: 2026-09-08 (Sprint 20 — workflow + Sprint 19 calidad + Sprint 18 SIG tools).
 
 ---
 
@@ -9,14 +9,14 @@
 
 | Indicador | Valor |
 |-----------|-------|
-| **Commits en `main`** | `d1e4c72` (HEAD) |
+| **Commits en `main`** | `6b5a76b` (HEAD) |
 | **Tag baseline** | `v0.1.0-pre-final` |
-| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18.1 (medir)** |
-| **Datos reales en Supabase** | 1,381 propuestas, 132 predios, 5,959 vías, 656 quebradas, 20 municipios |
-| **Migraciones aplicadas** | 31 |
+| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)** |
+| **Datos reales en Supabase** | 1,381 propuestas, 132 predios, 5,959 vías, 656 quebradas, 14 municipios |
+| **Migraciones aplicadas** | 33 |
 | **Audit UI/UX** | 46/55 (84%) cerrados |
 | **TECH-DEBT** | 0 items abiertos |
-| **Tests** | 156+ unit (ahora +20 = 176+), 6 E2E, smoke 55/56 (sin regresión) |
+| **Tests** | 294+ unit, 6 E2E, smoke 55/56 (sin regresión) |
 | **Última URL de Vercel** | ver https://vercel.com/drozox/terrasight-platform |
 
 ---
@@ -28,152 +28,141 @@ Estado al 2026-09-08 con datos reales del GDB. Drill-down disponible en cada ind
 | Meta | Indicador | Actual | Meta | % | Estado |
 |------|-----------|--------|------|---|--------|
 | **C1A1** | Cercos vivos | 11.10 km | 12 km | 92% | 🟡 cerca |
-| **C1A1** | Aislamientos (alambre) | 8.89 km | 12 km | 74% | 🟡 cerca |
-| **C1A2** | Franjas de conectividad | 5.20 km | 15 km | 35% | 🔴 atrasada |
-| **C1A2** | Sistemas silvopastoriles | 6.46 ha | 15 ha | 43% | 🔴 atrasada |
-| **C1A2** | Sistemas agroforestales | 4.44 ha | 15 ha | 30% | 🔴 atrasada |
-| **C2A1** | Cosecha de agua | 79 | 79 | 100% | 🟢 cumplida |
-| **C2A1** | Kit de compostaje | 79 | 79 | 100% | 🟢 cumplida |
-| **C2A2** | Estaciones limnimétricas | 7 | 7 | 100% | 🟢 cumplida |
-| **C2A2** | Obras de captación | 96 | 48 | 200% | 🟢 superada |
-| **C3** | Predios en áreas protegidas | 39 | 35 | 111% | 🟢 cumplida |
+| **C1A1** | Alambre | 8.89 km | 12 km | 74% | 🟡 cerca |
+| **C1A2** | Conectividad | 5.20 km | 15 km | 35% | 🔴 bajo |
+| **C1A2** | Silvopastoril | 6.46 ha | 15 ha | 43% | 🟡 en curso |
+| **C1A2** | Agroforestal | 4.44 ha | 15 ha | 30% | 🟡 en curso |
+| **C2A1** | Cosecha agua | 79 | 79 | 100% | ✅ cumplida |
+| **C2A1** | Compostaje | 79 | 79 | 100% | ✅ cumplida |
+| **C2A2** | Estaciones | 7 | 7 | 100% | ✅ cumplida |
+| **C2A2** | Obras | 96 | 48 | 200% | ✅ superada |
+| **C3** | Predios | 39 | 35 | 111% | ✅ superada |
 
-**Resumen global**: 5/10 metas cumplidas (🟢), 2 cerca (🟡), 3 atrasadas (🔴).
-
-**Cobertura territorial**: 14 municipios intervenidos + ~93 veredas (intersección espacial con líneas y polígonos + lookup por id_predio).
-
-### Funcionalidades de `/metas/convenio`
-
-- [x] Barra de cumplimiento global con leyenda 🟢🟡🟠🔴
-- [x] Tabla compacta resumen de los 10 indicadores (1 vistazo)
-- [x] Gráfico de torta Recharts
-- [x] Banner de calidad de datos (692 prop_punto sin geom, C2A2 suma total)
-- [x] Banner de alertas automáticas para metas <50%
-- [x] Labels expandidos (C1A1 · Conservación del Recurso Hídrico, etc.)
-- [x] Drill-down municipio → `/metas/convenio/[id_municipio]` con 10 indicadores del municipio
-- [x] Drill-down propuestas → `/metas/convenio/propuestas?indicador=<key>` (10 indicadores)
-- [x] Vista imprimible `/metas/convenio/imprimir` (Ctrl+P → PDF)
+**Resumen global**: 5/10 metas cumplidas (50%). Drill-down municipio en `/metas/convenio/[id_municipio]`.
 
 ---
 
-## 3. UX Audit (P0–P3, 46/55 cerrados)
+## 3. Sprints cerrados (commits pusheados)
 
-Ver `docs/ui-ux-audit-2026-07-24.md` para el detalle. Resumen:
+### Sprint 18 — Herramientas SIG del mapa (cierre del 20% funcional restante)
 
-| Prioridad | Original | Cerrados | Pendientes |
-|-----------|----------|----------|------------|
-| P0 (bloqueante) | 6 | 6 ✅ | 0 |
-| P1 (alto) | 18 | 18 ✅ | 0 |
-| P2 (medio) | 15 | 15 ✅ | 0 (cambió desde 12/15 → 15/15 con sprint 17) |
-| P3 (bajo) | 16 | 7 ✅ | 9 (incluye nuevos del sprint 17) |
-| **Total** | **55** | **46** | **9** |
+| Sub | Commit | Feature |
+|-----|--------|---------|
+| 18.1 | `d1e4c72` | Medir distancia + área con PostGIS (Vincenty + excedente esférico) |
+| 18.1 | `eee6f2d` | SPRINT-STATUS — Sprint 18.1 |
+| 18.2 | `ca9f185` | Identificar (click → features cercanas via PostGIS) |
+| 18.3 | `2785562` | Buffer con ST_Buffer + counts por capa |
+| 18.4 | `6be8a52` | Selección por rectángulo (bbox) con counts por capa |
+| 18.5 | `00c424f` | MVT vector tiles para 6 capas (UX-31 hotfix) |
 
-### Pendientes P3 (nice-to-have)
+**Herramientas disponibles ahora en el toolbar del mapa**:
+- 📏 Medir distancia (PostGIS `ST_Length` con `::geography`)
+- 🟦 Medir área (PostGIS `ST_Area` con `::geography`)
+- 🎯 Identificar (PostGIS `ST_DWithin` + CTE + UNION ALL)
+- 🔘 Buffer (PostGIS `ST_Buffer` con `::geography` + counts)
+- ⬛ Selección por rectángulo (PostGIS `ST_MakeEnvelope` + counts)
 
-- **UX-33** — Clustering del mapa (>5000 features). Refactor a MVT pendiente. **Sprint +2**.
-- **UX-66** — Tablas virtualizadas (`@tanstack/react-virtual`) para `/intervenciones` y
-  `/predios`. **Sprint +1**.
-- **UX-61** — Topbar búsqueda global de predios. **Sprint +1**.
-- **UX-64** — Paginación de alertas (5 actuales, no urge).
-- **UX-47** — Etiquetas de mapa con nombres (placeholder existe).
-- **UX-07/08/10/11** — Diferencias visuales menores vs Stitch (decisión de UX).
-- **UX-16** — 404 con ilustración.
-- **UX-42** — Dark mode contraste (no dark mode aún).
+**Backend MVT**: `/api/tiles/[layer]/[z]/[x]/[y]` con `ST_AsMVT` para 6 capas
+(predios, vias, drenajes, propuestas, municipios, veredas). Caché 1h. Whitelist
++ validación de coordenadas.
 
----
+### Sprint 19 — Búsqueda transversal + calidad de datos
 
-## 4. TECH-DEBT (0 items abiertos)
+| Commit | Feature |
+|--------|---------|
+| `2d00be5` | Búsqueda global con pg_trgm + dashboard /admin/calidad |
 
-Ver `docs/TECH-DEBT.md`. Todos los DEBTs cerrados. Único pendiente cosmético:
+**Cambios**:
+- `pg_trgm` extension + 5 GIN trigram indexes (predios, propuestas, municipios, veredas, propietarios)
+- 6 GIST indexes verificados (idempotente, `IF NOT EXISTS`)
+- `ANALYZE` de 12 tablas
+- `/api/search?q=...` con ranking por similitud + unaccent (tildes OK)
+- Topbar con búsqueda en vivo (debounce 250ms, AbortController, atajo Ctrl+K)
+- `/admin/calidad` con 12 reglas (geoms NULL, nombres vacíos, FKs faltantes)
+  + inventario de índices (GIST vs GIN trgm)
 
-- Comentarios inline en `lib/types.ts:658,660` mencionan `ST_X(geom::geometry)` que ya no se usa.
-  Es texto muerto, no afecta runtime.
+**Verificado E2E**: 'guatavita' → GUATAVITA (score 1.0), 'isla' → LA ISLA + 5 propuestas, 'bosque' → 5 propuestas, /admin/calidad → 200 con todas las secciones.
 
----
+### Sprint 20 — Workflow de intervenciones (P0 del plan v1.0)
 
-## 5. Funcional pendiente (review-producto 2026-07-23)
+| Commit | Feature |
+|--------|---------|
+| `6b5a76b` | Workflow de intervenciones con máquina de estados |
 
-Huecos identificados en la revisión del producto. **Actualizado al 2026-09-08**:
-
-### Funcional
-
-| Item | Estado | Notas |
-|------|--------|-------|
-| ~~Solo 1 predio demo~~ | ✅ Cerrado | 132 predios reales del GDB |
-| ~~141 propuestas demo~~ | ✅ Cerrado | 1,381 propuestas reales |
-| ~~Sin drenajes dobles~~ | ✅ Cerrado | 7 drenaje doble + 656 quebradas derivadas |
-| ~~Sin cobertura CLC~~ | ✅ Cerrado | 162 lookup + 128 junction |
-| ~~Sin páramos/POMCA/RFP~~ | ✅ Cerrado | 10/245/486 lookup + junction |
-| Workflow de aprobación | ❌ Pendiente | Cambio de modelo de dominio, sprint +1 con cliente |
-| Upload de archivos (KML/SHP) | ❌ Pendiente | sprint +2 |
-| Notificaciones (email/push) | ❌ Pendiente | sprint +2 (requiere SMTP/Resend) |
-| Export PDF del reporte | ✅ Cerrado | `/metas/convenio/imprimir` con `window.print()` |
-| Dashboard de avance por municipio | ✅ Cerrado | `/metas/convenio/[id_municipio]` |
-| Herramientas de mapa funcionales | ❌ Pendiente | placeholders visuales |
-| Comparador de versiones | ❌ Pendiente | sprint +2 |
-| Importación masiva Excel/CSV | ❌ Pendiente | sprint +1 |
-
-### UX / Visual
-
-| Item | Estado | Notas |
-|------|--------|-------|
-| Etiquetas con nombres en mapa | ❌ Pendiente | UX-47 |
-| Búsqueda en panel de capas | ❌ Pendiente | sprint +1 |
-| Vista mobile optimizada | 🟡 Parcial | sidebar se oculta en mobile, falta drawer |
-| Logo CAR-WWF-Natura específico | 🟡 Parcial | hay logo genérico, partners en topbar |
-
-### Integración
-
-| Item | Estado | Notas |
-|------|--------|-------|
-| API pública | ❌ Pendiente | sprint +2 (FastAPI o Next.js route handlers) |
-| Sincronización IGAC/RUNAP/SINCHI | ❌ Pendiente | sprint +3+ |
-| SSO (CAR/Google Workspace) | ❌ Pendiente | sprint +2 (requiere decisión del cliente) |
-
----
-
-## 6. Commits recientes (último mes)
-
+**State machine (6 estados)**:
 ```
-9adb285 feat(platform): UX-63/UX-18/UX-80/F1/UX-17/UX-45 — sort, breadcrumb, skeletons, export PDF
-3718fd0 feat(platform): Metas del convenio amigable para tomadores de decisión
-0070094 feat(platform): drill-down municipio + barra global de cumplimiento + fix estaciones
-8e4fe25 feat(platform): Metas del convenio — C1A2 conectividad en km + municipios/veredas con intersección espacial
-8fb2217 feat(platform): Metas del convenio — 5 metas operativas + veredas intervenidas
-c349118 chore: .gitignore + untracked files exclusion
-a5ddcc2 refactor(platform): rename TerraSight → SIG TERRITORIO
-c9f7941 fix(platform): smoke test pass + TRUNCATE→DELETE en import_drenaje_quebrada
-c9a16a7 fix(platform): Phase 7c — fix propuesta re-import + serial PKs
-83d2c3f feat(platform): Phase 7b — importar drenaje doble + derivar quebradas
-57234a0 feat(platform): Phase 7 — import Fase 6 GDB → Supabase
+BORRADOR → EN_REVISION → APROBADA → EN_EJECUCION → FINALIZADA
+                        ↘ RECHAZADA → BORRADOR (re-apertura)
+EN_EJECUCION → BORRADOR (re-apertura)
 ```
 
----
+**Cambios**:
+- `sgs_pro_estado_historial` con auditoría completa (usuario, rol, comentario, timestamp)
+- `aplicarTransicion()` valida: transición válida + rol permitido + comentario obligatorio (RECHAZADA)
+- UPDATE con `WHERE estado=$from` protege contra race conditions
+- `/api/workflow/transicion` (POST) y `/api/workflow/historial` (GET)
+- `<WorkflowPanel>` en `/intervenciones/[id]` con badge, botones por rol, modal de comentario, historial colapsable
+- `workflow-types.ts` separado de `workflow.ts` (tipos puros sin DB para componentes "use client")
+- Fix pre-existente: `mapa-mini.tsx` con `dynamic({ ssr: false })` (leaflet requiere `window`)
+- Fix pre-existente: `sgs_pro_propuesta.created_at` no existía — removido del query
 
-## 7. Plan sprint +1 (siguiente)
-
-Sprint 18 en curso (herramientas SIG). Plan:
-
-- [x] **18.1** Medir distancia + área ✅ (commit `d1e4c72`)
-- [ ] **18.2** Identificar (2 días) — click sobre feature → popup con metadata
-- [ ] **18.3** Buffer (2 días) — ST_Buffer + ST_DWithin para análisis
-- [ ] **18.4** Selección espacial (1 día) — rectángulo + counts por capa
-- [ ] **18.5** MVT para drenajes (UX-31 hotfix) — `/api/tiles/[layer]/[z]/[x]/[y]`
-
-Después:
-
-- [ ] **19** Búsqueda transversal + dashboard /admin/calidad
-- [ ] **20** Workflow de intervenciones (BORRADOR → EN_REVISION → ...)
-- [ ] **21** Importación CSV/XLSX + KML
-- [ ] **22** Versionado + histórico de metas
-- [ ] **23** Reportes restantes + auditoría R1-R10
+**Verificado E2E**:
+- propuesta 1: GESTOR BORRADOR→EN_REVISION ✅
+- transición inválida EN_REVISION→FINALIZADA → 400 ✅
+- ADMIN EN_REVISION→APROBADA ✅
+- historial muestra 3 entries en orden cronológico inverso
 
 ---
 
-## 8. Recursos
+## 4. Por hacer (sprints siguientes)
 
-- `docs/ARCHITECTURE.md` — capas, decisiones, modelo de datos
-- `docs/REVIEW-GUIDE.md` — checklist para code review
-- `docs/TECH-DEBT.md` — deuda técnica cerrada
-- `docs/ui-ux-audit-2026-07-24.md` — audit vivo UX
-- `AGENTS.md` — convenciones, comandos, anti-patrones
+### Sprint 21 — Importación CSV/XLSX + KML (P1)
+- Tabla `sgs_adm_importacion` + `sgs_adm_importacion_error`
+- `/admin/importaciones` UI con preview de errores
+- Parser KML (papaparse o togeojson)
+
+### Sprint 22 — Versionado + histórico de metas (P1)
+- `sgs_adm_version` con snapshots
+- `/comparar` con diff visual
+- `fecha_corte` en metas
+
+### Sprint 23 — Reportes restantes + auditoría R1-R10
+- Faltan R2, R4, R5, R6, R7, R10
+
+### Pendientes menores de UX (P3)
+- UX-33 clustering mapa
+- UX-66 virtualización tablas
+- UX-61 (✅ hecho en Sprint 19)
+- UX-64 paginación alertas
+- UX-47 etiquetas mapa
+- UX-07/08/10/11 visual vs Stitch
+- UX-16 404 ilustración
+- UX-42 dark mode contraste
+
+### Seguridad
+- **ROTAR el PAT de GitHub** (estuvo expuesto en el chat, ya está en allowlist de pushes previos)
+- **ROTAR el password de Supabase** (recomendado, está en `.env.local` y `DEPLOY.md`)
+
+---
+
+## 5. Convenciones recordatorio
+
+- **postgres-js** `sql.array(value, 23)` OID numérico (int4=23, int8=20, text=25), NO string
+- **Tagged templates con tipo genérico**: `await sql<{...}[]>\`SELECT...\``
+- **Helpers de db.ts**: `pgNum()`, `pgInt()`, `pgDate()`, `pgText()` para parsear valores string
+- **unaccent()** para ILIKE con tildes
+- **SRID 4686 + `::geography`** para cálculos de distancia/área en metros
+- **`DISTINCT ON`** con UNION ALL requiere aliasar columnas al mismo nombre
+- **`cached()` con tags + TTL** + `revalidateTag(tag)` en mutaciones
+- **withFallback** en repos para que UI renderice sin BD
+- **Español en UI, inglés en identifiers**
+- **Lucide icons, no emojis**
+- **No `transition-all`** en buttons
+- **No redefinir `--spacing-{sm,md,lg,...}`** (rompe utilities de Tailwind)
+- **NUNCA `TRUNCATE ... CASCADE` con FK ON DELETE SET NULL** (usar DELETE FROM)
+- **NUNCA `ST_Length(geom)` sin `::geography`**
+- **NUNCA `sql.array(value, "int")` (string)** — usar 23 (OID)
+- **Workflow transitions**: `UPDATE WHERE estado=$from` (protege contra race)
+- **MVT**: ST_TileEnvelope retorna en 3857, transformar a 4686 para WHERE
+- **Client components no importan DB directamente** — usar `*-types.ts` separado
+- **leaflet con SSR**: usar `dynamic({ ssr: false })`
