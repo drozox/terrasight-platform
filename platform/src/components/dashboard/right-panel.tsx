@@ -1,3 +1,5 @@
+"use client";
+
 import { Card } from "@/components/ui/card";
 import { DonutChart } from "./donut-chart";
 import { LineChart, type LineSeries } from "./line-chart";
