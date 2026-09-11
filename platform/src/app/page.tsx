@@ -1,23 +1,15 @@
 import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
 import { ImportPanel } from "@/components/dashboard/import-panel";
-import { RightPanel } from "@/components/dashboard/right-panel";
-import { BottomSections, SummaryBar } from "@/components/dashboard/bottom-sections";
-import { MapSearchBar } from "@/components/map/map-search-bar";
-import { LeafletMap } from "@/components/map/leaflet-map";
+import { SummaryBar } from "@/components/dashboard/bottom-sections";
 import {
   getDashboardKpis,
   getComponentes,
-  getCoberturaVegetal,
   getIntervencionesRecientes,
-  getPrediosMini,
-  getQuebradasMini,
-  getPrediosGeoJSON,
-  getAlertas,
   getFooterKpis,
-  getPrediosPorMunicipio,
   getPropuestasPorComponente,
   pingDb,
 } from "@/lib/repos";
+import { DashboardContent } from "./dashboard-suspense";
 
 export const dynamic = "force-dynamic";
 
@@ -33,48 +25,13 @@ export default async function HomePage({
   const queryTexto = params.q ?? "";
   const esImportar = componenteFiltro === "IMPORT";
 
-  const [
-    kpis,
-    componentes,
-    cobertura,
-    intervenciones,
-    predios,
-    quebradas,
-    geojson,
-    alertas,
-    footer,
-    topMunicipios,
-    seriesComponentes,
-    dbHealth,
-  ] = await Promise.all([
-    getDashboardKpis(),
-    getComponentes(),
-    getCoberturaVegetal(),
-    getIntervencionesRecientes(8, componenteFiltro),
-    getPrediosMini(componenteFiltro),
-    getQuebradasMini(),
-    getPrediosGeoJSON(componenteFiltro),
-    getAlertas(5),
-    getFooterKpis(),
-    getPrediosPorMunicipio(6),
-    getPropuestasPorComponente(),
-    pingDb(),
-  ]);
-
-  // Filtrado adicional en memoria por texto
-  const intervencionesFiltradas = queryTexto
-    ? intervenciones.filter((i) => {
-        const t = queryTexto.toLowerCase();
-        return (
-          i.nombrePredio?.toLowerCase().includes(t) ||
-          i.municipio?.toLowerCase().includes(t) ||
-          i.actividad?.toLowerCase().includes(t)
-        );
-      })
-    : intervenciones;
-
   // Modo "Importar capa": reemplazamos el cuerpo por el ImportPanel.
   if (esImportar) {
+    // Datos ligeros solo para el ribbon + footer
+    const [componentes, footer] = await Promise.all([
+      getComponentes(),
+      getFooterKpis(),
+    ]);
     return (
       <div className="flex h-full flex-1 flex-col overflow-hidden">
         <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-3">
@@ -91,82 +48,47 @@ export default async function HomePage({
   }
 
   // =======================================================================
-  // DEBT-3.9 — Layout: el mapa es la pieza principal. Ocupa el área central
-  // con altura flexible (flex-1) y un mínimo de 560px. Los paneles de KPIs,
-  // componentes y alertas se compactan en una columna lateral derecha
-  // (ocultable) y la fila inferior con tabla + cards.
+  // DEBT-3.9 + Sprint 23 hotfix: Layout con streaming SSR.
+  //
+  // Antes: 13 queries en Promise.all bloqueaban TODO el SSR. Si el GIST index
+  // tardaba, el navegador veía pantalla en blanco.
+  //
+  // Ahora: el home carga en paralelo SOLO los datos que necesita para el shell
+  // inicial (kpis, componentes, footer, intervenciones, series, dbHealth).
+  // Las queries pesadas del mapa (prediosGeoJSON, quebradasMini) y del right
+  // panel (alertas) se cargan dentro de sub-componentes envueltos en
+  // <Suspense> — se streamean en cuanto estén listos, sin bloquear el resto.
+  //
+  // Resultado: el usuario ve header + ribbon + KPI cards en <300ms; el mapa
+  // y los paneles laterales aparecen progresivamente.
   // =======================================================================
+
+  const [
+    kpis,
+    componentes,
+    intervenciones,
+    footerInicial,
+    seriesComponentes,
+    dbHealth,
+  ] = await Promise.all([
+    getDashboardKpis(),
+    getComponentes(),
+    getIntervencionesRecientes(8, componenteFiltro),
+    getFooterKpis(),
+    getPropuestasPorComponente(),
+    pingDb(),
+  ]);
+
   return (
-    <div className="flex h-full flex-1 flex-col overflow-hidden">
-      {/* ComponentRibbon (C1/C2/C3) — siempre visible */}
-      <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-2">
-        <ComponentRibbon active={componenteFiltro} />
-      </div>
-
-      {/* Contenido principal: mapa al centro + right panel (ancho) + bottom */}
-      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
-        {/* Columna izquierda: mapa grande + bottom sections */}
-        <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
-          {/* Mapa: pieza central grande, ocupa todo el alto disponible.
-             UX-35 (audit 2026-07-24): en mobile el min-h-[560px] no cabe.
-             Reducimos a h-[400px] en mobile y dejamos min-h-[560px] en lg+.
-             Tambien flex-col en mobile para que el mapa no compita con los
-             bottom sections — en mobile el usuario quiere ver el mapa PRIMERO
-             (no scrollear para llegar). */}
-          <div className="relative h-[400px] w-full flex-shrink-0 overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[560px] lg:flex-1">
-            <LeafletMap
-              predios={predios}
-              quebradas={quebradas}
-              geojson={geojson}
-              activeComponente={componenteFiltro}
-              height="100%"
-            />
-
-            {/* Search overlay (debajo del ZoomControl para no interceptar clicks) */}
-            <MapSearchBar initialQuery={queryTexto} />
-
-            {/* DB health pill (esquina inferior izquierda) */}
-            <div className="absolute bottom-4 left-4 z-[600] rounded-full bg-surface-container-lowest/95 px-3 py-1.5 text-[11px] shadow-md backdrop-blur">
-              <span
-                className="mr-1 inline-block size-2 rounded-full align-middle"
-                style={{
-                  background: dbHealth.ok
-                    ? "var(--color-success)"
-                    : "var(--color-error)",
-                }}
-              />
-              {dbHealth.ok
-                ? `PostGIS OK · ${dbHealth.latencyMs} ms · ${dbHealth.server ?? ""}`
-                : `Postgres sin conexión (${dbHealth.latencyMs} ms)`}
-            </div>
-
-            {/* Tip del mapa — esquina inferior derecha, debajo del ZoomControl */}
-            <div className="absolute bottom-3 right-3 z-[500] rounded-md bg-surface-container-lowest/80 px-2 py-1 text-[10px] text-on-surface-variant shadow-sm backdrop-blur">
-              Zoom 3–22 · wheel / double-click / +/–
-            </div>
-          </div>
-
-          {/* Fila inferior: tabla + cards (compactos) */}
-          <BottomSections
-            intervenciones={intervencionesFiltradas}
-            cobertura={cobertura}
-            topMunicipios={topMunicipios}
-            footer={footer}
-          />
-        </div>
-
-        {/* Right Panel: KPIs + componentes + tendencia + alertas (ancho fijo) */}
-        <RightPanel
-          kpis={kpis}
-          componentes={componentes}
-          footer={footer}
-          alertas={alertas}
-          seriesComponentes={seriesComponentes}
-        />
-      </div>
-
-      {/* Footer Summary Bar */}
-      <SummaryBar footer={footer} />
-    </div>
+    <DashboardContent
+      componenteFiltro={componenteFiltro}
+      queryTexto={queryTexto}
+      kpis={kpis}
+      componentes={componentes}
+      footerInicial={footerInicial}
+      intervenciones={intervenciones}
+      seriesComponentes={seriesComponentes}
+      dbHealth={dbHealth}
+    />
   );
 }
