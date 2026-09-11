@@ -394,6 +394,21 @@ export default function MapClient({
         )}
 
         <MapRegionLabels />
+
+        {/* P0-CRÍTICO: estos 3 layers usan useMap() y DEBEN estar dentro
+           del MapContainer para tener el contexto de Leaflet. Antes estaban
+           fuera → "useLeafletContext() can only be used in a descendant
+           of <MapContainer>" en producción. */}
+        <MapMeasureLayer
+          interaction={interaction}
+          onClick={onMapClick}
+          onMouseMove={() => {}}
+        />
+        <MapBufferLayer buffer={buffer.result?.buffer ?? null} origin={buffer.origin} />
+        <MapSpatialSelectLayer
+          interaction={interaction}
+          result={spatialSelect.result ? { bbox: spatialSelect.result.bbox } : null}
+        />
       </MapContainer>
 
       {showLayersPanel && (
@@ -410,13 +425,6 @@ export default function MapClient({
         activeTool={activeTool}
         onSelect={onSelectTool}
         onRecenter={onRecenter}
-      />
-
-      {/* Sprint 18.1: visual de medición (polyline, polygon, vertex markers) */}
-      <MapMeasureLayer
-        interaction={interaction}
-        onClick={onMapClick}
-        onMouseMove={() => {}}
       />
 
       {/* UX-11: feedback inline cuando un tool no-implementado se selecciona.
@@ -436,8 +444,7 @@ export default function MapClient({
         onClear={() => setIdentify({ features: [], isLoading: false, error: null, query: null })}
       />
 
-      {/* Sprint 18.3: layer + panel de buffer */}
-      <MapBufferLayer buffer={buffer.result?.buffer ?? null} origin={buffer.origin} />
+      {/* Sprint 18.3: panel de buffer (solo UI, sin useMap) */}
       <MapBufferPanel
         isLoading={buffer.isLoading}
         error={buffer.error}
@@ -446,11 +453,7 @@ export default function MapClient({
         onClose={onClearTool}
       />
 
-      {/* Sprint 18.4: layer + panel de selección por rectángulo */}
-      <MapSpatialSelectLayer
-        interaction={interaction}
-        result={spatialSelect.result ? { bbox: spatialSelect.result.bbox } : null}
-      />
+      {/* Sprint 18.4: panel de selección por rectángulo (solo UI, sin useMap) */}
       <MapSpatialSelectPanel
         isLoading={spatialSelect.isLoading}
         error={spatialSelect.error}
