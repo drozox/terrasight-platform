@@ -7,11 +7,11 @@
 
 import Link from "next/link";
 import { ArrowRight, AlertTriangle, MapPin, Building2, Target } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { Printer } from "lucide-react";
 import { getMetasConvenio, INDICADORES_META, type IndicadorKey } from "@/lib/repos/metas-convenio";
 import { withFallback } from "@/lib/repos/_helpers";
 import { DEMO_METAS_CONVENIO } from "@/lib/demo-data";
+import { MetasPieChart } from "./metas-pie-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -308,28 +308,7 @@ function MetasConvenioView({
               </div>
             </div>
             <div className="h-48">
-              {pieData.length > 0 && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={70}
-                      paddingAngle={2}
-                    >
-                      {pieData.map((entry, idx) => (
-                        <Cell key={idx} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
+              <MetasPieChart data={pieData} />
             </div>
           </div>
         </section>
