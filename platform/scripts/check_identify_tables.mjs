@@ -1,6 +1,6 @@
-// Verificar que las tablas que usa identify.ts existen
+﻿// Verificar que las tablas que usa identify.ts existen
 import postgres from "postgres";
-const url = "process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf"";
+const url = process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf";
 const sql = postgres(url, { max: 1, prepare: false });
 
 const tablas = [
@@ -23,13 +23,13 @@ const r = await sql`
   ORDER BY table_name
 `;
 console.log("Tablas que existen:");
-for (const row of r) console.log(`  ✓ ${row.table_name}`);
+for (const row of r) console.log(`  âœ“ ${row.table_name}`);
 console.log("\nTablas que faltan:");
 for (const t of tablas) {
-  if (!r.find((row) => row.table_name === t)) console.log(`  ✗ ${t} (NO EXISTE)`);
+  if (!r.find((row) => row.table_name === t)) console.log(`  âœ— ${t} (NO EXISTE)`);
 }
 
-// Verificar columnas específicas
+// Verificar columnas especÃ­ficas
 console.log("\nColumnas de sgs_pre_predio:");
 const cols = await sql`
   SELECT column_name FROM information_schema.columns

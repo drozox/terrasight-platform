@@ -123,8 +123,9 @@ node scripts/audit-screenshot.mjs  # regenerar screenshots
   - 5,959 vias (con spatial join municipio, ~30% match)
   - 966 drenaje_simple (spatial join 100%)
   - 28 spatial lookup (bioma/paramos/pomca/rfp pre-aggregated con ST_Union)
-- **22 migraciones** (`01-22-*.sql`). Las 14-22 son específicas del import GDB
-  (drop NOT NULL, CHECKs, defaults).
+- **35 migraciones** (`01-35-*.sql`). Las 14-22 son del import GDB
+  (drop NOT NULL, CHECKs, defaults); 32-35 son features post-MVP
+  (search-indexes, workflow-estados, importaciones, versionado-metas).
 - **Deuda técnica conocida**: 9 issues (DEBT-1 a DEBT-3.9) cerrados.
   Ver `docs/TECH-DEBT.md` para detalles.
 - **Audit UI/UX**: 80 issues identificados (6 P0, 18 P1, 15 P2, 8 P3).

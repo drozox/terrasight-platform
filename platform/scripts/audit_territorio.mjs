@@ -1,10 +1,10 @@
-import postgres from "postgres";
-const url = "process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf"";
+﻿import postgres from "postgres";
+const url = process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf";
 const sql = postgres(url, { max: 1, prepare: false });
 
 (async () => {
-  // 1. Distribución de propuestas: por tipo y por presencia de id_predio
-  console.log("=== distribución de propuestas por tipo y presencia de id_predio ===");
+  // 1. DistribuciÃ³n de propuestas: por tipo y por presencia de id_predio
+  console.log("=== distribuciÃ³n de propuestas por tipo y presencia de id_predio ===");
   const dist = await sql`
     SELECT
       count(*)::int AS total_propuestas,
@@ -34,8 +34,8 @@ const sql = postgres(url, { max: 1, prepare: false });
   `;
   for (const r of geomStats) console.log(`  ${r.tipo}: ${r.con_geom}/${r.total} con geom`);
 
-  // 3. Test intersección espacial propuesta_punto (sin id_predio) con municipio
-  console.log("\n=== test intersección espacial (muestra, primer 10) ===");
+  // 3. Test intersecciÃ³n espacial propuesta_punto (sin id_predio) con municipio
+  console.log("\n=== test intersecciÃ³n espacial (muestra, primer 10) ===");
   const inter = await sql`
     SELECT m.nombre_municipio, pt.actividad, count(*)::int AS n
     FROM sgs_pro_propuesta_punto pt
@@ -47,8 +47,8 @@ const sql = postgres(url, { max: 1, prepare: false });
   `;
   for (const r of inter) console.log(`  ${r.nombre_municipio} [${r.n}] ${r.actividad}`);
 
-  // 4. Total de municipios intervenidos con intersección espacial (todas las propuestas)
-  console.log("\n=== municipios intervenidos (con intersección espacial, todas las propuestas) ===");
+  // 4. Total de municipios intervenidos con intersecciÃ³n espacial (todas las propuestas)
+  console.log("\n=== municipios intervenidos (con intersecciÃ³n espacial, todas las propuestas) ===");
   const munAll = await sql`
     WITH propuestas_geom AS (
       SELECT geom FROM sgs_pro_propuesta_punto WHERE geom IS NOT NULL
@@ -59,7 +59,7 @@ const sql = postgres(url, { max: 1, prepare: false });
     FROM bcs_lpa_municipio m
     WHERE EXISTS (SELECT 1 FROM propuestas_geom p WHERE ST_Intersects(m.geom, p.geom))
   `;
-  console.log("  municipios con intersección:", munAll[0]);
+  console.log("  municipios con intersecciÃ³n:", munAll[0]);
 
   // 5. Total de propuestas
   console.log("\n=== verificar: hay prop_super con id_predio pero sin hijas? ===");

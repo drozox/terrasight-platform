@@ -1,12 +1,16 @@
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
-import { BarChart3 } from "lucide-react";
+// =============================================================================
+// /dashboard — REDIRIGE a / (el dashboard real vive en el root)
+//
+// P2-7 (FINAL-CLOSURE-PLAN): el dashboard real (KPIs, mapa prominente, panels
+// con Suspense) está implementado en src/app/page.tsx (Sprint 18.5 / Sprint
+// 23). El placeholder "Dashboard Analítico" era residual y nunca se llenó.
+// Esta redirect mantiene cualquier link externo funcional.
+// =============================================================================
 
-export default function DashboardPage() {
-  return (
-    <ModulePlaceholder
-      title="Dashboard Analítico"
-      description="Vistas independientes con tablas dinámicas, comparadores por componente y series temporales. Próxima fase."
-      Icon={BarChart3}
-    />
-  );
+import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+
+export default function DashboardRedirectPage() {
+  redirect("/");
 }

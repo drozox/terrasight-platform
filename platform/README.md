@@ -92,11 +92,18 @@ platform/
 │   │       ├── predios.ts      # Listado, geojson, KPIs
 │   │       ├── propuestas.ts   # Intervenciones
 │   │       ├── quebradas.ts    # Drenajes, microcuencas
-│   │       └── reportes.ts     # 10 reportes del cliente
+│   │       ├── workflow.ts     # Máquina de estados (6 estados, transiciones por rol)
+│   │       ├── workflow-types.ts # Tipos puros client-safe
+│   │       ├── versionado.ts   # Snapshots de metas (Sprint 22)
+│   │       ├── importaciones.ts # Import CSV predios (Sprint 21)
+│   │       ├── calidad.ts      # 12 reglas de calidad (Sprint 19)
+│   │       ├── search.ts       # Búsqueda pg_trgm (Sprint 19)
+│   │       ├── mvt.ts          # Vector tiles (Sprint 18.5)
+│   │       └── reportes.ts     # 10 reportes R1-R10
 │   └── types/                  # tipos auxiliares
-├── docs/                       # Documentación viva
+├── docs/                       # Documentación viva (FINAL-CLOSURE-PLAN, SPRINT-STATUS, REVIEW-GUIDE, etc.)
 ├── scripts/                    # PowerShell + Node helpers
-│   ├── db/init/                # 31 migraciones SQL
+│   ├── db/init/                # 35 migraciones SQL
 │   ├── *.mjs                   # Import GDB, smoke tests, fixes
 └── public/                     # assets (logos aliados, etc.)
 ```
@@ -141,7 +148,7 @@ ejecutar `py scripts/extract_gdb.py` + `node scripts/import_gdb_to_pg.mjs`.
 | `npm run test:e2e` | Playwright (smoke + flujos) |
 | `npm run db:up` | docker compose up -d db |
 | `npm run db:reset` | wipe + re-seed |
-| `node scripts/migrate.mjs --no-seed` | Aplicar 31 migraciones sin seed demo |
+| `node scripts/migrate.mjs --no-seed` | Aplicar 35 migraciones sin seed demo |
 | `node scripts/prod_smoke.mjs` | Smoke test (55/56 pass pre-prod) |
 
 ---

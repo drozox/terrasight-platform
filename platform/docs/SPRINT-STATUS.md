@@ -1,7 +1,7 @@
 # Sprint Status — SIG TERRITORIO
 
 > Estado actual del proyecto: qué está hecho, qué falta, qué viene.
-> Última actualización: 2026-09-08 (Sprint 20 — workflow + Sprint 19 calidad + Sprint 18 SIG tools).
+> Última actualización: 2026-09-10 (Sprint 23 — FINAL-CLOSURE-PLAN: P0-1 estados, P0-2 secretos, P1-3/4/5 metas).
 
 ---
 
@@ -9,21 +9,27 @@
 
 | Indicador | Valor |
 |-----------|-------|
-| **Commits en `main`** | `3473ac3` (HEAD) |
+| **Commits en `main`** | `c04a6f6` (HEAD) |
 | **Tag baseline** | `v0.1.0-pre-final` |
-| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)**, **Sprint 21 (importación CSV)**, **Sprint 22 (versionado de metas)** |
+| **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)**, **Sprint 21 (importación CSV)**, **Sprint 22 (versionado de metas)**, **Sprint 23 (FINAL-CLOSURE-PLAN: estados + secretos + drill-down metas)** |
 | **Datos reales en Supabase** | 1,381 propuestas, 132 predios, 5,959 vías, 656 quebradas, 14 municipios |
 | **Migraciones aplicadas** | 35 |
 | **Audit UI/UX** | 46/55 (84%) cerrados |
 | **TECH-DEBT** | 0 items abiertos |
-| **Tests** | 313+ unit, 6 E2E, smoke 55/56 (sin regresión) |
+| **Tests** | 322 unit (313 + 9 nuevos metas-convenio), 6 E2E, smoke 55/56 (sin regresión) |
 | **Última URL de Vercel** | ver https://vercel.com/drozox/terrasight-platform |
+
+> **Importante:** los 10 reportes R1–R10 del convenio están **implementados y verificados E2E** en `/reportes` (`src/lib/repos/reportes.ts` + `src/app/api/reportes/route.ts` + `src/app/reportes/page.tsx`). El item "Sprint 23 — Faltan R2/R4/R5/R6/R7/R10" del SPRINT-STATUS previo es **stale**.
 
 ---
 
-## 2. Metas operativas del convenio (5 metas, /metas/convenio)
+## 2. Metas operativas del convenio (10 indicadores, /metas/convenio)
 
-Estado al 2026-09-08 con datos reales del GDB. Drill-down disponible en cada indicador.
+Estado al 2026-09-08 con datos reales del GDB. Drill-down de propuestas en
+`/metas/convenio/propuestas?indicador=<key>` (corregido en Sprint 23 / P1-3).
+
+> **Importante:** `/metas` (vistas SQL) **redirige** a `/metas/convenio` desde
+> Sprint 23 / P1-5 — una única fuente de verdad.
 
 | Meta | Indicador | Actual | Meta | % | Estado |
 |------|-----------|--------|------|---|--------|
@@ -153,26 +159,43 @@ EN_EJECUCION → BORRADOR (re-apertura)
 - GET lista ambos
 - comparar(1, 2) → diff de 10 indicadores
 
+### Sprint 23 — FINAL-CLOSURE-PLAN: cierres de coherencia + seguridad
+
+| Commit | Item | Descripción |
+|--------|------|-------------|
+| `9c36a69` | **P0-1** | Unificar vocabulario de estados (workflow nuevo + editor antiguo). `EstadoIntervencion` = 6 valores MAYÚSCULAS del workflow. Editor viejo eliminado del detalle (solo `<WorkflowPanel>` con auditoría). 313/313 tests |
+| `c04a6f6` | **P0-2** | Redactar secretos commitheados (15 archivos: `.env.example`, AGENTS.md, README.md, ARCHITECTURE.md, REVIEW-GUIDE.md, FINAL-CLOSURE-PLAN.md, 10 scripts de auditoría). Password y project-ref removidos; scripts usan `process.env.DATABASE_URL` con fallback a local dev |
+| (pendiente commit) | **P1-3** | Fix drill-down propuestas: `substring(2,3)` → `substring(2,4)` en `metas-convenio.ts` queryPropuestasHija. Bug extraía "A" en vez de "A1"/"A2", dejando el drill-down de los 9 indicadores C1/C2 vacío. 9 nuevos tests en `tests/unit/metas-convenio.test.ts` |
+| (pendiente commit) | **P1-4** | Alinear C2A2 global vs drill-down. Nuevo flag `globalSinFiltroCA` en `IndicadorMeta`. Estaciones y obras_captacion suman todos los C-A (alineado con `getC2A2()`) |
+| (pendiente commit) | **P1-5** | Redirigir `/metas` (vistas SQL) → `/metas/convenio` (código). Una sola fuente de verdad para metas del convenio |
+| (pendiente commit) | **P2-9** | Tests de regresión para `metas-convenio.ts` (P1-3, P1-4, mapeo de PropuestaIndicador) |
+
+**Auditoría completa:** ver `docs/FINAL-CLOSURE-PLAN.md` (18 items, 1 P0
+estado fixed, 1 P0 secretos fixed, 1 P1 drill-down fixed, 1 P1 C2A2 fixed,
+1 P1 /metas divergente fixed, 3 P2 pendientes, 1 P2 cierre).
+
 ---
 
 ## 4. Por hacer (sprints siguientes)
 
-### Sprint 23 — Reportes restantes + auditoría R1-R10
-- Faltan R2, R4, R5, R6, R7, R10
+### Sprint 24+ — Pendientes
+- **P2-7**: resolver `/dashboard` placeholder (apuntar al dashboard real `/` o quitar item del sidebar)
+- **P2-8**: reactivar step `Build` en `.github/workflows/ci.yml`
+- **P3-10**: limpiar código muerto (`/api/analysis/*` vs `/api/analisis/*`, `_archive/`, scripts de debug one-shot)
+- **P3-11**: sanitizar CSV (prevenir inyección de fórmulas `=+-@`)
 
 ### Pendientes menores de UX (P3)
 - UX-33 clustering mapa
 - UX-66 virtualización tablas
-- UX-61 (✅ hecho en Sprint 19)
 - UX-64 paginación alertas
 - UX-47 etiquetas mapa
 - UX-07/08/10/11 visual vs Stitch
 - UX-16 404 ilustración
 - UX-42 dark mode contraste
 
-### Seguridad
-- **ROTAR el PAT de GitHub** (estuvo expuesto en el chat, ya está en allowlist de pushes previos)
-- **ROTAR el password de Supabase** (recomendado, está en `.env.local` y `DEPLOY.md`)
+### Seguridad (owner action)
+- **ROTAR el password de Supabase** (recomendado tras P0-2). Procedimiento en `docs/REVIEW-GUIDE.md`
+- PAT de GitHub ya rotado (2026-08)
 
 ---
 

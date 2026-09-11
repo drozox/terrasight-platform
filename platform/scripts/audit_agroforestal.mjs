@@ -1,9 +1,9 @@
-import postgres from "postgres";
-const url = "process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf"";
+﻿import postgres from "postgres";
+const url = process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf";
 const sql = postgres(url, { max: 1, prepare: false });
 
 (async () => {
-  console.log("=== agroforestal: ¿cuál matchea? ===");
+  console.log("=== agroforestal: Â¿cuÃ¡l matchea? ===");
   const r = await sql`
     SELECT unaccent(pq.actividad) AS actividad, round(sum(pq.area_ha)::numeric, 2) AS ha
     FROM sgs_pro_propuesta_poligono pq
@@ -20,7 +20,7 @@ const sql = postgres(url, { max: 1, prepare: false });
   `;
   for (const row of r) console.log(`  ${row.actividad}: ${row.ha} ha`);
 
-  // Test específico: "Bosques Comestibles" matchea "%bosque%comestible%"?
+  // Test especÃ­fico: "Bosques Comestibles" matchea "%bosque%comestible%"?
   console.log("\n=== test match exacto: '%bosque%comestible%' ===");
   const test1 = await sql`
     SELECT unaccent(pq.actividad) AS actividad, count(*)::int AS n

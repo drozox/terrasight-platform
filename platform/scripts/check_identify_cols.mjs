@@ -1,6 +1,6 @@
-// Verificar columnas de las tablas usadas en identify
+﻿// Verificar columnas de las tablas usadas en identify
 import postgres from "postgres";
-const url = "process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf"";
+const url = process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf";
 const sql = postgres(url, { max: 1, prepare: false });
 
 const tablas = [

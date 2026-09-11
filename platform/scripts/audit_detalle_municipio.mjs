@@ -1,5 +1,5 @@
-import postgres from "postgres";
-const url = "process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf"";
+﻿import postgres from "postgres";
+const url = process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf";
 const sql = postgres(url, { max: 2, prepare: false });
 
 const idMunicipio = 8; // GUATAVITA - top municipio
@@ -117,7 +117,7 @@ const vers = await sql`
 `;
 console.log("\nTop 10 veredas:", vers);
 
-// 5. Distribución por C-A
+// 5. DistribuciÃ³n por C-A
 const dist = await sql`
   WITH prop_muni AS (
     SELECT id_propuesta FROM unnest(${sql.array(propIds, 23)}) AS id_propuesta
@@ -129,6 +129,6 @@ const dist = await sql`
   JOIN sgs_com_componente c ON c.id_componente = a.id_componente
   GROUP BY c.nombre, a.nombre ORDER BY c.nombre, a.nombre
 `;
-console.log("\nDistribución C-A:", dist);
+console.log("\nDistribuciÃ³n C-A:", dist);
 
 await sql.end({ timeout: 5 });

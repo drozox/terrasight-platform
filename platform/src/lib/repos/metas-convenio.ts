@@ -78,6 +78,12 @@ export interface IndicadorMeta {
   patterns: string[]; // OR de LIKE patterns
   meta: number;
   unidad: string;
+  /**
+   * Si es true, el drill-down NO filtra por componente/acción — alinea con
+   * el cálculo global (C2A2 estaciones/obras suman todos los C-A similares
+   * por spec, no solo C2A2). Default: false.
+   */
+  globalSinFiltroCA?: boolean;
 }
 
 export const INDICADORES_META: Record<IndicadorKey, IndicadorMeta> = {
@@ -159,6 +165,7 @@ export const INDICADORES_META: Record<IndicadorKey, IndicadorMeta> = {
     patterns: ["%estacion%limnimet%", "%limnimet%"],
     meta: 7,
     unidad: "estaciones",
+    globalSinFiltroCA: true, // P1-4: global suma C2A2 + C3A1
   },
   obras_captacion: {
     key: "obras_captacion",
@@ -168,6 +175,7 @@ export const INDICADORES_META: Record<IndicadorKey, IndicadorMeta> = {
     patterns: ["%captacion%", "%captaci%"],
     meta: 48,
     unidad: "obras",
+    globalSinFiltroCA: true, // P1-4: global suma C2A2 + C3A1
   },
   predios_c3: {
     key: "predios_c3",
@@ -267,10 +275,15 @@ async function queryPropuestasHija(meta: IndicadorMeta, limit: number): Promise<
                           : "NULL::numeric";
 
   // Construir whereParts con sql`` fragments (patrón del proyecto)
-  const whereParts: ReturnType<typeof sql>[] = [
-    sql`c.nombre = ${meta.ca.substring(0, 2)}`,
-    sql`a.nombre = ${meta.ca.substring(2, 3)}`,
-  ];
+  // P1-3: substring(2,4) — antes era substring(2,3) que daba "A" en vez de "A1"/"A2"
+  // P1-4: si globalSinFiltroCA es true, NO filtrar por C/A (alinea con el cálculo global)
+  const whereParts: ReturnType<typeof sql>[] = [];
+  if (!meta.globalSinFiltroCA) {
+    whereParts.push(
+      sql`c.nombre = ${meta.ca.substring(0, 2)}`,
+      sql`a.nombre = ${meta.ca.substring(2, 4)}`,
+    );
+  }
   if (meta.patterns.length > 0) {
     const patternFragments = meta.patterns.map((p) =>
       sql`unaccent(t.actividad) ILIKE unaccent(${p})`,
@@ -279,7 +292,9 @@ async function queryPropuestasHija(meta: IndicadorMeta, limit: number): Promise<
       sql`(${patternFragments.reduce((acc, p, i) => (i === 0 ? p : sql`${acc} OR ${p}`))})`,
     );
   }
-  const whereSql = sql`WHERE ${whereParts.reduce((acc, p, i) => (i === 0 ? p : sql`${acc} AND ${p}`))}`;
+  const whereSql = whereParts.length === 0
+    ? sql``
+    : sql`WHERE ${whereParts.reduce((acc, p, i) => (i === 0 ? p : sql`${acc} AND ${p}`))}`;
 
   const rows = await sql<
     {

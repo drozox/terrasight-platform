@@ -1,0 +1,57 @@
+# =============================================================================
+# CI — SIG TERRITORIO
+#
+# P2-8 (FINAL-CLOSURE-PLAN): workflow de CI con los 3 gates obligatorios
+# del Release Gate (§19):
+#   1. tsc --noEmit          (typecheck)
+#   2. npm test              (unit + components)
+#   3. npm run build         (Next.js build)
+#
+# Re-activar/crear este workflow era el último pendiente del plan.
+# El build local requiere .env.local (no se commitea); en CI se hace
+# build sin BD (Next.js solo verifica el bundle).
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit + component tests
+        run: npm test
+
+      - name: Build (Next.js)
+        env:
+          # Variables dummy — el build de Next.js no ejecuta queries en build
+          # time, pero necesita las claves definidas. Las rutas /api/* que
+          # usan la BD se renderizan en runtime, no en build.
+          DATABASE_URL: "postgresql://stub:stub@localhost:5432/stub"
+          DIRECT_URL: "postgresql://stub:stub@localhost:5432/stub"
+          NEXTAUTH_SECRET: "ci-stub-not-secret"
+          NEXTAUTH_URL: "http://localhost:3000"
+        run: npm run build

@@ -1,9 +1,9 @@
-import postgres from "postgres";
-const url = "process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf"";
+﻿import postgres from "postgres";
+const url = process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf";
 const sql = postgres(url, { max: 1, prepare: false });
 
 (async () => {
-  console.log("=== C2A2 fuzzy: ¿qué actividades contienen 'estacion'/'limnimet' pero no matchean el patrón actual? ===");
+  console.log("=== C2A2 fuzzy: Â¿quÃ© actividades contienen 'estacion'/'limnimet' pero no matchean el patrÃ³n actual? ===");
   const candidates = await sql`
     SELECT c.nombre AS comp, a.nombre AS acc, unaccent(pt.actividad) AS actividad, count(*)::int AS n
     FROM sgs_pro_propuesta_punto pt

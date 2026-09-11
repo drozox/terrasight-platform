@@ -1,9 +1,9 @@
-import postgres from "postgres";
-const url = "process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf"";
+﻿import postgres from "postgres";
+const url = process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf";
 const sql = postgres(url, { max: 1, prepare: false });
 
 (async () => {
-  console.log("=== propuesta_poligono C1A2 (actividades únicas) ===");
+  console.log("=== propuesta_poligono C1A2 (actividades Ãºnicas) ===");
   const polAct = await sql`
     SELECT unaccent(pq.actividad) AS actividad, count(*)::int AS n,
            round(sum(pq.area_ha)::numeric, 3) AS ha
@@ -17,7 +17,7 @@ const sql = postgres(url, { max: 1, prepare: false });
   `;
   for (const r of polAct) console.log(`  [${r.n}] ${r.actividad} (${r.ha} ha)`);
 
-  console.log("\n=== propuesta_linea C1A1 (actividades únicas) ===");
+  console.log("\n=== propuesta_linea C1A1 (actividades Ãºnicas) ===");
   const linAct = await sql`
     SELECT unaccent(pl.actividad) AS actividad, count(*)::int AS n,
            round(sum(pl.longitud_km)::numeric, 3) AS km
@@ -31,7 +31,7 @@ const sql = postgres(url, { max: 1, prepare: false });
   `;
   for (const r of linAct) console.log(`  [${r.n}] ${r.actividad} (${r.km} km)`);
 
-  console.log("\n=== propuesta_punto (actividades únicas, por C-A) ===");
+  console.log("\n=== propuesta_punto (actividades Ãºnicas, por C-A) ===");
   const ptAct = await sql`
     SELECT c.nombre AS comp, a.nombre AS acc, unaccent(pt.actividad) AS actividad, count(*)::int AS n
     FROM sgs_pro_propuesta_punto pt
@@ -43,7 +43,7 @@ const sql = postgres(url, { max: 1, prepare: false });
   `;
   for (const r of ptAct) console.log(`  C${r.comp}A${r.acc} [${r.n}] ${r.actividad}`);
 
-  console.log("\n=== propuesta_linea C1A2 (también filtra por líneas?) ===");
+  console.log("\n=== propuesta_linea C1A2 (tambiÃ©n filtra por lÃ­neas?) ===");
   const linActA2 = await sql`
     SELECT unaccent(pl.actividad) AS actividad, count(*)::int AS n,
            round(sum(pl.longitud_km)::numeric, 3) AS km
