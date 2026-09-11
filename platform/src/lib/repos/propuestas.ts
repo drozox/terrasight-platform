@@ -87,9 +87,17 @@ export async function setIntervencionEstado(
   idPropuesta: number,
   nuevoEstado: EstadoIntervencion,
 ): Promise<void> {
-  // Whitelist defensiva inline (el type guard vive en `lib/constants.ts` y
-  // se usa en client; acá en server validamos de nuevo).
-  if (nuevoEstado !== "Pendiente" && nuevoEstado !== "En ejecución" && nuevoEstado !== "Finalizada") {
+  // Whitelist defensiva inline. La columna `estado` está restringida por
+  // chk_pro_estado (migration 33) a los 6 valores del workflow.
+  const ESTADOS: readonly EstadoIntervencion[] = [
+    "BORRADOR",
+    "EN_REVISION",
+    "APROBADA",
+    "EN_EJECUCION",
+    "FINALIZADA",
+    "RECHAZADA",
+  ];
+  if (!ESTADOS.includes(nuevoEstado)) {
     throw new Error(`Estado inválido: ${nuevoEstado}`);
   }
   await sql`
@@ -243,7 +251,7 @@ export async function getIntervencionCompleta(
   const tipo = pgText(row.tipo) as "punto" | "linea" | "poligono";
   const dbEstado = pgText(row.estado);
   const estado: EstadoIntervencion =
-    dbEstado === "Pendiente" || dbEstado === "Finalizada" ? dbEstado : "En ejecución";
+    dbEstado === "BORRADOR" || dbEstado === "FINALIZADA" ? dbEstado : "EN_EJECUCION";
 
   // Lanzamos Q2 y Q3 en paralelo (Q2 sólo si aplica por tipo).
   const avancesPromise = listAvancesByPropuesta(id);
@@ -458,15 +466,15 @@ export async function agregarAvancePropuesta(args: {
   if (!r) throw new Error("Insert de avance no devolvió fila");
 
   // Si el backend de la propuesta está al día y el avance es 100, sincronizar
-  // estado a 'Finalizada' (mejora UX sin afectar la lógica de negocio).
+  // estado a 'FINALIZADA' (mejora UX sin afectar la lógica de negocio).
   if (args.avancePct === 100) {
     try {
       await sql`UPDATE sgs_pro_propuesta
-                SET    estado = 'Finalizada'
+                SET    estado = 'FINALIZADA'
                 WHERE  id_propuesta = ${args.idPropuesta}
-                  AND  estado <> 'Finalizada';`;
+                  AND  estado <> 'FINALIZADA';`;
     } catch {
-      // Si la columna estado no existe (migración 04 no aplicada), ignorar.
+      // Si la columna estado no existe (migración 33 no aplicada), ignorar.
     }
   }
 

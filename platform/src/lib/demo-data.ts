@@ -97,7 +97,7 @@ export const DEMO_INTERVENCIONES: IntervencionReciente[] = [
     hectareas: 24.5,
     longitud: null,
     avance: 100,
-    estado: "Finalizada",
+    estado: "FINALIZADA",
   },
   {
     id: 1002,
@@ -111,7 +111,7 @@ export const DEMO_INTERVENCIONES: IntervencionReciente[] = [
     hectareas: null,
     longitud: 1.85,
     avance: 75,
-    estado: "En ejecución",
+    estado: "EN_EJECUCION",
   },
   {
     id: 1003,
@@ -125,7 +125,7 @@ export const DEMO_INTERVENCIONES: IntervencionReciente[] = [
     hectareas: null,
     longitud: null,
     avance: 20,
-    estado: "En ejecución",
+    estado: "EN_EJECUCION",
   },
   {
     id: 1004,
@@ -139,7 +139,7 @@ export const DEMO_INTERVENCIONES: IntervencionReciente[] = [
     hectareas: 12.8,
     longitud: null,
     avance: 100,
-    estado: "Finalizada",
+    estado: "FINALIZADA",
   },
   {
     id: 1005,
@@ -153,7 +153,7 @@ export const DEMO_INTERVENCIONES: IntervencionReciente[] = [
     hectareas: null,
     longitud: 2.4,
     avance: 75,
-    estado: "En ejecución",
+    estado: "EN_EJECUCION",
   },
   {
     id: 1006,
@@ -167,7 +167,7 @@ export const DEMO_INTERVENCIONES: IntervencionReciente[] = [
     hectareas: null,
     longitud: null,
     avance: 100,
-    estado: "Finalizada",
+    estado: "FINALIZADA",
   },
   {
     id: 1007,
@@ -181,7 +181,7 @@ export const DEMO_INTERVENCIONES: IntervencionReciente[] = [
     hectareas: 8.2,
     longitud: null,
     avance: 100,
-    estado: "Finalizada",
+    estado: "FINALIZADA",
   },
   {
     id: 1008,
@@ -195,7 +195,7 @@ export const DEMO_INTERVENCIONES: IntervencionReciente[] = [
     hectareas: null,
     longitud: null,
     avance: 20,
-    estado: "En ejecución",
+    estado: "EN_EJECUCION",
   },
 ];
 

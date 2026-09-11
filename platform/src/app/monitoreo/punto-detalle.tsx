@@ -45,9 +45,12 @@ const INPUT_CLS =
   "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-highest px-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
 const ESTADO_COLOR: Record<EstadoIntervencion, "warning" | "info" | "success"> = {
-  Pendiente: "warning",
-  "En ejecución": "info",
-  Finalizada: "success",
+  BORRADOR: "warning",
+  EN_REVISION: "warning",
+  APROBADA: "info",
+  EN_EJECUCION: "info",
+  FINALIZADA: "success",
+  RECHAZADA: "warning",
 };
 
 type Flash = { tipo: "ok" | "error"; msg: string };

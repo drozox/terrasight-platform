@@ -25,7 +25,7 @@ export async function cambiarEstadoIntervencionAction(formData: FormData): Promi
 
   const parsed = safeParseForm(formData, {
     idPropuesta: { name: "idPropuesta", required: true,  type: "number", integer: true, min: 1 },
-    estado:      { name: "estado",      required: true,  type: "enum", values: ["Pendiente", "En ejecución", "Finalizada"] },
+    estado:      { name: "estado",      required: true,  type: "enum", values: ["BORRADOR", "EN_REVISION", "APROBADA", "EN_EJECUCION", "FINALIZADA", "RECHAZADA"] },
   });
   if (!parsed.ok) return { ok: false, message: parsed.message };
 

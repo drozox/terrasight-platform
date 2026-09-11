@@ -72,7 +72,7 @@ type MonitoreoRow = {
 function mapMonitoreoRow(r: MonitoreoRow): MonitoreoPunto {
   const dbEstado = pgText(r.estado);
   const estado: EstadoIntervencion =
-    dbEstado === "Pendiente" || dbEstado === "Finalizada" ? dbEstado : "En ejecución";
+    dbEstado === "BORRADOR" || dbEstado === "FINALIZADA" ? dbEstado : "EN_EJECUCION";
   return {
     idPropPunto: pgInt(r.id_prop_punto),
     idPropuesta: pgInt(r.id_propuesta),

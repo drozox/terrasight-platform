@@ -75,7 +75,7 @@ export function IntervencionesTable({
                 </td>
                 <td className="px-4 py-3">{r.municipio || "—"}</td>
                 <td className="px-4 py-3">
-                  <Badge variant={r.estado === "Finalizada" ? "info" : "success"}>
+                  <Badge variant={r.estado === "FINALIZADA" ? "info" : "success"}>
                     {r.estado}
                   </Badge>
                 </td>

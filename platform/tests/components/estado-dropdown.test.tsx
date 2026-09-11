@@ -1,5 +1,7 @@
 // =============================================================================
 // Tests para EstadoIntervencionDropdown — cliente (HU-TC-04).
+// Sprint 23 (P0-1): actualizado al vocabulario de 6 estados del workflow.
+//
 // Cubre: badge estático vs select editable, llamada a la action, confirm()
 // cancelado, router.refresh en éxito, alert en error.
 // =============================================================================
@@ -52,34 +54,34 @@ describe("EstadoIntervencionDropdown — modo solo-lectura (canEdit=false)", () 
     render(
       <EstadoIntervencionDropdown
         idPropuesta={42}
-        estado="Pendiente"
+        estado="BORRADOR"
         canEdit={false}
       />,
     );
-    expect(screen.getByText("Pendiente")).toBeInTheDocument();
+    // El label en español es "Borrador" (ver LABEL map en el componente)
+    expect(screen.getByText("Borrador")).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).toBeNull();
   });
 
-  it("snapshot del badge con estado 'En ejecución' tiene la clase warning", () => {
+  it("snapshot del badge con estado 'EN_EJECUCION' tiene la clase emerald", () => {
     const { container } = render(
       <EstadoIntervencionDropdown
         idPropuesta={1}
-        estado="En ejecución"
+        estado="EN_EJECUCION"
         canEdit={false}
       />,
     );
     const badge = container.querySelector("span");
     expect(badge).not.toBeNull();
-    expect(badge?.className).toContain("warning");
-    // No debe tener la clase primary
-    expect(badge?.className).not.toContain("text-primary");
+    // El estilo para EN_EJECUCION incluye bg-emerald-50
+    expect(badge?.className).toContain("emerald");
   });
 
-  it("snapshot del badge con estado 'Finalizada' tiene la clase primary", () => {
+  it("snapshot del badge con estado 'FINALIZADA' tiene la clase primary", () => {
     const { container } = render(
       <EstadoIntervencionDropdown
         idPropuesta={1}
-        estado="Finalizada"
+        estado="FINALIZADA"
         canEdit={false}
       />,
     );
@@ -87,11 +89,11 @@ describe("EstadoIntervencionDropdown — modo solo-lectura (canEdit=false)", () 
     expect(badge?.className).toContain("primary");
   });
 
-  it("snapshot del badge con estado 'Pendiente' tiene clase neutral", () => {
+  it("snapshot del badge con estado 'BORRADOR' tiene clase neutral", () => {
     const { container } = render(
       <EstadoIntervencionDropdown
         idPropuesta={1}
-        estado="Pendiente"
+        estado="BORRADOR"
         canEdit={false}
       />,
     );
@@ -101,11 +103,11 @@ describe("EstadoIntervencionDropdown — modo solo-lectura (canEdit=false)", () 
 });
 
 describe("EstadoIntervencionDropdown — modo editable (canEdit=true)", () => {
-  it("renderiza <select> con las 3 opciones", () => {
+  it("renderiza <select> con las 6 opciones (workflow)", () => {
     render(
       <EstadoIntervencionDropdown
         idPropuesta={7}
-        estado="Pendiente"
+        estado="BORRADOR"
         canEdit={true}
       />,
     );
@@ -113,11 +115,14 @@ describe("EstadoIntervencionDropdown — modo editable (canEdit=true)", () => {
     expect(select).toBeInTheDocument();
     expect(select.tagName).toBe("SELECT");
     const options = Array.from(select.querySelectorAll("option"));
-    expect(options).toHaveLength(3);
+    expect(options).toHaveLength(6);
     expect(options.map((o) => o.value)).toEqual([
-      "Pendiente",
-      "En ejecución",
-      "Finalizada",
+      "BORRADOR",
+      "EN_REVISION",
+      "APROBADA",
+      "EN_EJECUCION",
+      "FINALIZADA",
+      "RECHAZADA",
     ]);
   });
 
@@ -125,12 +130,12 @@ describe("EstadoIntervencionDropdown — modo editable (canEdit=true)", () => {
     render(
       <EstadoIntervencionDropdown
         idPropuesta={7}
-        estado="En ejecución"
+        estado="EN_EJECUCION"
         canEdit={true}
       />,
     );
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    expect(select.value).toBe("En ejecución");
+    expect(select.value).toBe("EN_EJECUCION");
   });
 
   it("al cambiar el select y confirmar → llama a la action y refresca el router", async () => {
@@ -138,20 +143,20 @@ describe("EstadoIntervencionDropdown — modo editable (canEdit=true)", () => {
     render(
       <EstadoIntervencionDropdown
         idPropuesta={7}
-        estado="Pendiente"
+        estado="BORRADOR"
         canEdit={true}
       />,
     );
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: "Finalizada" } });
+    fireEvent.change(select, { target: { value: "FINALIZADA" } });
 
     // El onChange es async — esperamos a que la microtask de la Promise se resuelva
     await vi.waitFor(() => {
       expect(mockAction).toHaveBeenCalledTimes(1);
     });
-    const fd = mockAction.mock.calls[0][0] as FormData;
+    const fd = (mockAction.mock.calls[0] as unknown as [FormData])[0];
     expect(fd.get("idPropuesta")).toBe("7");
-    expect(fd.get("estado")).toBe("Finalizada");
+    expect(fd.get("estado")).toBe("FINALIZADA");
     expect(mockRefresh).toHaveBeenCalledTimes(1);
   });
 
@@ -160,12 +165,12 @@ describe("EstadoIntervencionDropdown — modo editable (canEdit=true)", () => {
     render(
       <EstadoIntervencionDropdown
         idPropuesta={7}
-        estado="Pendiente"
+        estado="BORRADOR"
         canEdit={true}
       />,
     );
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: "Finalizada" } });
+    fireEvent.change(select, { target: { value: "FINALIZADA" } });
 
     // Esperar a que la promesa del handler (que retorna early) se asiente
     await new Promise((r) => setTimeout(r, 0));
@@ -177,40 +182,41 @@ describe("EstadoIntervencionDropdown — modo editable (canEdit=true)", () => {
   it("si la action retorna ok:false → muestra alert y revierte el select", async () => {
     mockAction.mockResolvedValue({
       ok: false,
-      message: "No autorizado",
+      message: "Error simulado",
     });
     render(
       <EstadoIntervencionDropdown
         idPropuesta={7}
-        estado="Pendiente"
+        estado="BORRADOR"
         canEdit={true}
       />,
     );
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: "Finalizada" } });
+    fireEvent.change(select, { target: { value: "RECHAZADA" } });
 
     await vi.waitFor(() => {
-      expect(mockAlert).toHaveBeenCalledWith("No autorizado");
+      expect(mockAlert).toHaveBeenCalledWith("Error simulado");
     });
     expect(mockRefresh).not.toHaveBeenCalled();
-    // El handler hace e.target.value = estado (revierte)
-    expect(select.value).toBe("Pendiente");
   });
 
-  it("si el nuevo estado es igual al actual → no llama confirm ni action", async () => {
+  it("al cambiar a un estado distinto → pide confirm() con la label en español", async () => {
+    mockConfirm.mockClear();
     render(
       <EstadoIntervencionDropdown
         idPropuesta={7}
-        estado="Pendiente"
+        estado="BORRADOR"
         canEdit={true}
       />,
     );
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: "Pendiente" } });
+    fireEvent.change(select, { target: { value: "EN_EJECUCION" } });
 
-    await new Promise((r) => setTimeout(r, 0));
-
-    expect(mockConfirm).not.toHaveBeenCalled();
-    expect(mockAction).not.toHaveBeenCalled();
+    await vi.waitFor(() => {
+      expect(mockConfirm).toHaveBeenCalledTimes(1);
+    });
+    const confirmMsg = (mockConfirm.mock.calls[0] as unknown as [string])[0];
+    expect(confirmMsg).toContain("En ejecución");
+    expect(confirmMsg).toContain("#7");
   });
 });

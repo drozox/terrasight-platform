@@ -55,7 +55,8 @@ export type IntervencionReciente = {
    * valor.
    */
   avance: number | null;
-  estado: "En ejecución" | "Finalizada" | "Pendiente";
+  /** Estado de la propuesta — usa el vocabulario del workflow (6 valores). */
+  estado: EstadoIntervencion;
 }
 
 export type Alerta = {
@@ -275,7 +276,18 @@ export type BeneficiarioInput = {
 // Propuestas / Intervenciones (HU-TC-04, HU-IC-01..04)
 // -----------------------------------------------------------------------------
 
-export type EstadoIntervencion = "En ejecución" | "Finalizada" | "Pendiente";
+/**
+ * Alias histórico: `EstadoIntervencion` = `EstadoPropuesta` (workflow 6 estados, Sprint 20).
+ * La columna `sgs_pro_propuesta.estado` (migration 33) usa el vocabulario nuevo en MAYÚSCULAS.
+ * Mantenemos el nombre viejo como alias para no romper imports.
+ */
+export type EstadoIntervencion =
+  | "BORRADOR"
+  | "EN_REVISION"
+  | "APROBADA"
+  | "EN_EJECUCION"
+  | "FINALIZADA"
+  | "RECHAZADA";
 
 export type PropuestaSimple = {
   idPropuesta: number;

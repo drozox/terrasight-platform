@@ -100,10 +100,17 @@ export function isBufferTarget(s: string): s is BufferTarget {
   return s === "quebrada" || s === "propuesta";
 }
 
+// ESTADOS_VALIDOS viene del workflow (migration 33 / Sprint 20).
+// Re-exportado acá para mantener compatibilidad con código que importa de
+// `constants.ts`. Es el vocabulario que pasa el CHECK constraint de
+// `sgs_pro_propuesta.estado` (chk_pro_estado).
 const ESTADOS_VALIDOS: readonly EstadoIntervencion[] = [
-  "Pendiente",
-  "En ejecución",
-  "Finalizada",
+  "BORRADOR",
+  "EN_REVISION",
+  "APROBADA",
+  "EN_EJECUCION",
+  "FINALIZADA",
+  "RECHAZADA",
 ];
 
 export function isEstadoIntervencion(s: string): s is EstadoIntervencion {

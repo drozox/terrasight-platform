@@ -265,8 +265,11 @@ const getIntervencionesRecientesImpl = async (
     return rows.map((r) => {
       const avance = r.avance === null || r.avance === undefined ? null : pgInt(r.avance);
       const dbEstado = pgText(r.estado);
+      // Migración 33 (Sprint 20): el CHECK constraint restringe `estado` a los
+      // 6 valores del workflow. Si el valor en BD no encaja (datos viejos
+      // o sync fuera de banda), caemos a EN_EJECUCION como "estado vivo".
       const estado: EstadoIntervencion =
-        dbEstado === "Pendiente" || dbEstado === "Finalizada" ? dbEstado : "En ejecución";
+        dbEstado === "BORRADOR" || dbEstado === "FINALIZADA" ? dbEstado : "EN_EJECUCION";
       return {
         id: pgInt(r.id_propuesta),
         tipo: pgText(r.tipo),

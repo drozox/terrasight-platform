@@ -7,7 +7,12 @@
 //   - Mapa mini (IntervencionMapa)
 //   - Avance (AvanceForm)
 //   - Timeline (Timeline)
-//   - Estado editable (EstadoIntervencionDropdown)
+//
+// NOTA Sprint 23 (P0-1 FINAL-CLOSURE-PLAN): el cambio de estado se hace
+// en <WorkflowPanel> (Sprint 20) con auditoría completa en
+// `sgs_pro_estado_historial` y validación de transición por rol.
+// El <EstadoIntervencionDropdown> viejo se removió de la ficha detallada
+// para evitar la duplicación que rompía el CHECK constraint.
 // =============================================================================
 
 import * as React from "react";
@@ -28,7 +33,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import type { IntervencionCompleta } from "@/lib/types";
-import { EstadoIntervencionDropdown } from "../estado-dropdown";
+// Sprint 23 (P0-1 FINAL-CLOSURE-PLAN): el EstadoIntervencionDropdown se removió
+// de la ficha detallada para evitar la duplicación que rompía el CHECK constraint.
+// El cambio de estado se hace ahora en <WorkflowPanel> (Sprint 20) con
+// validación de transición por rol y auditoría en `sgs_pro_estado_historial`.
+
 // Sprint 20 fix: leaflet/react-leaflet requires `window` (browser only).
 // Next.js intenta SSR client components para el HTML inicial, lo cual rompe.
 // Cargamos el mapa con dynamic import ssr:false — solo se monta en el cliente.
@@ -93,11 +102,13 @@ export function IntervencionDetail({
             <span className="text-[11px] font-bold uppercase text-on-surface-variant">
               Estado:
             </span>
-            <EstadoIntervencionDropdown
-              idPropuesta={initial.id}
-              estado={initial.estado}
-              canEdit={canEdit}
-            />
+            {/* Sprint 23 (P0-1): el cambio de estado se hace en <WorkflowPanel>
+                con auditoría completa. Acá solo mostramos el badge actual. */}
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-on-surface-variant/40 bg-surface-container-highest px-2 py-0.5 text-[11px] font-semibold text-on-surface-variant"
+            >
+              {initial.estado}
+            </span>
           </div>
         </div>
 
