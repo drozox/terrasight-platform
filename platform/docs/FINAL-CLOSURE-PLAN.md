@@ -317,7 +317,7 @@ Máquina de estados correcta y testeada (`workflow.test.ts`, 18 tests + invarian
 
 ### 10.1 SECRET DETECTED — password de Supabase commitheada (CRITICAL)
 
-La credencial de conexión a Supabase (password + project-ref `pjcvewberfgwywfnutjv`)
+La credencial de conexión a Supabase (password + project-ref) está commitheada en archivos trackeados (project-ref y valores concretos en `.env.local`, no en el repo tras la redacción P0-2)
 está **commiteada** en archivos trackeados:
 
 - `platform/AGENTS.md` (URL completa con password)
@@ -673,7 +673,7 @@ if ($?) { npm run audit:resultados }      # requiere DATABASE_URL (nuevo)
 ```
 
 Salida esperada: todo verde + `audit:resultados PASS` + sin secretos en
-`git grep -lE 'ghp_|Nikoleta|pjcvewberfgwywfnutjv'` (debe devolver vacío).
+`git grep -lE 'ghp_[A-Za-z0-9]{20,}|password.*=.*[A-Za-z0-9]{10,}|project-ref.*=.*[A-Za-z0-9]{20,}'` (debe devolver vacío).
 
 ---
 

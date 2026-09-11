@@ -117,7 +117,7 @@ node scripts/audit-screenshot.mjs  # regenerar screenshots
 
 - **MVP-1 cerrado** (último commit `0144a58` pre-audit).
 - **Import GDB → Supabase COMPLETO** (Phase 1 + 2 + 2.5). Data REAL del
-  convenio CAR Cundinamarca en proyecto Supabase `pjcvewberfgwywfnutjv`:
+  convenio CAR Cundinamarca en proyecto Supabase `<PROJECT_REF>` (ver `.env.local`):
   - 20 municipios, 560 veredas, 132 predios, 56 propietarios
   - 1,381 propuesta super-tipo + 692 punto + 450 linea + 239 poligono
   - 5,959 vias (con spatial join municipio, ~30% match)
@@ -142,8 +142,9 @@ Para regenerar la data del GDB en Supabase desde cero:
 #    GRANT ALL ON SCHEMA public TO postgres;
 #    GRANT ALL ON SCHEMA public TO public;
 
-# 2. Aplicar 22 migraciones SIN seed demo
-$env:DATABASE_URL = "postgresql://postgres:Nikoleta%2F20000@db.pjcvewberfgwywfnutjv.supabase.co:5432/postgres?sslmode=require"
+# 2. Aplicar 35 migraciones SIN seed demo
+#    (ver `.env.local` o pedir la URL al owner del repo).
+$env:DATABASE_URL = "<PEGAR_AQUI_LA_URL_DE_SUPABASE>"
 cd platform
 node scripts/migrate.mjs --no-seed
 

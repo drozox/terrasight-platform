@@ -45,7 +45,7 @@ Ver `AGENTS.md` § "Anti-patrones". Los más importantes para un reviewer:
 | Redefinir `--spacing-{sm,md,lg,...}` | `grep -n "spacing-sm\|spacing-md\|spacing-lg" src/` (definición) | Rompe utilities estándar de Tailwind. |
 | `transition-all` en buttons | `grep -rn "transition-all" src/components/ui/` | Re-paint de shadows, lag. |
 | Hardcodear `2025-...` o datos demo en prod | `grep -rn "DEMO_" src/app/ src/lib/repos/` (uso, no definición) | Demo data solo en `demo-data.ts`. |
-| `ghp_` o `Nikoleta/20000` o cualquier secret en diff | `grep -n "ghp_\|Nikoleta\|password" $(git diff main...HEAD)` | CRÍTICO — bloquear merge. |
+| `ghp_` o cualquier secret en diff | `grep -n "ghp_\|password\|secret" $(git diff main...HEAD)` | CRÍTICO — bloquear merge. |
 | `sql.array(.*, "int")` (string) | `grep -rn 'sql\.array.*"int"' src/` | TS error. Usar `sql.array(value, 23)` (OID). |
 | Filtros territoriales sin server query | buscar `useState` + `?componente=` en client components | Placebo UX. |
 
@@ -190,7 +190,7 @@ Si encuentras alguno, **rechazo inmediato** con la cita del código.
 - [ ] ¿Es idempotente? (`CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`).
 - [ ] ¿DROP NOT NULL cuando hay datos NULL reales?
 - [ ] ¿CHECK constraints se ajustan a los datos reales (no inventar)?
-- [ ] ¿Se aplicó al Supabase real (`pjcvewberfgwywfnutjv`)?
+- [ ] ¿Se aplicó al Supabase real del convenio (ver `.env.local`)?
 - [ ] ¿Se probó con el smoke test (`scripts/prod_smoke.mjs`)?
 
 ### 5.6 Cambio de import (scripts/import_*.mjs)

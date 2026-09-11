@@ -1,6 +1,6 @@
 // Verificar que las tablas que usa identify.ts existen
 import postgres from "postgres";
-const url = "postgresql://postgres:Nikoleta%2F20000@db.pjcvewberfgwywfnutjv.supabase.co:6543/postgres?sslmode=require";
+const url = "process.env.DATABASE_URL ?? "postgresql://terrasight:terrasight_dev@localhost:5433/convenio_car_wwf"";
 const sql = postgres(url, { max: 1, prepare: false });
 
 const tablas = [

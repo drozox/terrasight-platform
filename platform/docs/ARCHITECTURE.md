@@ -207,9 +207,11 @@ import_drenaje_quebrada.mjs →  drenaje_simple + drenaje_doble + quebrada (deri
 fix_long_area.mjs         →  recalcular longitud/area con ::geography
 ```
 
-### 6.3 Migrations (31 archivos en `scripts/db/init/`)
+### 6.3 Migrations (35 archivos en `scripts/db/init/`)
 
-Aplicadas a Supabase `pjcvewberfgwywfnutjv` (region sa-east-1). Password en `.env.local` (rotar ASAP).
+Aplicadas al proyecto Supabase del convenio (region sa-east-1). El password y el project-ref
+viven solo en `.env.local` (no commiteado). Sprint 23 / P0-2 FINAL-CLOSURE-PLAN: el password
+fue removido de todos los archivos trackeados del repo.
 
 Las migraciones 14-31 son específicas del import GDB (drop NOT NULL, CHECKs, defaults, SRID fix,
 serial PKs, extension unaccent).

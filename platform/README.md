@@ -12,7 +12,7 @@
   (predios, propuestas, drenajes, áreas protegidas, metas del convenio).
 - **Datos reales** importados del GDB del cliente (1,381 propuestas, 132 predios, 5,959 vías, 656
   quebradas, cobertura CLC/POMCA/RFP/páramos, 20 municipios de Cundinamarca).
-- **31 migraciones** aplicadas al Supabase `pjcvewberfgwywfnutjv` (region sa-east-1).
+- **35 migraciones** aplicadas al Supabase del convenio (region sa-east-1, ver `.env.local`).
 - **Stack**: Next.js 15 + React 19 + PostGIS + Supabase + NextAuth v5 + Leaflet + Recharts.
 - **Deploy**: Vercel (auto-deploy desde `main`).
 - **5 metas operativas del convenio** + drill-down municipio/propuestas + export PDF.
