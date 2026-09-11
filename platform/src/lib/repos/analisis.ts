@@ -234,7 +234,9 @@ const getIntervencionesRecientesImpl = async (
         pp.tipo,
         pp.actividad,
         pr.nombre_predio,
-        ('PR-' || LPAD(pr.id_predio::text, 5, '0'))                  AS codigo_predio,
+        CASE WHEN pr.id_predio IS NOT NULL
+             THEN ('PR-' || LPAD(pr.id_predio::text, 5, '0'))
+             ELSE NULL END                                           AS codigo_predio,
         m.nombre_municipio,
         c.nombre                                                     AS nombre_componente,
         a.nombre                                                     AS nombre_accion,
@@ -243,13 +245,17 @@ const getIntervencionesRecientesImpl = async (
         av.avance_pct                                                AS avance,
         pp.estado                                                    AS estado
       FROM sgs_pro_propuesta pp
-      JOIN sgs_pre_predio pr   ON pr.id_predio = pp.id_predio
       JOIN sgs_com_accion a    ON a.id_accion  = pp.id_accion
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+      -- LEFT JOIN con sgs_pre_predio: las 692 propuestas tipo-punto
+      -- (Cosecha/Compostaje/Estaciones/Obras) NO tienen id_predio y antes
+      -- eran excluidas por INNER JOIN. Ahora aparecen con nombre_predio NULL.
+      LEFT JOIN sgs_pre_predio pr   ON pr.id_predio = pp.id_predio
       LEFT JOIN bcs_lpa_vereda v     ON v.id_vereda        = pr.id_vereda
       LEFT JOIN bcs_lpa_municipio m  ON m.id_municipio     = v.id_municipio
       LEFT JOIN sgs_pro_propuesta_linea    pl  ON pl.id_propuesta = pp.id_propuesta
       LEFT JOIN sgs_pro_propuesta_poligono  pol ON pol.id_propuesta = pp.id_propuesta
+      LEFT JOIN sgs_pro_propuesta_punto     pt  ON pt.id_propuesta = pp.id_propuesta
       LEFT JOIN LATERAL (
         SELECT av2.avance_pct
         FROM   sgs_pro_propuesta_avance av2
