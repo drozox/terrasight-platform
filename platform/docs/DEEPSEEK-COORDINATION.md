@@ -5,7 +5,7 @@
 > agentes leen esta guía ANTES de tocar código y la actualizan DESPUÉS.
 >
 > Plan fuente (diagnóstico completo): [`FINAL-CLOSURE-PLAN.md`](./FINAL-CLOSURE-PLAN.md).
-> HEAD de referencia: `22727ac` · Migraciones: **37** · Última actualización: 2026-09-13 (lote paralelo 03).
+> HEAD de referencia: `97e48d5` · Migraciones: **37** · Última actualización: 2026-09-13 (review lote 04).
 
 ---
 
@@ -53,6 +53,8 @@ Cada item tiene un **tier**:
 - Si una tarea T1 encuentra ambigüedad o crece a **>5 archivos** → **escala a T0** (no improvises).
 - Zona reservada T0: `scripts/db/init/36-*`, `src/lib/repos/metas-convenio.ts`, `.github/workflows/ci.yml`, `scripts/ci-migrate.sh`.
 - T0 revisa **todo** PR de T1 contra §1/§3 y el gate antes de mergear.
+- **T1 NO mergea a `main` ni edita `DEEPSEEK-COORDINATION.md`/`QUEUE.md`**: crea su rama `t1/<slug>`,
+  commitea y reporta; **T0 integra**. (El lote 04 se auto-mergeó — desviación aceptada con review posterior.)
 - El **owner** es el único que decide negocio y rota credenciales.
 
 ### 0.5 Plantilla de tarea (la escribe T0 → la ejecuta T1)
@@ -266,7 +268,8 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 8 | **P2-17**: migración 37 elimina vistas deprecadas; checks actualizados | (este commit) |
 | DeepSeek 9 | **Revisión lote T1** (4 cards) + fix del bug SRID hallado por DEEPSEEK-9 en `getIntersectPorBoundingBox` | (este commit) |
 | DeepSeek 10 | **Revisión/integración lote 02** (6 cards, ramas `t1/*`): merge octopus `8cfd731` + fixes T0 (`afterEach` sin import, 2 nombres de tabla en DEPLOY, `BASE` sin uso) | `8cfd731` |
-| DeepSeek 11 | **Revisión/integración lote 04** (6 cards, ramas `t1/*`): merge octopus (6 × `--no-ff`) + cierre QUEUE.md; gate corrido al integrar | `9224066` |
+| MiniMax (lote 04) | 6 cards T1 entregadas y **auto-mergeadas** a main en ramas `t1/*` (override del flujo; requiere review T0) | `a0ea651`…`9224066`, `97e48d5` |
+| DeepSeek 12 | **Revisión lote 04**: gate verde + fixes T0 (`BASE` sin uso en `api-data.spec.ts`, puerto dev en RUNBOOK) | (este commit) |
 
 ## 9. Cola de trabajo y asignaciones
 

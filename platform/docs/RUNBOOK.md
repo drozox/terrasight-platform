@@ -220,7 +220,7 @@ Si alguna ruta falla → rollback inmediato (§6.1).
 
 ```bash
 # Build / dev
-npm run dev                # dev server (puerto 3001)
+npm run dev                # dev server (puerto 3000; usar -- -p 3001 si 3000 está ocupado)
 npm run build              # build producción
 npm run lint               # ESLint
 npm run release:gate       # gate completo (typecheck + lint + test + build)

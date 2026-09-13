@@ -16,7 +16,6 @@
 
 import { test, expect, type APIRequestContext } from "@playwright/test";
 
-const BASE = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001";
 const ADMIN_EMAIL = "admin@car.gov.co";
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "Admin123!";
 
