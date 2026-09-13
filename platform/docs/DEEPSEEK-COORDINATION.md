@@ -38,6 +38,56 @@
 - `DEEPSEEK-NN`: mejoras agregadas por la sesión DeepSeek (fuente única, release gate, health, etc.).
 - `D-DEBT-*`: deuda nueva descubierta por un agente (agregar a §3 con prioridad).
 
+### 0.4 Organización multiagente — quién hace qué
+
+La división es por **complejidad, ambigüedad y riesgo**, no por etiqueta.
+Cada item tiene un **tier**:
+
+| Tier | Rol | Qué toma | Qué NO toma |
+|------|-----|----------|-------------|
+| **T0 — Coordinador** (DeepSeek) | Arquitecto / tech lead | SQL y migraciones, semántica de indicadores, refactors cross-cutting, seguridad, CI/CD, diseño de tests, reconciliación, **code review**, desbloqueo y reparto de tareas | Tareas mecánicas que un T1 puede ejecutar |
+| **T1 — Worker** (p. ej. MiniMax M3, otros) | Ejecutor | Items acotados y repetitivos: **un** test de integración, un fix con instrucciones exactas, actualizar/alinear docs, renombrar, aplicar un patrón YA definido, correr el gate y reportar | Cambiar alcance; tocar la migración 36 / `metas-convenio.ts` / `ci-migrate.sh` sin OK de T0; decidir negocio |
+| **OWNER** (Pedro) | Producto / credenciales | Decisiones de negocio (catálogo de actividades), rotar secretos, deploy, aprobar cambios destructivos | — |
+
+**Fronteras duras:**
+- Si una tarea T1 encuentra ambigüedad o crece a **>5 archivos** → **escala a T0** (no improvises).
+- Zona reservada T0: `scripts/db/init/36-*`, `src/lib/repos/metas-convenio.ts`, `.github/workflows/ci.yml`, `scripts/ci-migrate.sh`.
+- T0 revisa **todo** PR de T1 contra §1/§3 y el gate antes de mergear.
+- El **owner** es el único que decide negocio y rota credenciales.
+
+### 0.5 Plantilla de tarea (la escribe T0 → la ejecuta T1)
+
+```text
+TAREA: <DEEPSEEK-NN | Pn-N>
+TIER: T0 | T1
+PRIORIDAD: P0..P3
+OBJETIVO: (1 frase)
+CONTEXTO: (por qué; links a archivo:línea)
+ARCHIVOS: (lista exacta; el resto es "NO TOCAR")
+PASOS: 1) … 2) … 3) …
+NO HACER: (alcance negativo explícito)
+VALIDACIÓN: (comandos exactos)
+CRITERIOS DE ACEPTACIÓN: AC-01 … (binarios y observables)
+ENTREGABLE: commit + reporte con la plantilla §0.6
+```
+
+### 0.6 Plantilla de reporte (la usa T1 al terminar)
+
+```text
+TAREA: <id>
+ESTADO: DONE | BLOCKED | PARCIAL
+COMMIT(S): <hash(es)>
+QUÉ CAMBIÓ: (2-4 bullets)
+ARCHIVOS: (lista)
+VALIDACIÓN: <comando> → <resultado>   (ej. "npm run release:gate → GOAL_COMPLETED=TRUE")
+ACEPTACIÓN: AC-01 ✅ / AC-02 ✅ / …  (del task card)
+BLOQUEOS: (si BLOCKED/PARCIAL: qué falta y qué necesitás de T0/owner)
+SIGUIENTE SUGERIDO: (1 línea)
+```
+
+> **Anti-patrón:** un reporte que dice "listo" sin el comando + resultado, o que
+> cambia archivos fuera del `ARCHIVOS` del task card. T0 lo rechaza.
+
 ---
 
 ## 1. Resumen de cambios realizados
@@ -210,7 +260,27 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 4 | Limpieza de código muerto + integración workflow + release gate | `0c88223` |
 | DeepSeek 5 | Integración reportes + `/api/health` + docs | `e06f23a`, `34eccd2` |
 
-> **Nota de coordinación**: DeepSeek ya no implementa sobre `main` salvo que el
-> owner lo pida; su rol es mantener este documento, revisar los PRs de otros
-> agentes contra §1/§3 y actualizar el estado. Si un agente descubre deuda nueva,
-> la agrega a §3 como `D-DEBT-N` con prioridad y evidencia.
+## 9. Cola de trabajo y asignaciones
+
+| Item | Tier | Prio | Estado | Notas |
+|------|------|------|--------|-------|
+| **P2-VAL** validar migración 36 + integración en CI/real | T0 | P2 | 🟡 en curso | push + `DATABASE_URL`; CI ya aplica las 36 |
+| **P0-2** rotar password Supabase | OWNER | P0 | ⏳ | no es código; ver §6 |
+| **P2-17** dropear vistas `sgs_v_metas_*` | T0 | P2 | opcional | actualizar `prod_smoke.mjs` + `verify-migrations.mjs` primero |
+| **D-DEBT-1** catálogo cerrado de actividades | T0 diseña → OWNER decide → T1 migra | P3 | planeado | **no inventar** la lista canónica |
+| **D-DEBT-2** revalidación de sesión (usuario desactivado) | T0 | P3 | planeado | diseño de seguridad; cache corto |
+| **D-DEBT-3** migrar `next lint` → ESLint CLI | T1 | P3 | 🟢 delegable | mecánico; Next 16 lo remueve |
+| **P3-11.b** `csv.ts` quotear con coma cuando sep=`;` | T1 | P3 | 🟢 delegable | +tests en `tests/unit/csv.test.ts` |
+| **DEEPSEEK-6** integration tests de geo/search/catálogos | T1 | P2 | 🟢 delegable | copiar el patrón de `tests/integration/` |
+| **DEEPSEEK-7** unit tests de bordes (`utils.ts`, `csv.ts`) | T1 | P3 | 🟢 delegable | cobertura, bajo riesgo |
+
+### Cómo se asigna el trabajo
+1. **T0 escribe el task card** (§0.5) y lo publica en esta tabla con tier y prioridad.
+2. El worker toma el primer item **🟢 de su tier** y **solo ese** (sin scope creep).
+3. Al terminar, **reporta con §0.6** y mueve el item a `DONE` (o `BLOCKED` con motivo).
+4. T0 revisa el PR, corre el gate y actualiza §1/§2.
+
+> **Nota de coordinación**: T0 (DeepSeek) se queda con los items de diseño/riesgo
+> (§0.4) y **delega** lo mecánico a T1 con task cards. Ningún worker cambia el
+> esquema de indicadores ni los patrones de la migración 36 sin OK de T0. El owner
+> decide negocio y rota credenciales.
