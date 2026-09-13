@@ -839,8 +839,10 @@ export const getCoberturaPorMunicipio = cached(getCoberturaPorMunicipioImpl, {
 export async function getIntersectPorBoundingBox(
   bbox: BoundingBox,
 ): Promise<IntersectionResult> {
-  // Validaciones livianas — el SRID se mantiene 4326 (lon/lat WGS84),
-  // consistente con el convenio.
+  // Validaciones livianas. El bbox viene en lon/lat (WGS84, 4326); las geometrías
+  // del convenio están en SRID 4686, así que el envelope se transforma a 4686
+  // para el ST_Intersects (evita "Operation on mixed SRID geometries").
+  // El cálculo de área (abajo) sí usa 4326::geography.
   if (
     !Number.isFinite(bbox.minLon) ||
     !Number.isFinite(bbox.minLat) ||
@@ -877,7 +879,10 @@ export async function getIntersectPorBoundingBox(
     WHERE  p.geom IS NOT NULL
       AND  ST_Intersects(
               p.geom,
-              ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326)
+              ST_Transform(
+                ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326),
+                4686
+              )
             )
     LIMIT  500;
   `;
@@ -907,7 +912,7 @@ export async function getIntersectPorBoundingBox(
       JOIN sgs_pro_propuesta_poligono  pp_geom ON pp_geom.id_propuesta = pp.id_propuesta
       LEFT JOIN sgs_pro_propuesta_poligono pol ON pol.id_propuesta = pp.id_propuesta
       WHERE pp_geom.geom IS NOT NULL
-        AND ST_Intersects(pp_geom.geom, ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326))
+        AND ST_Intersects(pp_geom.geom, ST_Transform(ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326), 4686))
 
       UNION ALL
 
@@ -918,7 +923,7 @@ export async function getIntersectPorBoundingBox(
       JOIN sgs_pro_propuesta_linea     pp_geom ON pp_geom.id_propuesta = pp.id_propuesta
       LEFT JOIN sgs_pro_propuesta_linea pl ON pl.id_propuesta = pp.id_propuesta
       WHERE pp_geom.geom IS NOT NULL
-        AND ST_Intersects(pp_geom.geom, ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326))
+        AND ST_Intersects(pp_geom.geom, ST_Transform(ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326), 4686))
 
       UNION ALL
 
@@ -927,7 +932,7 @@ export async function getIntersectPorBoundingBox(
       FROM sgs_pro_propuesta pp
       JOIN sgs_pro_propuesta_punto     pp_geom ON pp_geom.id_propuesta = pp.id_propuesta
       WHERE pp_geom.geom IS NOT NULL
-        AND ST_Intersects(pp_geom.geom, ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326))
+        AND ST_Intersects(pp_geom.geom, ST_Transform(ST_MakeEnvelope(${bbox.minLon}, ${bbox.minLat}, ${bbox.maxLon}, ${bbox.maxLat}, 4326), 4686))
     )
     SELECT DISTINCT ON (id_propuesta) id_propuesta, tipo, actividad, estado, hectareas, longitud_m
     FROM resultados

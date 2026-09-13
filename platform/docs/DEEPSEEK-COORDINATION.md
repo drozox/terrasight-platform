@@ -264,6 +264,7 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 6 | Coordinación: doc maestro, tiers T0/T1, task cards y lote paralelo | `1a1ae0a`, `35f3986`, `1bf645e`, `f0ea529` |
 | DeepSeek 7 | **D-DEBT-2**: revalidación de sesión (cuenta/rol cada 5 min) | (este commit) |
 | DeepSeek 8 | **P2-17**: migración 37 elimina vistas deprecadas; checks actualizados | (este commit) |
+| DeepSeek 9 | **Revisión lote T1** (4 cards) + fix del bug SRID hallado por DEEPSEEK-9 en `getIntersectPorBoundingBox` | (este commit) |
 
 ## 9. Cola de trabajo y asignaciones
 

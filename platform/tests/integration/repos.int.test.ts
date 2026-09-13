@@ -101,39 +101,20 @@ d("getQualityReport — 12 reglas de calidad", () => {
 // getIntersectPorBoundingBox — selección por rectángulo (Sprint 18.4)
 // =============================================================================
 d("getIntersectPorBoundingBox — predios+propuestas en bbox", () => {
-  // BUG PREEXISTENTE detectado por este test (REPORTAR A T0):
-  //   ST_Intersects: Operation on mixed SRID geometries (MultiPolygon, 4686)
-  //   != (Polygon, 4326)
-  //
-  // Causa: la query usa ST_MakeEnvelope(..., 4326) pero las geometrías de
-  // sgs_pre_predio están en SRID 4686. Falta un ST_Transform al SRID del
-  // envelope (o construir el envelope en 4686).
-  //
-  // src/lib/repos/analisis.ts línea ~880. NO arreglado acá per DEEPSEEK-9
-  // ("No cambies src/. Si encontrás un bug, reportalo a T0; no lo arregles").
-  //
-  // Workaround: detectar el error de SRID y skippear el test en runtime.
+  // Antes fallaba por SRID mixto (envelope 4326 vs geometrías 4686). T0 lo
+  // arregló con ST_Transform(..., 4686) en analisis.ts. Este test ahora debe
+  // pasar contra datos reales (y FALLAR si el SRID vuelve a romperse).
   it("bbox sobre Guasca/Cogua (zona del convenio) devuelve predios", async () => {
-    try {
-      const r = await getIntersectPorBoundingBox({
-        minLon: -74.1,
-        minLat: 4.6,
-        maxLon: -73.7,
-        maxLat: 5.5,
-      });
-      expect(r).toHaveProperty("predios");
-      expect(r).toHaveProperty("propuestas");
-      expect(Array.isArray(r.predios)).toBe(true);
-      expect(Array.isArray(r.propuestas)).toBe(true);
-    } catch (e) {
-      const msg = (e as Error).message;
-      if (msg.includes("mixed SRID")) {
-        // Bug conocido — ver comentario arriba. Skip sin fallar.
-        console.warn("[SKIP] getIntersectPorBoundingBox: bug SRID preexistente");
-        return;
-      }
-      throw e;
-    }
+    const r = await getIntersectPorBoundingBox({
+      minLon: -74.1,
+      minLat: 4.6,
+      maxLon: -73.7,
+      maxLat: 5.5,
+    });
+    expect(r).toHaveProperty("predios");
+    expect(r).toHaveProperty("propuestas");
+    expect(Array.isArray(r.predios)).toBe(true);
+    expect(Array.isArray(r.propuestas)).toBe(true);
   });
 
   it("bbox inválido (min >= max) lanza error (no swallow)", async () => {
