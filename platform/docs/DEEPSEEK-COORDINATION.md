@@ -5,7 +5,7 @@
 > agentes leen esta guía ANTES de tocar código y la actualizan DESPUÉS.
 >
 > Plan fuente (diagnóstico completo): [`FINAL-CLOSURE-PLAN.md`](./FINAL-CLOSURE-PLAN.md).
-> HEAD de referencia: `a63089a` · Migraciones: **37** · Última actualización: 2026-09-10 (P2-17 vistas deprecadas).
+> HEAD de referencia: `22727ac` · Migraciones: **37** · Última actualización: 2026-09-13 (lote paralelo 03).
 
 ---
 
