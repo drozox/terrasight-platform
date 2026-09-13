@@ -265,6 +265,7 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 7 | **D-DEBT-2**: revalidación de sesión (cuenta/rol cada 5 min) | (este commit) |
 | DeepSeek 8 | **P2-17**: migración 37 elimina vistas deprecadas; checks actualizados | (este commit) |
 | DeepSeek 9 | **Revisión lote T1** (4 cards) + fix del bug SRID hallado por DEEPSEEK-9 en `getIntersectPorBoundingBox` | (este commit) |
+| DeepSeek 10 | **Revisión/integración lote 02** (6 cards, ramas `t1/*`): merge octopus `8cfd731` + fixes T0 (`afterEach` sin import, 2 nombres de tabla en DEPLOY, `BASE` sin uso) | `8cfd731` |
 
 ## 9. Cola de trabajo y asignaciones
 

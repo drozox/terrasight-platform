@@ -102,7 +102,7 @@ node scripts/migrate.mjs
 | 09 | `09-propuesta-avance-es-backfill.sql` | Backfill `es_backfill=TRUE` | ✅ |
 | 10 | `10-sgs-amb-alerta.sql` | Tabla `sgs_amb_alerta` | ✅ |
 | ✨ 11 | `11-auth-lockout.sql` | Lockout 5 intentos (`intentos_fallidos`, `bloqueado_hasta`) | ✅ |
-| ✨ 12 | `12-metas.sql` | Tabla `sgs_com_meta` + 3 vistas de cálculo de metas (deprecadas en migración 37) | ✅ (CREATE OR REPLACE) |
+| ✨ 12 | `12-metas.sql` | 3 vistas de cálculo de metas (deprecadas y eliminadas en migración 37) | ✅ (CREATE OR REPLACE) |
 | ✨ 13 | `13-c3-metas.sql` | Acciones C3A1/C3A2 + vista metas con fila C3 + reasigna 2 propuestas seed | ✅ (NOT EXISTS + UPDATE con WHERE) |
 | ✨ 14 | `14-import-gdb-nullable-fks.sql` | drop NOT NULL en FKs para import GDB (`sgs_pre_predio.id_vereda`, `id_propietario`, `bcs_lpa_vereda.id_municipio`) | ✅ |
 | ✨ 15 | `15-propuesta-nullable-quebrada.sql` | drop NOT NULL `id_quebrada` en `sgs_pro_propuesta` y `sgs_pro_propuesta_punto` (GDB no tiene quebrada) | ✅ |
@@ -125,7 +125,7 @@ node scripts/migrate.mjs
 | ✨ 32 | `32-search-indexes.sql` | `pg_trgm` + GIN trigram + GIST geom verification (búsqueda topbar UX-61) | ✅ (CREATE INDEX IF NOT EXISTS) |
 | ✨ 33 | `33-workflow-estados.sql` | máquina de estados de propuestas (BORRADOR → EN_REVISION → APROBADA → EN_EJECUCION → FINALIZADA) + historial + auditoría | ✅ |
 | ✨ 34 | `34-importaciones.sql` | tablas `sgs_adm_importacion` + `sgs_adm_importacion_error` (import masivo CSV/Excel/KML) | ✅ (IF NOT EXISTS) |
-| ✨ 35 | `35-versionado-metas.sql` | snapshots de metas del convenio (`sgs_com_meta_snapshot`) para comparar avance entre fechas | ✅ |
+| ✨ 35 | `35-versionado-metas.sql` | snapshots de metas del convenio (`sgs_adm_meta_snapshot`) para comparar avance entre fechas | ✅ |
 | ✨ 36 | `36-indicadores-fuente-unica.sql` | fuente única de verdad de los 10 indicadores (`sgs_v_indicador_global`, `sgs_v_indicador_propuesta`) — FINAL-CLOSURE-PLAN | ✅ (CREATE OR REPLACE VIEW) |
 | ✨ 37 | `37-drop-metas-views-deprecadas.sql` | DROP de las 3 vistas deprecadas de metas (ver archivo para nombres) — la fuente única de verdad quedó en migración 36 | ✅ (DROP VIEW IF EXISTS) |
 

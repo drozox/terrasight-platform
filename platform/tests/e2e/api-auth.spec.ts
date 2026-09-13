@@ -23,8 +23,6 @@
 
 import { test, expect } from "@playwright/test";
 
-const BASE = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001";
-
 test.describe("DEEPSEEK-24 — guardas de auth en API", () => {
   test("/api/health es público sin sesión → 200", async ({ request }) => {
     const r = await request.get("/api/health", { failOnStatusCode: false });
