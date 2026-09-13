@@ -12,8 +12,9 @@
 
 ## Tablero
 
-> **Lote paralelo activo:** [`PARALLEL-BATCH-03.md`](./PARALLEL-BATCH-03.md) (5 cards disjuntas).
-> Lotes anteriores: [`PARALLEL-BATCH-01.md`](./PARALLEL-BATCH-01.md), [`PARALLEL-BATCH-02.md`](./PARALLEL-BATCH-02.md) (cerrados).
+> **Lote paralelo activo:** [`PARALLEL-BATCH-04.md`](./PARALLEL-BATCH-04.md) (6 cards).
+> ⚠️ Lote 03: **no entregado** (sin archivos/commits/ramas) → re-emitido en el 04.
+> Lotes cerrados: [`PARALLEL-BATCH-01.md`](./PARALLEL-BATCH-01.md), [`PARALLEL-BATCH-02.md`](./PARALLEL-BATCH-02.md).
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
@@ -38,15 +39,29 @@
 
 **Lote 02 cerrado** (merge octopus `8cfd731`). DEEPSEEK-24 descubrió que el middleware **redirige (302)** en vez de devolver 401; T0 aceptó y documentó.
 
-## Lote 03 (activo)
+## Lote 03 (⚠️ no entregado)
+
+> Sin evidencia en el repo: ni archivos, ni commits, ni ramas `t1/*`, ni stash.
+> Verificado 2026-09-13 (git log/reflog/fsck/branch). Re-emitido en el lote 04.
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
-| `DEEPSEEK-35` Component tests `SortableHeader` + `Badge` | T1 | P3 | 🟢 listo | [T1-component-sortable-badge.md](./T1-component-sortable-badge.md) |
-| `DEEPSEEK-41` Integración `propuestas` (read) | T1 | P2 | 🟢 listo | [T1-integration-propuestas.md](./T1-integration-propuestas.md) |
-| `DEEPSEEK-40` E2E `/intervenciones` (list + detalle) | T1 | P2 | 🟢 listo | [T1-e2e-intervenciones.md](./T1-e2e-intervenciones.md) |
-| `DEEPSEEK-29` `RUNBOOK` de operación | T1 | P2 | 🟢 listo | [T1-doc-runbook.md](./T1-doc-runbook.md) |
-| `DEEPSEEK-44` `AGENTS.md`: coordinación + fuente única | T1 | P3 | 🟢 listo | [T1-doc-agents-coordination.md](./T1-doc-agents-coordination.md) |
+| `DEEPSEEK-35` Component tests `SortableHeader` + `Badge` | T1 | P3 | ⚠️ no entregado | [T1-component-sortable-badge.md](./T1-component-sortable-badge.md) |
+| `DEEPSEEK-41` Integración `propuestas` (read) | T1 | P2 | ⚠️ no entregado | [T1-integration-propuestas.md](./T1-integration-propuestas.md) |
+| `DEEPSEEK-40` E2E `/intervenciones` (list + detalle) | T1 | P2 | ⚠️ no entregado | [T1-e2e-intervenciones.md](./T1-e2e-intervenciones.md) |
+| `DEEPSEEK-29` `RUNBOOK` de operación | T1 | P2 | ⚠️ no entregado | [T1-doc-runbook.md](./T1-doc-runbook.md) |
+| `DEEPSEEK-44` `AGENTS.md`: coordinación + fuente única | T1 | P3 | ⚠️ no entregado | [T1-doc-agents-coordination.md](./T1-doc-agents-coordination.md) |
+
+## Lote 04 (activo)
+
+| Card | Tier | Prioridad | Estado | Archivo |
+|------|------|-----------|--------|---------|
+| `DEEPSEEK-35` Component tests `SortableHeader` + `Badge` | T1 | P3 | 🔁 re-emitida | [T1-component-sortable-badge.md](./T1-component-sortable-badge.md) |
+| `DEEPSEEK-41` Integración `propuestas` (read) | T1 | P2 | 🔁 re-emitida | [T1-integration-propuestas.md](./T1-integration-propuestas.md) |
+| `DEEPSEEK-40` E2E `/intervenciones` (list + detalle) | T1 | P2 | 🔁 re-emitida | [T1-e2e-intervenciones.md](./T1-e2e-intervenciones.md) |
+| `DEEPSEEK-29` `RUNBOOK` de operación | T1 | P2 | 🔁 re-emitida | [T1-doc-runbook.md](./T1-doc-runbook.md) |
+| `DEEPSEEK-44` `AGENTS.md`: coordinación + fuente única | T1 | P3 | 🔁 re-emitida | [T1-doc-agents-coordination.md](./T1-doc-agents-coordination.md) |
+| `DEEPSEEK-54` E2E endpoints de datos (reportes CSV + metas snapshots) | T1 | P2 | 🆕 nueva | [T1-e2e-api-data.md](./T1-e2e-api-data.md) |
 
 ## Reservado a T0 (no delegar)
 - `scripts/db/init/36-indicadores-fuente-unica.sql`, `src/lib/repos/metas-convenio.ts`
