@@ -140,7 +140,7 @@ npm run auth:create-admin
 - **Reset por email** — bloqueado hasta definir SMTP.
 - **Catálogos lookup TC-03/05** — UI (bajo valor inicial).
 - **Rotar el password de Supabase** — el proyecto ref quedó expuesto; ver
-  `platform/docs/CLOSURE-EXECUTION-LOG.md`.
+  `platform/docs/DEEPSEEK-COORDINATION.md`.
 
 ## Licencia
 

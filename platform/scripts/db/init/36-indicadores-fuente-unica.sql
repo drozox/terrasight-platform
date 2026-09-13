@@ -31,7 +31,7 @@
 --
 -- Nota: `sgs_v_metas_*` (migraciones 12/13) quedan DEPRECADAS. Alimentaban la
 -- página `/metas`, que ahora redirige a `/metas/convenio`. No se dropean para
--- no romper prod_smoke ni consumidores externos; ver CLOSURE-EXECUTION-LOG.
+-- no romper prod_smoke ni consumidores externos; ver DEEPSEEK-COORDINATION.md.
 -- =============================================================================
 
 CREATE OR REPLACE VIEW sgs_v_indicador_propuesta AS
