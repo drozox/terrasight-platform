@@ -751,3 +751,45 @@ LEFT JOIN LATERAL (
 > 7. ~~DEBT-5/6/7/8 (limpiar en cualquier sprint siguiente)~~ ✅
 
 > Estado al 2026-07-22: orden ejecutado completo. DEBT-3.1 cerrado en commit `abe23b8`. **Cero DEBTs abiertos.**
+
+---
+
+## Sprint 23 / DEEPSEEK (2026-09) — items resueltos y abiertos
+
+> Fuente de verdad: `docs/DEEPSEEK-COORDINATION.md`. Esta sección complementa el
+> historial existente; **no borra ni reescribe** items previos.
+
+### ✅ Resueltos en Sprint 23
+
+- **P0-1 — Vocabulario de estados unificado** (`9c36a69`): `EstadoIntervencion`
+  ahora es alias de `EstadoPropuesta` (los 6 valores del workflow). El dropdown
+  del ficha de intervención respeta el CHECK constraint.
+- **P0-2 — Secretos redactados** (`c04a6f6`): 16 archivos (15 modificados +
+  `COMMIT_MSG.txt`) sin DATABASE_URL ni password de Supabase trackeados.
+  Procedimiento de rotación documentado en `docs/REVIEW-GUIDE.md`.
+- **P3-12 — Fuente única de indicadores** (`9f8c996`): migración 36 introduce
+  `sgs_v_indicador_global` y `sgs_v_indicador_propuesta` reemplazando los
+  patrones fuzzy-match duplicados en 4+ lugares.
+- **D-DEBT-2 — Revalidación de sesión** (`a63089a`): cuenta y rol se
+  revalidan cada 5 minutos contra la BD (no solo contra el JWT de la cookie).
+- **P2-17 — Vistas deprecadas eliminadas** (`751efac`): migración 37 hace DROP
+  de las 3 vistas viejas de metas; la única fuente de verdad queda en
+  migración 36.
+- **Bug SRID mixto en `getIntersectPorBoundingBox`** (`e8e5b72`): bug
+  preexistente detectado por `tests/integration/repos.int.test.ts` (DEEPSEEK-9);
+  el envelope de 4326 se transforma a 4686 antes del `ST_Intersects`.
+
+### 🟡 Abiertos (no resueltos en Sprint 23)
+
+- **D-DEBT-1 — Catálogo cerrado de actividades**: el catálogo de actividades
+  (`sgs_com_accion`) está abierto a cualquier string. Cierre requiere decisión
+  de negocio del cliente CAR (qué actividades son válidas por componente).
+  Owner: cliente + product owner.
+- **D-DEBT-3 — `next lint` deprecado en Next 16**: migrar a ESLint CLI
+  standalone antes de subir Next 16 (en Next 15 sigue funcionando pero con
+  warning). Owner: dev.
+- **D-DEBT-4 — Scripts del pipeline GDB no versionados**: `extract_phase6_tables.py`,
+  `import_phase6.mjs`, `import_phase6_lookups.mjs` viven fuera del repo (en
+  `C:\dev\scratch\`). Owner: dev (decidir si se mueven a `platform/scripts/`
+  o se mantienen como one-shot).
+
