@@ -58,12 +58,22 @@ describe("toCsv — derivacion automatica de columns desde rows[0]", () => {
 });
 
 describe("toCsv — quoting RFC 4180 (comportamiento real)", () => {
-  // NOTA: la implementación solo quota cuando el valor contiene el
-  // separator (default ';'), una '"' o un salto de línea. Una coma suelta
-  // NO dispara quoting cuando el separator es ';'. Esto técnicamente es
-  // sub-óptimo para Excel pero es el comportamiento actual. Ver TODO en
-  // deliverable.md — la función debería quotar también cuando hay coma
-  // (o cualquier caracter que pueda confundir al parser destino).
+  // P3-11.b: la implementación quota cuando el valor contiene el
+  // separator, una coma (`,`), una '"' o un salto de línea. Antes
+  // una coma suelta NO disparaba quoting con separator ';' — ahora sí,
+  // para prolijidad (si el archivo se re-exporta con separator ',').
+
+  it("número negativo nativo (-5) NO se quota (es number, no string)", () => {
+    // P3-11.b: verificar que el nuevo check de coma no afecta a los
+    // numbers nativos (que pasan por String(value) pero NO por
+    // neutralizeFormula, y NO contienen una coma literal).
+    const out = toCsv(
+      [{ a: -5 }],
+      [{ key: "a", header: "a" }],
+      { bom: false, lineEnding: "\r\n" },
+    );
+    expect(out).toBe("a\r\n-5");
+  });
 
   it("valor con el MISMO separator (;) → envuelve en quotes", () => {
     const out = toCsv(
@@ -74,14 +84,13 @@ describe("toCsv — quoting RFC 4180 (comportamiento real)", () => {
     expect(out).toBe('a\r\n"x;y"');
   });
 
-  it("valor con solo coma (no separator) → NO se quota (comportamiento actual)", () => {
+  it("valor con solo coma → se quota (P3-11.b: prolijidad para Excel en español)", () => {
     const out = toCsv(
       [{ a: "x,y" }],
       [{ key: "a", header: "a" }],
       { bom: false, lineEnding: "\r\n" },
     );
-    // El comportamiento real NO quota "x,y" porque la coma no es el separator
-    expect(out).toBe("a\r\nx,y");
+    expect(out).toBe('a\r\n"x,y"');
   });
 
   it("valor con comilla doble → duplica la comilla interna y envuelve", () => {
@@ -102,14 +111,13 @@ describe("toCsv — quoting RFC 4180 (comportamiento real)", () => {
     expect(out).toBe('a;b\r\n"x;y";"z""q"');
   });
 
-  it("valor con solo coma + comilla → comilla sí dispara quoting, coma no", () => {
+  it("valor con coma + comilla → ambos disparan quoting", () => {
     const out = toCsv(
       [{ a: "x,y", b: 'z"q' }],
       [{ key: "a", header: "a" }, { key: "b", header: "b" }],
       { bom: false, lineEnding: "\r\n" },
     );
-    // x,y no se quota (coma no es separator), z"q sí se quota
-    expect(out).toBe('a;b\r\nx,y;"z""q"');
+    expect(out).toBe('a;b\r\n"x,y";"z""q"');
   });
 
   it("valor con salto de linea → envuelve en quotes", () => {

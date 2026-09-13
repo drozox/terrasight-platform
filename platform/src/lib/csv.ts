@@ -39,7 +39,17 @@ function escapeCell(value: CsvCell, separator: string): string {
   if (value === null || value === undefined) return "";
   // Solo neutralizamos strings: un `number` nativo (ej. -5) no es fórmula.
   const s = typeof value === "string" ? neutralizeFormula(value) : String(value);
-  const needsQuote = s.includes(separator) || s.includes('"') || /[\r\n]/.test(s);
+  // P3-11.b: quota también si el valor tiene coma (`,`), aunque el
+  // separator sea `;` (default para Excel en español). Razón: prolijidad
+  // — si el archivo se abre luego con otro parser que sí usa `,`,
+  // no se rompe. RFC 4180 permite quotar cualquier valor; los parsers
+  // modernos (Excel, LibreOffice, csv-parse) aceptan comillas extra
+  // sin problema.
+  const needsQuote =
+    s.includes(",") ||
+    s.includes(separator) ||
+    s.includes('"') ||
+    /[\r\n]/.test(s);
   if (!needsQuote) return s;
   return `"${s.replace(/"/g, '""')}"`;
 }
