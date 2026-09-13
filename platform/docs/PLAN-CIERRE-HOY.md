@@ -39,11 +39,21 @@ npm run audit:resultados               # 10/10 PASS
 
 ## 3. Plan ASAP (hoy)
 
-### Fase 0 — Esquema + datos (owner) · 30–45 min · **crítico**
-- [ ] Aplicar migraciones 36/37 (`migrate.mjs --no-seed`).
-- [ ] `prod_smoke` + `audit:resultados` → PASS.
-- [ ] Verificar cobertura: `SELECT count(*) FROM bcs_lpa_municipio` (esperado 19+Usme) y que Usme esté presente.
-- [ ] Verificar "predios concertados": `SELECT count(*) FROM sgs_pre_predio`.
+### Fase 0 — Esquema + datos (owner) · ✅ EJECUTADA 2026-09-13
+- [x] Migraciones **36 y 37 aplicadas** a Supabase (producción).
+- [x] `audit:resultados` → **20/20 PASS** (global == detalle en los 10 indicadores).
+- [x] `prod_smoke` → **56 pass, 2 fail** (ver §6; ninguno bloquea).
+- [x] Vistas: solo `sgs_v_indicador_global` + `sgs_v_indicador_propuesta` (las viejas, eliminadas).
+- [x] `chk_pro_estado` = el constraint nuevo (6 valores). La falla de migración 04 al re-aplicar es inocua (la 33 lo restaura).
+- [x] Datos reales: **1,381 propuestas · 140 predios · 20 municipios · 560 veredas**.
+
+> **Pendiente de decisión (owner):** "la localidad de Usme" **no figura** como fila en
+> `bcs_lpa_municipio` (hay 20 municipios de Cundinamarca; ninguno se llama Usme).
+> Definir si Usme debe agregarse como entidad o si "BOGOTÁ" la representa.
+
+### Fase 0b — Datos menores (opcional, no bloquea)
+- 2 fails de `prod_smoke`: (a) `drenaje_doble.geom = 0` (preexistente);
+  (b) `sgs_ind_predio` cubre 132/140 predios (8 sin indicador).
 
 ### Fase 1 — Reducir a lo fundamental (T0) · 30 min · **sin BD**
 - [ ] Sidebar: dejar solo los módulos que sirven a los objetivos; ocultar lo placeholder/ops.
