@@ -23,19 +23,13 @@ import { usePathname } from "next/navigation";
 import {
   HomeIcon,
   MapIcon,
-  BarChart3,
   Building2,
   Wrench,
   Activity,
   PieChart,
   FileText,
-  Bell,
-  Settings as SettingsIcon,
   Droplet,
-  BookMarked,
   Target,
-  ShieldCheck,
-  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SigTerritorioLogo } from "@/components/icons";
@@ -49,22 +43,20 @@ type Item = {
   roles: readonly RolSistema[] | null;
 };
 
+// Navegación reducida al alcance del entregable del Convenio 3038-2024
+// (ver docs/PLAN-CIERRE-HOY.md §3 Fase 1). Los módulos fuera de alcance
+// (Catálogos, Alertas, Admin, Configuración, Dashboard) siguen accesibles por
+// URL pero no se muestran en el nav. Reactivar = re-agregar la fila acá.
 const ALL_ITEMS: Item[] = [
   { href: "/",               label: "Inicio",             icon: HomeIcon,    roles: null },
-  { href: "/mapa",           label: "Mapa 2D / 3D",       icon: MapIcon,     roles: null },
-  { href: "/dashboard",      label: "Dashboard",          icon: BarChart3,   roles: null },
-  { href: "/metas/convenio", label: "Metas del convenio", icon: Target,      roles: null },
+  { href: "/mapa",           label: "Mapa",               icon: MapIcon,     roles: null },
   { href: "/predios",        label: "Predios",            icon: Building2,   roles: null },
-  { href: "/quebradas",      label: "Quebradas",          icon: Droplet,     roles: null },
   { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,      roles: null },
-  { href: "/catalogos",      label: "Catálogos",          icon: BookMarked,  roles: ["ADMIN"] },
+  { href: "/metas/convenio", label: "Metas del convenio", icon: Target,      roles: null },
+  { href: "/quebradas",      label: "Quebradas",          icon: Droplet,     roles: null },
   { href: "/monitoreo",      label: "Monitoreo",          icon: Activity,    roles: ["ADMIN", "GESTOR"] },
   { href: "/analisis",       label: "Análisis Espacial",  icon: PieChart,    roles: ["ADMIN", "ANALISTA"] },
   { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
-  { href: "/alertas",        label: "Alertas",            icon: Bell,        roles: ["ADMIN", "ANALISTA"] },
-  { href: "/admin/calidad",  label: "Calidad de datos",   icon: ShieldCheck, roles: ["ADMIN"] },
-  { href: "/admin/importaciones", label: "Importaciones",  icon: Upload,      roles: ["ADMIN", "GESTOR"] },
-  { href: "/configuracion",  label: "Configuración",      icon: SettingsIcon, roles: ["ADMIN"] },
 ];
 
 export function Sidebar({ rol }: { rol?: RolSistema | null }) {
