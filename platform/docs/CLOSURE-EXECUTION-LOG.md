@@ -65,6 +65,9 @@ P0-2 (secretos) ├─► P1-5 (fuente única metas) ─► P1-3 (drill-down) �
 | **P2-10** | CI aplicaba solo migraciones 01–07 (esquema incompleto) | ✅ DONE | turno Agente 3 · `ci-migrate.sh` |
 | **P2-11** | Test de **integración** con Postgres real (red de seguridad) | ✅ DONE | turno Agente 3 · `tests/integration/indicadores.int.test.ts` + `vitest.config.ts` |
 | **P2-12** | Fix versionado: snapshot se guardaba anidado y `compararSnapshots` daba diff 0 | ✅ DONE | turno Agente 3 · `versionado.ts` + `getIndicadoresFlat()` |
+| **P3-10** | Limpiar código muerto | ✅ DONE | turno Agente 4 · borrados `/api/analisis/buffer`, `/api/metas`, `repos/metas.ts`, `tests/unit/metas.test.ts` |
+| **P2-13** | Test de integración del **workflow** (2º flujo crítico) | ✅ DONE (CI) | turno Agente 4 · `tests/integration/workflow.int.test.ts` |
+| **P2-14** | **Release gate** ejecutable (plan §21) | ✅ DONE | turno Agente 4 · `scripts/release_gate.mjs` + `npm run release:gate` |
 
 Leyenda: ✅ cerrado · 🟠 parcial · 🟡 pendiente · 🔴 bloqueante · ⏳ acción del owner.
 
@@ -163,19 +166,36 @@ disponible en la máquina local, así que la validación SQL se hará en CI.
 
 ---
 
+### Turno Agente 4 (2026-09-10) — limpieza de código muerto + release gate
+
+**Objetivo:** cerrar P3-10 y dejar un gate de release ejecutable (plan §21).
+
+| # | Cambio | Archivo(s) |
+|---|--------|-----------|
+| 1 | Borrado `/api/analisis/buffer` (endpoint huérfano; el usado es `/api/analysis/buffer`) | `src/app/api/analisis/` |
+| 2 | Borrado `/api/metas` + `repos/metas.ts` + su test: endpoint viejo por vistas `sgs_v_metas_*`, sin consumidores, y **divergía** de la fuente única | `src/app/api/metas/route.ts`, `src/lib/repos/metas.ts`, `tests/unit/metas.test.ts`, `repos/index.ts` |
+| 3 | Test de integración del **workflow** (UPDATE condicional + CHECK + auditoría) | `tests/integration/workflow.int.test.ts` |
+| 4 | **Release gate** ejecutable | `scripts/release_gate.mjs`, `package.json` (`npm run release:gate`) |
+
+**Validación:** `npm run release:gate` → **GOAL_COMPLETED = TRUE (local)**:
+typecheck ✅, lint ✅, unit+integración ✅, build ✅; smoke BD y reconciliación
+⏭ (skip sin `DATABASE_URL`).
+
+**Efecto colateral:** los tests bajan de 327 a **316 passed + 3 skipped** (se
+quitaron los 11 tests de `metas.test.ts`). Los tipos `MetaResumen`/`MetasGlobal`/
+`MunicipioIntervenido` en `lib/types.ts` quedaron sin uso (harmless).
+
+**⚠️ Pendiente de validar en CI:** las vistas `sgs_v_metas_*` / `sgs_v_municipios_*`
+(12/13) quedan deprecadas pero NO se dropean; `prod_smoke.mjs` aún las exige. Si se
+quieren eliminar del todo, actualizar `prod_smoke.mjs` y `verify-migrations.mjs`.
+
+---
+
 ## 5. Pendientes recomendados (siguiente turno)
 
-### P3-10 — Código muerto (no bloqueante)
-- `src/app/api/analisis/buffer/route.ts` **no está referenciado** por el cliente.
-  El usado es `src/app/api/analysis/buffer` (`map-client.tsx:168`) y
-  `src/app/api/analysis/spatial-select` (`map-client.tsx:246`).
-  - El route `/api/analisis/buffer` tiene un comentario que dice ser para
-    "integraciones externas". **Decisión tomada:** no borrar sin confirmar con el owner
-    (posible contrato externo). Si se confirma que no hay consumidores → borrar.
-- `platform/_archive/` (`.next-bad3`, `.next-build`, `.next-pre`) — untracked, borrar local.
-- `platform/scripts/audit_dual_child.mjs`, `audit_tipos.mjs`, `test-login.mjs` — untracked,
-  scripts de debug one-shot; mover a `_archive/` o borrar.
-- `src/app/error.tsx` ya no es debug (cerrado en este turno).
+### P3-10 — Código muerto: ✅ CERRADO en el turno Agente 4
+- `_archive/` y scripts de debug one-shot (`audit_dual_child.mjs`, `audit_tipos.mjs`,
+  `test-login.mjs`) son **untracked** (locales). No se versionan; limpiar local si molesta.
 
 ### ⏳ Acciones del owner (no código)
 - **Rotar el password de Supabase** (P0-2) y actualizar `.env.local` + Vercel env vars.
