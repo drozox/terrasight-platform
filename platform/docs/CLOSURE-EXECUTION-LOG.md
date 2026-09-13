@@ -68,6 +68,8 @@ P0-2 (secretos) ├─► P1-5 (fuente única metas) ─► P1-3 (drill-down) �
 | **P3-10** | Limpiar código muerto | ✅ DONE | turno Agente 4 · borrados `/api/analisis/buffer`, `/api/metas`, `repos/metas.ts`, `tests/unit/metas.test.ts` |
 | **P2-13** | Test de integración del **workflow** (2º flujo crítico) | ✅ DONE (CI) | turno Agente 4 · `tests/integration/workflow.int.test.ts` |
 | **P2-14** | **Release gate** ejecutable (plan §21) | ✅ DONE | turno Agente 4 · `scripts/release_gate.mjs` + `npm run release:gate` |
+| **P2-15** | Test de integración de los 10 reportes R1–R10 | ✅ DONE (CI) | turno Agente 5 · `tests/integration/reportes.int.test.ts` |
+| **P2-16** | `/api/health` público (DB ping) para uptime + cron anti-pausa Supabase | ✅ DONE | turno Agente 5 · `src/app/api/health/route.ts`, `middleware.ts`, `tests/e2e/health.spec.ts` |
 
 Leyenda: ✅ cerrado · 🟠 parcial · 🟡 pendiente · 🔴 bloqueante · ⏳ acción del owner.
 
@@ -188,6 +190,24 @@ quitaron los 11 tests de `metas.test.ts`). Los tipos `MetaResumen`/`MetasGlobal`
 **⚠️ Pendiente de validar en CI:** las vistas `sgs_v_metas_*` / `sgs_v_municipios_*`
 (12/13) quedan deprecadas pero NO se dropean; `prod_smoke.mjs` aún las exige. Si se
 quieren eliminar del todo, actualizar `prod_smoke.mjs` y `verify-migrations.mjs`.
+
+---
+
+### Turno Agente 5 (2026-09-10) — cobertura de reportes + health check + docs
+
+| # | Cambio | Archivo(s) |
+|---|--------|-----------|
+| 1 | Test de integración de los 10 reportes (drift de esquema) | `tests/integration/reportes.int.test.ts` |
+| 2 | `/api/health` público (SELECT 1; 200/503) + middleware lo excluye de auth | `src/app/api/health/route.ts`, `src/middleware.ts` |
+| 3 | E2E del health check (CI) | `tests/e2e/health.spec.ts` |
+| 4 | Docs: 36 migraciones + fuente única | `AGENTS.md`, `docs/ARCHITECTURE.md` |
+
+**Validación:** `npm run release:gate` → **GOAL_COMPLETED = TRUE (local)** (smoke y
+reconciliación skip sin `DATABASE_URL`).
+
+**Uso del health check (operación):** configurar un cron (Vercel Cron o UptimeRobot)
+que haga `GET /api/health` cada ~25 días para evitar la pausa del free tier de
+Supabase. Sin auth, no expone datos.
 
 ---
 

@@ -123,9 +123,10 @@ node scripts/audit-screenshot.mjs  # regenerar screenshots
   - 5,959 vias (con spatial join municipio, ~30% match)
   - 966 drenaje_simple (spatial join 100%)
   - 28 spatial lookup (bioma/paramos/pomca/rfp pre-aggregated con ST_Union)
-- **35 migraciones** (`01-35-*.sql`). Las 14-22 son del import GDB
+- **36 migraciones** (`01-36-*.sql`). Las 14-22 son del import GDB
   (drop NOT NULL, CHECKs, defaults); 32-35 son features post-MVP
-  (search-indexes, workflow-estados, importaciones, versionado-metas).
+  (search-indexes, workflow-estados, importaciones, versionado-metas);
+  36 es la **fuente única de indicadores** (vistas `sgs_v_indicador_*`).
 - **Deuda técnica conocida**: 9 issues (DEBT-1 a DEBT-3.9) cerrados.
   Ver `docs/TECH-DEBT.md` para detalles.
 - **Audit UI/UX**: 80 issues identificados (6 P0, 18 P1, 15 P2, 8 P3).
@@ -143,7 +144,7 @@ Para regenerar la data del GDB en Supabase desde cero:
 #    GRANT ALL ON SCHEMA public TO postgres;
 #    GRANT ALL ON SCHEMA public TO public;
 
-# 2. Aplicar 35 migraciones SIN seed demo
+# 2. Aplicar 36 migraciones SIN seed demo
 #    (ver `.env.local` o pedir la URL al owner del repo).
 $env:DATABASE_URL = "<PEGAR_AQUI_LA_URL_DE_SUPABASE>"
 cd platform

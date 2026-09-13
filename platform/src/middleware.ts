@@ -22,6 +22,7 @@ export default auth((req) => {
   // Paths públicos
   const isPublic =
     pathname === "/login" ||
+    pathname === "/api/health" ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
@@ -52,6 +53,6 @@ export default auth((req) => {
 // Mantener sincronizado con los paths públicos arriba.
 export const config = {
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|partners|images).*)",
+    "/((?!api/health|api/auth|_next/static|_next/image|favicon.ico|partners|images).*)",
   ],
 };

@@ -16,7 +16,7 @@
 | **Migraciones aplicadas** | 36 |
 | **Audit UI/UX** | 46/55 (84%) cerrados |
 | **TECH-DEBT** | 0 items abiertos |
-| **Tests** | 316 unit/component, **8 integración** (indicadores + workflow; skip local sin BD), `npm run release:gate`, 6 E2E, smoke 55/56 |
+| **Tests** | 316 unit/component, **18 integración** (indicadores + workflow + reportes; skip local sin BD), `npm run release:gate`, 7 E2E, smoke 55/56 |
 | **Última URL de Vercel** | ver https://vercel.com/drozox/terrasight-platform |
 
 > **Importante:** los 10 reportes R1–R10 del convenio están **implementados y verificados E2E** en `/reportes` (`src/lib/repos/reportes.ts` + `src/app/api/reportes/route.ts` + `src/app/reportes/page.tsx`). El item "Sprint 23 — Faltan R2/R4/R5/R6/R7/R10" del SPRINT-STATUS previo es **stale**.
@@ -192,7 +192,7 @@ estado fixed, 1 P0 secretos fixed, 1 P1 drill-down fixed, 1 P1 C2A2 fixed,
 - ✅ P0-1 estados unificados · P0-2 secretos redactados · P1-3 drill-down · P1-4 C2A2
 - ✅ P1-5 `/metas` redirect · P1-6 docs · P2-7 dashboard · P2-8 CI build · P2-9 audit:resultados
 - ✅ P3-11 CSV formula guard · **P3-12 fuente única de indicadores (migración 36)** · P2-10 CI aplica 36 migraciones · P2-11 test de integración · P2-12 fix versionado
-- ✅ **P3-10 código muerto** (`/api/analisis/buffer`, `/api/metas`, `repos/metas.ts`) · P2-13 test integración workflow · **P2-14 `npm run release:gate`**
+- ✅ **P3-10 código muerto** (`/api/analisis/buffer`, `/api/metas`, `repos/metas.ts`) · P2-13 test integración workflow · **P2-14 `npm run release:gate`** · P2-15 integración reportes · **P2-16 `/api/health`**
 
 ### Pendientes menores de UX (P3)
 - UX-33 clustering mapa

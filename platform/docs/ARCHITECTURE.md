@@ -207,14 +207,17 @@ import_drenaje_quebrada.mjs →  drenaje_simple + drenaje_doble + quebrada (deri
 fix_long_area.mjs         →  recalcular longitud/area con ::geography
 ```
 
-### 6.3 Migrations (35 archivos en `scripts/db/init/`)
+### 6.3 Migrations (36 archivos en `scripts/db/init/`)
 
 Aplicadas al proyecto Supabase del convenio (region sa-east-1). El password y el project-ref
 viven solo en `.env.local` (no commiteado). Sprint 23 / P0-2 FINAL-CLOSURE-PLAN: el password
 fue removido de todos los archivos trackeados del repo.
 
 Las migraciones 14-31 son específicas del import GDB (drop NOT NULL, CHECKs, defaults, SRID fix,
-serial PKs, extension unaccent).
+serial PKs, extension unaccent). La **36** contiene la fuente única de los 10 indicadores del
+convenio (`sgs_v_indicador_propuesta` + `sgs_v_indicador_global`): los patrones de actividad
+viven SOLO ahí, y `metas-convenio.ts` / `audit_resultados.mjs` la consumen. Las vistas
+`sgs_v_metas_*` (12/13) quedan deprecadas.
 
 ---
 
