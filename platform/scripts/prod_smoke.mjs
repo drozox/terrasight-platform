@@ -151,7 +151,13 @@ const users = await sql`SELECT count(*)::int AS n FROM sgs_adm_usuario`;
 const roles = await sql`SELECT count(*)::int AS n FROM sgs_adm_rol`;
 check("Al menos 1 rol configurado", roles[0].n >= 1, `${roles[0].n} roles`);
 const vMetas = await sql`SELECT count(*)::int AS n FROM pg_views WHERE schemaname='public' AND (viewname LIKE 'sgs_v_metas%' OR viewname LIKE 'sgs_v_municipios%')`;
-check("Vistas de metas (sgs_v_metas_* + sgs_v_municipios_*)", vMetas[0].n >= 3, `${vMetas[0].n} vistas`);
+check("Vistas de metas deprecadas (sgs_v_metas_* + sgs_v_municipios_*)", vMetas[0].n >= 3, `${vMetas[0].n} vistas`);
+
+// P3-12 / migración 36 — fuente única de indicadores.
+const vInd = await sql`SELECT count(*)::int AS n FROM pg_views WHERE schemaname='public' AND viewname LIKE 'sgs_v_indicador%'`;
+check("Vistas fuente única (sgs_v_indicador_*)", vInd[0].n >= 2, `${vInd[0].n} vistas`);
+const indAgg = await sql`SELECT count(*)::int AS n FROM sgs_v_indicador_global`;
+check("sgs_v_indicador_global tiene 11 filas (10 oficiales + multiestrat)", indAgg[0].n === 11, `${indAgg[0].n} filas`);
 
 console.log(`\n=== Resumen: ${pass} pass, ${fail} fail ===`);
 await sql.end({ timeout: 5 });

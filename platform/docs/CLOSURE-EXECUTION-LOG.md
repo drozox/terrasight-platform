@@ -201,6 +201,7 @@ quieren eliminar del todo, actualizar `prod_smoke.mjs` y `verify-migrations.mjs`
 | 2 | `/api/health` público (SELECT 1; 200/503) + middleware lo excluye de auth | `src/app/api/health/route.ts`, `src/middleware.ts` |
 | 3 | E2E del health check (CI) | `tests/e2e/health.spec.ts` |
 | 4 | Docs: 36 migraciones + fuente única | `AGENTS.md`, `docs/ARCHITECTURE.md` |
+| 5 | `prod_smoke` verifica la vista nueva; gate con E2E opcional (`RUN_E2E=1`); tipos huérfanos removidos | `scripts/prod_smoke.mjs`, `scripts/release_gate.mjs`, `src/lib/types.ts` |
 
 **Validación:** `npm run release:gate` → **GOAL_COMPLETED = TRUE (local)** (smoke y
 reconciliación skip sin `DATABASE_URL`).

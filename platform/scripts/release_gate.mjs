@@ -28,6 +28,12 @@ const STEPS = [
   { name: "reconciliación", cmd: "node scripts/audit_resultados.mjs", needDb: true },
 ];
 
+// E2E es opcional (necesita que Playwright levante el server). Se activa con
+// RUN_E2E=1 para no alargar el gate en cada corrida local.
+if (process.env.RUN_E2E) {
+  STEPS.push({ name: "e2e (Playwright)", cmd: "npm run test:e2e", needDb: true });
+}
+
 console.log("\n================ RELEASE GATE ================\n");
 
 const results = [];
