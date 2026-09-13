@@ -163,10 +163,15 @@ SELECT * FROM tabla WHERE unaccent(actividad) ILIKE unaccent('%cosecha%')
 
 ## 4. Auth y autorización
 
-- **NextAuth v5** (v5.0.0-beta+) con Credentials Provider contra `sgs_usuario` table.
+- **NextAuth v5** (v5.0.0-beta+) con Credentials Provider contra `sgs_adm_usuario`.
 - **3 roles**: `ADMIN`, `ANALISTA`, `GESTOR`.
 - **`requireUser()`** en cada server component autenticado.
 - **`requireRole("ADMIN")`** para rutas admin-only.
+- **Revalidación de sesión (D-DEBT-2)**: `getCurrentUser()` llama a
+  `getUserAuthState()` (`src/lib/session-revalidate.ts`), que re-chequea `activo` y
+  el rol contra la BD cada **5 min** (cache en memoria por proceso). Un usuario
+  desactivado/eliminado → sesión inválida (logout). Si la BD falla, **no** invalida.
+  Se hace en el path server-only (NO en el `jwt` callback ni en el middleware Edge).
 - **Sidebar filtra items** según rol (módulos sensibles como `/admin` y `/catalogos` solo ADMIN).
 - **Tokens JWT** van en cookie httpOnly. Augmentation en `@auth/core/jwt` (NO `next-auth/jwt` —
   bug histórico que rompía tipos).

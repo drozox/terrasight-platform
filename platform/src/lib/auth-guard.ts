@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "./auth";
 import { auditAccessDeny, type AuditContext } from "./audit";
+import { getUserAuthState } from "./session-revalidate";
 import type { RolSistema } from "./auth";
 
 // -----------------------------------------------------------------------------
@@ -28,11 +29,18 @@ export type SessionUser = {
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const session = await auth();
   if (!session?.user?.idUsuario || !session.user.rol) return null;
+
+  // D-DEBT-2 — revalidación periódica contra la BD (cache 5 min). Si la cuenta
+  // fue desactivada o eliminada → sesión inválida (null ⇒ redirect a /login).
+  // Si el rol cambió, se propaga sin esperar a que expire el JWT.
+  const state = await getUserAuthState(session.user.idUsuario);
+  if (!state.activo) return null;
+
   return {
     idUsuario: session.user.idUsuario,
     email: session.user.email ?? "",
     name: session.user.name ?? "",
-    rol: session.user.rol,
+    rol: state.rol ?? session.user.rol,
   };
 }
 

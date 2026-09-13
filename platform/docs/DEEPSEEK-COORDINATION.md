@@ -118,6 +118,7 @@ SIGUIENTE SUGERIDO: (1 línea)
 | **Operación** | `/api/health` para uptime y cron anti-pausa de Supabase | `src/app/api/health/route.ts` |
 | **Limpieza** | Endpoints/rutas muertas y tipos huérfanos eliminados; un solo camino de metas | `src/app/api/metas`, `src/lib/repos/metas.ts`, `src/lib/types.ts` |
 | **Docs** | README, SPRINT-STATUS, ARCHITECTURE, AGENTS a 36 migraciones y fuente única | `README.md`, `docs/*.md`, `AGENTS.md` |
+| **Sesión (seguridad)** | D-DEBT-2: revalidación de cuenta/rol cada 5 min; usuario desactivado/eliminado → logout automático | `src/lib/session-revalidate.ts`, `src/lib/auth-guard.ts` |
 
 ---
 
@@ -169,7 +170,7 @@ SIGUIENTE SUGERIDO: (1 línea)
 |----|------|-------|
 | P3-11.b | `csv.ts`: quotear cuando el valor tiene coma y el separador es `;` | Prolijidad Excel, no seguridad |
 | D-DEBT-1 | **Catálogo cerrado de actividades** (reemplazar ILIKE por tabla + FK) | Requiere **decisión de negocio** de la lista canónica (no inventar). Mayor reducción de fragilidad a futuro |
-| D-DEBT-2 | Revalidación de sesión al desactivar usuario | Hoy el JWT vive 8 h sin re-chequear `activo`; evaluar cache corto |
+| D-DEBT-2 | Revalidación de sesión al desactivar usuario | ✅ DONE (T0) · `session-revalidate.ts` + `auth-guard.ts`; cache 5 min; BD caída no invalida |
 | D-DEBT-3 | `next lint` deprecado (se remueve en Next 16) | Migrar a ESLint CLI cuando se actualice Next |
 | D-DEBT-4 | Scripts del pipeline GDB no versionados | `clean_gdb.py`, `aggregate_v2.py`, `spatial_join_*.py`, `extract_phase6_tables.py` solo en `C:\dev\scratch`. **Riesgo de continuidad** (owner) |
 
@@ -259,6 +260,8 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 3 | Fuente única de indicadores + integración + fix CI + versionado | `9f8c996` |
 | DeepSeek 4 | Limpieza de código muerto + integración workflow + release gate | `0c88223` |
 | DeepSeek 5 | Integración reportes + `/api/health` + docs | `e06f23a`, `34eccd2` |
+| DeepSeek 6 | Coordinación: doc maestro, tiers T0/T1, task cards y lote paralelo | `1a1ae0a`, `35f3986`, `1bf645e`, `f0ea529` |
+| DeepSeek 7 | **D-DEBT-2**: revalidación de sesión (cuenta/rol cada 5 min) | (este commit) |
 
 ## 9. Cola de trabajo y asignaciones
 
