@@ -222,7 +222,7 @@ Las migraciones 14-31 son específicas del import GDB (drop NOT NULL, CHECKs, de
 serial PKs, extension unaccent). La **36** contiene la fuente única de los 10 indicadores del
 convenio (`sgs_v_indicador_propuesta` + `sgs_v_indicador_global`): los patrones de actividad
 viven SOLO ahí, y `metas-convenio.ts` / `audit_resultados.mjs` la consumen. Las vistas
-`sgs_v_metas_*` (12/13) quedan deprecadas.
+`sgs_v_metas_*` (12/13) fueron **eliminadas** en la migración 37.
 
 ---
 

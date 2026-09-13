@@ -145,10 +145,10 @@ En SQL Editor:
 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';
 -- debe dar 35
 
--- 3 vistas de metas
+-- Vista única de indicadores (migración 36)
 SELECT viewname FROM pg_views
-WHERE schemaname = 'public' AND viewname LIKE 'sgs_v_metas%';
--- esperado: sgs_v_metas_resumen, sgs_v_metas_resumen_global, sgs_v_municipios_intervenidos
+WHERE schemaname = 'public' AND viewname LIKE 'sgs_v_indicador%';
+-- esperado: sgs_v_indicador_global, sgs_v_indicador_propuesta
 ```
 
 **Estado real de los datos (2026-09-03) — proyecto Supabase del convenio:**

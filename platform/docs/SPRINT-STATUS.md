@@ -13,7 +13,7 @@
 | **Tag baseline** | `v0.1.0-pre-final` |
 | **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)**, **Sprint 21 (importación CSV)**, **Sprint 22 (versionado de metas)**, **Sprint 23 (FINAL-CLOSURE-PLAN: estados + secretos + drill-down metas)** |
 | **Datos reales en Supabase** | 1,381 propuestas, 132 predios, 5,959 vías, 656 quebradas, 14 municipios |
-| **Migraciones aplicadas** | 36 |
+| **Migraciones aplicadas** | 37 |
 | **Audit UI/UX** | 46/55 (84%) cerrados |
 | **TECH-DEBT** | 0 items abiertos |
 | **Tests** | 316 unit/component, **18 integración** (indicadores + workflow + reportes; skip local sin BD), `npm run release:gate`, 7 E2E, smoke 55/56 |
@@ -193,6 +193,7 @@ estado fixed, 1 P0 secretos fixed, 1 P1 drill-down fixed, 1 P1 C2A2 fixed,
 - ✅ P1-5 `/metas` redirect · P1-6 docs · P2-7 dashboard · P2-8 CI build · P2-9 audit:resultados
 - ✅ P3-11 CSV formula guard · **P3-12 fuente única de indicadores (migración 36)** · P2-10 CI aplica 36 migraciones · P2-11 test de integración · P2-12 fix versionado
 - ✅ **P3-10 código muerto** (`/api/analisis/buffer`, `/api/metas`, `repos/metas.ts`) · P2-13 test integración workflow · **P2-14 `npm run release:gate`** · P2-15 integración reportes · **P2-16 `/api/health`**
+- ✅ **D-DEBT-2 revalidación de sesión** (cuenta/rol cada 5 min) · **P2-17 migración 37 elimina vistas `sgs_v_metas_*`**
 
 ### Pendientes menores de UX (P3)
 - UX-33 clustering mapa

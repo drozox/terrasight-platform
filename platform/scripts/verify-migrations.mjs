@@ -76,30 +76,33 @@ try {
     record("Lockout columns en sgs_adm_usuario", "bloqueado_hasta,intentos_fallidos", cols);
   }
 
-  // -- Query 7: ✨ 3 vistas de metas (incluye municipios_intervenidos)
+  // -- Query 7: ✨ Fuente única de indicadores (36) + deprecadas eliminadas (37)
   {
     const r = await sql`
       SELECT viewname FROM pg_views
-      WHERE schemaname = 'public'
-        AND viewname IN (
-          'sgs_v_metas_resumen',
-          'sgs_v_metas_resumen_global',
-          'sgs_v_municipios_intervenidos'
-        )
+      WHERE schemaname = 'public' AND viewname LIKE 'sgs_v_indicador%'
       ORDER BY viewname
     `;
     const v = r.map((x) => x.viewname).join(",");
     record(
-      "Vistas de metas (3 esperadas)",
-      "sgs_v_metas_resumen,sgs_v_metas_resumen_global,sgs_v_municipios_intervenidos",
+      "Vistas fuente única (2 esperadas)",
+      "sgs_v_indicador_global,sgs_v_indicador_propuesta",
       v,
     );
   }
-
-  // -- Query 8: ✨ 10 metas en la vista
   {
-    const [r] = await sql`SELECT count(*)::int AS n FROM sgs_v_metas_resumen`;
-    record("Metas en sgs_v_metas_resumen", "10", r.n);
+    const [r] = await sql`
+      SELECT count(*)::int AS n FROM pg_views
+      WHERE schemaname = 'public'
+        AND (viewname LIKE 'sgs_v_metas%' OR viewname LIKE 'sgs_v_municipios%')
+    `;
+    record("Vistas de metas deprecadas eliminadas", "0", r.n);
+  }
+
+  // -- Query 8: ✨ 10 indicadores + multiestrat en la fuente única
+  {
+    const [r] = await sql`SELECT count(*)::int AS n FROM sgs_v_indicador_global`;
+    record("Indicadores en sgs_v_indicador_global (10 + multiestrat)", "11", r.n);
   }
 
   // -- Query 9: ✨ C3A1 y C3A2 existen
@@ -115,38 +118,26 @@ try {
     record("Acciones C3 (A1 + A2)", "C3A1,C3A2", v);
   }
 
-  // -- Query 10: ✨ C3 fila en la vista
+  // -- Query 10: ✨ Indicador C3 presente en la fuente única
   {
     const r = await sql`
-      SELECT componente, accion, meta_value, current_value
-      FROM sgs_v_metas_resumen
-      WHERE componente = 'C3'
+      SELECT actual FROM sgs_v_indicador_global WHERE indicador_key = 'predios_c3'
     `;
     if (r.length === 0) {
-      results.push({ name: "C3 fila en sgs_v_metas_resumen (meta=35)", expected: "1 fila C3— con meta=35", got: "0 filas", ok: false });
-      console.log(`  ❌ FAIL  C3 fila: 0 filas en la vista`);
+      results.push({ name: "predios_c3 en sgs_v_indicador_global", expected: "1 fila", got: "0 filas", ok: false });
+      console.log(`  ❌ FAIL  predios_c3: 0 filas en la fuente única`);
     } else {
-      const row = r[0];
-      const ok = row.accion === "—" && Number(row.meta_value) === 35;
-      const got = `${row.componente}${row.accion} meta=${row.meta_value} current=${row.current_value}`;
-      results.push({ name: "C3 fila en sgs_v_metas_resumen (meta=35)", expected: "C3— con meta=35", got, ok });
-      console.log(`  ${ok ? "✅ PASS" : "❌ FAIL"}  C3 fila: ${got}`);
+      const got = `actual=${r[0].actual}`;
+      results.push({ name: "predios_c3 en sgs_v_indicador_global", expected: "1 fila", got, ok: true });
+      console.log(`  ✅ PASS  predios_c3: ${got}`);
     }
   }
 
-  // -- Query 11: Global de metas
+  // -- Query 11: Global (leer los 11 indicadores de la fuente única)
   {
-    const [r] = await sql`SELECT * FROM sgs_v_metas_resumen_global`;
-    console.log(`  ℹ️  Global: total_metas=${r.total_metas} cumplidas=${r.metas_cumplidas} sum_current=${r.sum_current} sum_meta=${r.sum_meta} pct=${(Number(r.sum_current)/Number(r.sum_meta)*100).toFixed(1)}%`);
-  }
-
-  // -- Query 12: Municipios intervenidos
-  {
-    const r = await sql`SELECT * FROM sgs_v_municipios_intervenidos ORDER BY num_propuestas DESC LIMIT 5`;
-    console.log(`  ℹ️  Top 5 municipios:`);
-    for (const m of r) {
-      console.log(`     - ${m.nombre_municipio} (${m.departamento}): ${m.num_propuestas} propuestas, ${m.num_predios} predios, ${m.num_veredas} veredas`);
-    }
+    const r = await sql`SELECT indicador_key, actual, unidad FROM sgs_v_indicador_global ORDER BY indicador_key`;
+    console.log(`  ℹ️  Indicadores (fuente única):`);
+    for (const x of r) console.log(`     - ${x.indicador_key}: ${x.actual} ${x.unidad}`);
   }
 
   // Resumen

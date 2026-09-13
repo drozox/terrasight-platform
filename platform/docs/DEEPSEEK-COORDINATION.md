@@ -5,7 +5,7 @@
 > agentes leen esta guía ANTES de tocar código y la actualizan DESPUÉS.
 >
 > Plan fuente (diagnóstico completo): [`FINAL-CLOSURE-PLAN.md`](./FINAL-CLOSURE-PLAN.md).
-> HEAD de referencia: `35f3986` · Migraciones: **36** · Última actualización: 2026-09-10 (sistema de task cards T1).
+> HEAD de referencia: `a63089a` · Migraciones: **37** · Última actualización: 2026-09-10 (P2-17 vistas deprecadas).
 
 ---
 
@@ -143,7 +143,8 @@ SIGUIENTE SUGERIDO: (1 línea)
 
 - Migraciones: **36** (`scripts/db/init/01..36`). La 36 es la fuente única de indicadores.
 - Vistas nuevas: `sgs_v_indicador_propuesta` (detalle) + `sgs_v_indicador_global` (agregado, 11 filas).
-- Vistas deprecadas: `sgs_v_metas_*` / `sgs_v_municipios_*` (12/13) — sin consumidores; NO se dropean aún.
+- Vistas deprecadas: `sgs_v_metas_*` / `sgs_v_municipios_*` (12/13) — **eliminadas** en la migración 37.
+- Migraciones: **37**. La 36 es la fuente única de indicadores; la 37 elimina las vistas viejas.
 
 ---
 
@@ -163,7 +164,7 @@ SIGUIENTE SUGERIDO: (1 línea)
 | ID | Item | Estado | Siguiente acción |
 |----|------|--------|------------------|
 | P2-VAL | Validar migración 36 + integración en CI/real | 🟡 pendiente | Pushear; CI (PostGIS) aplica 36 y corre los 18 tests. Correr `npm run release:gate` con `DATABASE_URL` |
-| P2-17 | Dropear vistas deprecadas `sgs_v_metas_*` | 🟡 opcional | Actualizar `prod_smoke.mjs` y `verify-migrations.mjs` primero |
+| P2-17 | Dropear vistas deprecadas `sgs_v_metas_*` | ✅ DONE (T0) | migración 37 + `prod_smoke`/`verify-migrations` actualizados |
 
 ### P3 — OPTIONAL / deuda
 | ID | Item | Notas |
@@ -262,6 +263,7 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 5 | Integración reportes + `/api/health` + docs | `e06f23a`, `34eccd2` |
 | DeepSeek 6 | Coordinación: doc maestro, tiers T0/T1, task cards y lote paralelo | `1a1ae0a`, `35f3986`, `1bf645e`, `f0ea529` |
 | DeepSeek 7 | **D-DEBT-2**: revalidación de sesión (cuenta/rol cada 5 min) | (este commit) |
+| DeepSeek 8 | **P2-17**: migración 37 elimina vistas deprecadas; checks actualizados | (este commit) |
 
 ## 9. Cola de trabajo y asignaciones
 

@@ -150,8 +150,8 @@ console.log("\n=== 6. Auth + Vistas metas ===");
 const users = await sql`SELECT count(*)::int AS n FROM sgs_adm_usuario`;
 const roles = await sql`SELECT count(*)::int AS n FROM sgs_adm_rol`;
 check("Al menos 1 rol configurado", roles[0].n >= 1, `${roles[0].n} roles`);
-const vMetas = await sql`SELECT count(*)::int AS n FROM pg_views WHERE schemaname='public' AND (viewname LIKE 'sgs_v_metas%' OR viewname LIKE 'sgs_v_municipios%')`;
-check("Vistas de metas deprecadas (sgs_v_metas_* + sgs_v_municipios_*)", vMetas[0].n >= 3, `${vMetas[0].n} vistas`);
+const vDep = await sql`SELECT count(*)::int AS n FROM pg_views WHERE schemaname='public' AND (viewname LIKE 'sgs_v_metas%' OR viewname LIKE 'sgs_v_municipios%')`;
+check("Vistas deprecadas eliminadas (migración 37)", vDep[0].n === 0, `${vDep[0].n} vistas deprecadas (esperado 0)`);
 
 // P3-12 / migración 36 — fuente única de indicadores.
 const vInd = await sql`SELECT count(*)::int AS n FROM pg_views WHERE schemaname='public' AND viewname LIKE 'sgs_v_indicador%'`;
