@@ -67,7 +67,7 @@ PostGIS viene **preinstalado** en Supabase free tier. Verificar:
 
 > **OJO**: el password que pones al crear el proyecto es el que va en la URL. Si lo pierdes, hay que resetear desde el dashboard.
 
-### 1.4. Aplicar las 25 migraciones
+### 1.4. Aplicar las 37 migraciones
 
 Las migraciones viven en `platform/scripts/db/init/`. El script `migrate.mjs` las aplica en orden. Es **idempotente**: las que ya están aplicadas se skipean (`already exists|duplicate key|IF NOT EXISTS`).
 
@@ -87,7 +87,7 @@ node scripts/migrate.mjs
 
 > Reemplaza `[ref]qwerty` y `[PASSWORD]` con los tuyos. **OJO**: si tu password tiene caracteres especiales (`!`, `#`, `$`, etc.), escapalos o usa comillas. El `postgres-js` los maneja, pero el shell puede confundirse.
 
-**25 migraciones en orden** (las del S5.M+ están marcadas con ✨):
+**37 migraciones en orden** (las del S5.M+ están marcadas con ✨):
 
 | # | Archivo | Qué agrega | Idempotente |
 |---|---|---|---|
@@ -102,8 +102,8 @@ node scripts/migrate.mjs
 | 09 | `09-propuesta-avance-es-backfill.sql` | Backfill `es_backfill=TRUE` | ✅ |
 | 10 | `10-sgs-amb-alerta.sql` | Tabla `sgs_amb_alerta` | ✅ |
 | ✨ 11 | `11-auth-lockout.sql` | Lockout 5 intentos (`intentos_fallidos`, `bloqueado_hasta`) | ✅ |
-| ✨ 12 | `12-metas.sql` | 3 vistas metas (`sgs_v_metas_resumen`, `_global`, `_municipios_intervenidos`) | ✅ (CREATE OR REPLACE) |
-| ✨ 13 | `13-c3-metas.sql` | Acciones C3A1/C3A2 + re-define vista metas con fila C3 + reasigna 2 propuestas seed | ✅ (NOT EXISTS + UPDATE con WHERE) |
+| ✨ 12 | `12-metas.sql` | Tabla `sgs_com_meta` + 3 vistas de cálculo de metas (deprecadas en migración 37) | ✅ (CREATE OR REPLACE) |
+| ✨ 13 | `13-c3-metas.sql` | Acciones C3A1/C3A2 + vista metas con fila C3 + reasigna 2 propuestas seed | ✅ (NOT EXISTS + UPDATE con WHERE) |
 | ✨ 14 | `14-import-gdb-nullable-fks.sql` | drop NOT NULL en FKs para import GDB (`sgs_pre_predio.id_vereda`, `id_propietario`, `bcs_lpa_vereda.id_municipio`) | ✅ |
 | ✨ 15 | `15-propuesta-nullable-quebrada.sql` | drop NOT NULL `id_quebrada` en `sgs_pro_propuesta` y `sgs_pro_propuesta_punto` (GDB no tiene quebrada) | ✅ |
 | ✨ 16 | `16-com-accion-check-u.sql` | permite 'U' en CHECK de `sgs_com_accion.nombre` (GDB tiene A1, A2, U) | ✅ |
@@ -116,24 +116,36 @@ node scripts/migrate.mjs
 | ✨ 23 | `23-fase6-analisis-tables.sql` | 5 indicator tables (`sgs_ind_*`) + junction tables extendidas con `area_interseccion_ha`/`porcentaje_predio`/`geom` + `bcs_dh_quebrada` | ✅ (IF NOT EXISTS) |
 | ✨ 24 | `24-fase6-lookup-extended.sql` | columnas extendidas en `sgs_amb_cobertura_clc`/`sgs_amb_zonificacion_pomca`/`sgs_amb_zonificacion_rfp` (`objectid_gdb`, `nombre`, `nomenclatura`, `geom`) | ✅ (ADD COLUMN IF NOT EXISTS) |
 | ✨ 25 | `25-relajarcheck-cobertura.sql` | drop CHECK `estado_naturalidad` en `sgs_amb_cobertura_clc` (GDB tiene valores inconsistentes) | ✅ (DROP CONSTRAINT IF EXISTS) |
+| ✨ 26 | `26-relajarnotnull-quebrada-drenajedoble.sql` | drop NOT NULL en `bcs_dh_quebrada` y `sgs_inf_drenaje_doble` (`id_municipio`, `id_microcuenca`, `area`, `latitud`, `longitud`, `nombre_usuarios`) | ✅ (DROP NOT NULL IF EXISTS) |
+| ✨ 27 | `27-drenaje-doble-polygon.sql` | `sgs_inf_drenaje_doble.geom` → MULTIPOLYGON (GDB tiene polígonos del cauce, no líneas) | ✅ |
+| ✨ 28 | `28-propuestas-hijas-fix.sql` | fix schema hijas: `sgs_pro_propuesta_punto.geom` → MULTIPOINT + agregar `id_predio` en las 3 hijas | ✅ |
+| ✨ 29 | `29-propuestas-relajarnotnull.sql` | drop NOT NULL en hijas (`id_propuesta`, `tipo_punto`, `tipo_obra`, `estructura_anclaje`, `nivel_complejidad`, etc.) | ✅ (DROP NOT NULL IF EXISTS) |
+| ✨ 30 | `30-propuestas-serial.sql` | `id_prop_*` → SERIAL con sequences (GDB tiene `id_prop_pu=0` para todos los puntos) | ✅ |
+| ✨ 31 | `31-unaccent-extension.sql` | extension `unaccent` + recálculo de `longitud_km`/`area_ha` con `::geography` | ✅ |
+| ✨ 32 | `32-search-indexes.sql` | `pg_trgm` + GIN trigram + GIST geom verification (búsqueda topbar UX-61) | ✅ (CREATE INDEX IF NOT EXISTS) |
+| ✨ 33 | `33-workflow-estados.sql` | máquina de estados de propuestas (BORRADOR → EN_REVISION → APROBADA → EN_EJECUCION → FINALIZADA) + historial + auditoría | ✅ |
+| ✨ 34 | `34-importaciones.sql` | tablas `sgs_adm_importacion` + `sgs_adm_importacion_error` (import masivo CSV/Excel/KML) | ✅ (IF NOT EXISTS) |
+| ✨ 35 | `35-versionado-metas.sql` | snapshots de metas del convenio (`sgs_com_meta_snapshot`) para comparar avance entre fechas | ✅ |
+| ✨ 36 | `36-indicadores-fuente-unica.sql` | fuente única de verdad de los 10 indicadores (`sgs_v_indicador_global`, `sgs_v_indicador_propuesta`) — FINAL-CLOSURE-PLAN | ✅ (CREATE OR REPLACE VIEW) |
+| ✨ 37 | `37-drop-metas-views-deprecadas.sql` | DROP de las 3 vistas deprecadas de metas (ver archivo para nombres) — la fuente única de verdad quedó en migración 36 | ✅ (DROP VIEW IF EXISTS) |
 
-> **Importante**: con `--no-seed`, `migrate.mjs` además strip la sección "DATOS DE PRUEBA" de `01-schema.sql` (Cali/Palmira/Yumbo de demo anterior). Las 25 migraciones NO incluyen ningún INSERT demo, todas son DDL/DDL-like.
+> **Importante**: con `--no-seed`, `migrate.mjs` además strip la sección "DATOS DE PRUEBA" de `01-schema.sql` (Cali/Palmira/Yumbo de demo anterior). Las 37 migraciones NO incluyen ningún INSERT demo, todas son DDL/DDL-like.
 
 **Aplicar SOLO las nuevas** (si la BD ya tiene las primeras 22 aplicadas):
 
 ```bash
 # Por seguridad, dry-run primero
-node scripts/migrate.mjs --dry-run | Select-String "2[3-5]"
-# Solo deberían listarse las 3 nuevas (23-25)
+node scripts/migrate.mjs --dry-run | Select-String "3[5-7]"
+# Solo deberían listarse las 3 nuevas (35-37)
 
-# Aplicar (las 22 anteriores se skipean automáticamente)
+# Aplicar (las 34 anteriores se skipean automáticamente)
 node scripts/migrate.mjs --no-seed
 ```
 
 **Alternativa via SQL Editor** (si tenes problemas con el script):
 
 1. Ir a **SQL Editor** en Supabase.
-2. Abrir SOLO los archivos nuevos (14-25) en orden, click **Run** en cada uno.
+2. Abrir SOLO los archivos nuevos (35-37) en orden, click **Run** en cada uno.
 3. Verificar que no haya errores en ninguno.
 
 ### 1.5. Verificar que las migraciones corrieron
@@ -141,9 +153,10 @@ node scripts/migrate.mjs --no-seed
 En SQL Editor:
 
 ```sql
--- 35 tablas (32 base + 3 nuevas: amb_monitoreo_punto, propuesta_avance, amb_alerta)
+-- Conteo de tablas (32 base + amb_monitoreo_punto + propuesta_avance + amb_alerta
+--   + 5 indicator + bcs_dh_quebrada + 5 junction + 3 lookup extended + workflow +
+--   importacion + meta_snapshot ≈ 55 tablas). El conteo exacto:
 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';
--- debe dar 35
 
 -- Vista única de indicadores (migración 36)
 SELECT viewname FROM pg_views
