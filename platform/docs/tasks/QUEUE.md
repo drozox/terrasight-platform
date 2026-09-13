@@ -1,0 +1,29 @@
+# TASK QUEUE — TerraSight (coordinación DeepSeek)
+
+> Tablero de tareas para agentes **T1 (MiniMax M3 / workers)**.
+> DeepSeek (T0) escribe las cards y revisa; los T1 ejecutan **una card a la vez**.
+> Reglas: ver [`../DEEPSEEK-COORDINATION.md`](../DEEPSEEK-COORDINATION.md) §0.4–0.6.
+
+## Cómo se usa
+1. El worker abre una card `🟢` de la tabla.
+2. La ejecuta **completa y solo esa** (no toca archivos fuera de `ARCHIVOS`).
+3. Corre `npm run release:gate` y reporta con la plantilla §0.6.
+4. Actualiza el estado acá y avisa a T0 para revisión.
+
+## Tablero
+
+| Card | Tier | Prioridad | Estado | Archivo |
+|------|------|-----------|--------|---------|
+| `P3-11.b` CSV: quotear si el valor tiene coma | T1 | P3 | 🟢 listo | [T1-csv-comma-quoting.md](./T1-csv-comma-quoting.md) |
+| `DEEPSEEK-9` Integración de repos sin `withFallback` | T1 | P2 | 🟢 listo | [T1-integration-nofallback.md](./T1-integration-nofallback.md) |
+| `DEEPSEEK-8` Refrescar `REVIEW-GUIDE.md` (integration + gate) | T1 | P3 | 🟢 listo | [T1-review-guide-refresh.md](./T1-review-guide-refresh.md) |
+| `DEEPSEEK-10` Unit test de `getIndicadoresFlat()` | T1 | P3 | 🟢 listo | [T1-metas-flat-unit-test.md](./T1-metas-flat-unit-test.md) |
+
+## Reservado a T0 (no delegar)
+- `scripts/db/init/36-indicadores-fuente-unica.sql`, `src/lib/repos/metas-convenio.ts`
+- `.github/workflows/ci.yml`, `scripts/ci-migrate.sh`
+- Validación de la migración 36 en CI/real (`P2-VAL`)
+- Diseño del catálogo de actividades (`D-DEBT-1`) — requiere decisión del owner
+
+## Owner (no código)
+- Rotar password de Supabase (`P0-2`) y correr `npm run release:gate` con `DATABASE_URL`.

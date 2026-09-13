@@ -5,7 +5,7 @@
 > agentes leen esta guía ANTES de tocar código y la actualizan DESPUÉS.
 >
 > Plan fuente (diagnóstico completo): [`FINAL-CLOSURE-PLAN.md`](./FINAL-CLOSURE-PLAN.md).
-> HEAD de referencia: `34eccd2` · Migraciones: **36** · Última actualización: 2026-09-10.
+> HEAD de referencia: `35f3986` · Migraciones: **36** · Última actualización: 2026-09-10 (sistema de task cards T1).
 
 ---
 
@@ -261,6 +261,10 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 5 | Integración reportes + `/api/health` + docs | `e06f23a`, `34eccd2` |
 
 ## 9. Cola de trabajo y asignaciones
+
+> **Cards listas para entregar a T1:** ver [`tasks/QUEUE.md`](./tasks/QUEUE.md).
+> Cada card es autocontenida (objetivo, archivos exactos, pasos, "NO HACER",
+> validación y criterios de aceptación). El worker ejecuta **una card a la vez**.
 
 | Item | Tier | Prio | Estado | Notas |
 |------|------|------|--------|-------|
