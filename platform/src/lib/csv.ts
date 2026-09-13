@@ -22,10 +22,23 @@ export type CsvOptions = {
   lineEnding?: "\n" | "\r\n";
 };
 
+/**
+ * Neutraliza inyección de fórmulas (CSV injection): Excel/Sheets interpretan
+ * como fórmula cualquier celda de texto que empiece con `=`, `+`, `-`, `@`,
+ * tab o CR. Anteponemos un apóstrofo para forzar texto plano.
+ *
+ * Solo aplica a strings: los `number`/`boolean` nativos nunca son fórmula.
+ * Los `-` de números negativos reales ya vienen como number, no como string.
+ */
+function neutralizeFormula(s: string): string {
+  return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+}
+
 /** Escapa un valor individual para CSV. */
 function escapeCell(value: CsvCell, separator: string): string {
   if (value === null || value === undefined) return "";
-  const s = typeof value === "string" ? value : String(value);
+  // Solo neutralizamos strings: un `number` nativo (ej. -5) no es fórmula.
+  const s = typeof value === "string" ? neutralizeFormula(value) : String(value);
   const needsQuote = s.includes(separator) || s.includes('"') || /[\r\n]/.test(s);
   if (!needsQuote) return s;
   return `"${s.replace(/"/g, '""')}"`;

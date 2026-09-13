@@ -151,7 +151,7 @@ WHERE schemaname = 'public' AND viewname LIKE 'sgs_v_metas%';
 -- esperado: sgs_v_metas_resumen, sgs_v_metas_resumen_global, sgs_v_municipios_intervenidos
 ```
 
-**Estado real de los datos (2026-09-03) — proyecto `pjcvewberfgwywfnutjv`:**
+**Estado real de los datos (2026-09-03) — proyecto Supabase del convenio:**
 
 Después del import del GDB, los counts esperados son:
 
@@ -190,7 +190,7 @@ py C:\dev\scratch\extract_phase6_tables.py
 **Paso 2**: Re-importar las 3 lookup tables (cobertura + RFP + POMCA) con TODOS los features del GDB:
 
 ```bash
-$env:DATABASE_URL="postgresql://postgres:[PASSWORD]@db.pjcvewberfgwywfnutjv.supabase.co:5432/postgres?sslmode=require"
+$env:DATABASE_URL="postgresql://postgres:[PASSWORD]@db.<PROJECT_REF>.supabase.co:5432/postgres?sslmode=require"
 node scripts/import_phase6_lookups.mjs
 # Esperado: cobertura 162, rfp 486, pomca 245
 ```

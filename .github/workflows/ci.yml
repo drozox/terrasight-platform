@@ -115,15 +115,16 @@ jobs:
         run: npm run test
 
       # -----------------------------------------------------------------------------
-      # Build — desactivado por ahora. Habilitarlo si el resto del pipeline
-      # queda estable. `next build` tarda 3-5 min y se siente mejor con
-      # typecheck+lint+test como gate previo.
+      # Build (P2-8 FINAL-CLOSURE-PLAN) — reactivado. Corre después de
+      # typecheck+lint+test para que un build roto no enmascare fallos de
+      # calidad. `NEXTAUTH_SECRET` ya viene del env del job; exponemos también
+      # AUTH_SECRET porque NextAuth v5 lo acepta con ese nombre.
       # -----------------------------------------------------------------------------
-      # - name: Build
-      #   working-directory: platform
-      #   env:
-      #     AUTH_SECRET: ci-build-only-dummy
-      #   run: npm run build
+      - name: Build
+        working-directory: platform
+        env:
+          AUTH_SECRET: ci-build-only-dummy-secret-not-for-prod-do-not-use
+        run: npm run build
 
       # -----------------------------------------------------------------------------
       # E2E smoke tests (Playwright). El webServer del config.ts levanta

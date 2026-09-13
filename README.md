@@ -11,8 +11,10 @@ Fundación Natura**. Construida sobre PostgreSQL/PostGIS y Next.js 15.
 **MVP-1 (`v0.1.0`) cerrado el 2026-07-06.** Cubre las HUs funcionales del
 PRD: consulta (HU-CO-01..04), análisis espacial (HU-AA-01..04),
 catálogos + estado de intervenciones (HU-TC-01/02/04), autenticación con
-roles y auditoría (HU-AD-01..04), y los 4 reportes operativos vivos en
-`/reportes`.
+roles y auditoría (HU-AD-01..04), y los 10 reportes operativos (R1–R10)
+vivos en `/reportes`. Posteriormente se cerraron los sprints 18–23
+(herramientas SIG, búsqueda/calidad, workflow, importación CSV, versionado
+de metas y el FINAL-CLOSURE-PLAN).
 
 > Ver [`DOCS/`](./DOCS) para PRD, sprints, HU-* track, matriz de roles y
 > bootstrap. La pista del siguiente sprint queda en cada documento.
@@ -101,7 +103,7 @@ npm run auth:create-admin
 2. `/mapa` → filtros por municipio/componente/quebrada, dibujar bbox.
 3. `/predios` → tabla de propietarios con sort y filtro por vereda.
 4. `/quebradas` → gestión de quebradas + estado de intervenciones.
-5. `/reportes` → selector → 4 reportes operativos → **CSV** (BOM + `;`)
+5. `/reportes` → selector → 10 reportes operativos (R1–R10) → **CSV** (BOM + `;`)
    o **Imprimir / PDF** (`window.print()`).
 
 ## Arquitectura de carpetas
@@ -126,14 +128,19 @@ npm run auth:create-admin
 └── DOCS/                    # PRD, sprints, HU-*, matriz de roles
 ```
 
-## Pendientes conocidos (no incluidos en MVP-1)
+## Pendientes conocidos
 
-- **Reportes R2/R4/R5/R6/R7/R10** — escritos en `DOCS/7` listos para
-  enchufar (≈30 min c/u).
-- **Catálogos lookup TC-03/05** — UI (~1 día, bajo valor inicial).
-- **Cambio de password por usuario** — Server Action + `bcryptjs`
-  (≈½ día).
+> Los 10 reportes **R1–R10 están implementados y verificados** en
+> `/reportes` (`src/lib/repos/reportes.ts` + `src/app/api/reportes/route.ts`).
+> La antigua nota "R2/R4/R5/R6/R7/R10 pendientes" quedó obsoleta.
+
+- **`/configuracion`** — placeholder ("Próxima fase").
+- **Vista 3D y marcadores (bookmarks)** — placeholder ("Próxima fase").
+- **Cambio de password por usuario** — Server Action + `bcryptjs` (≈½ día).
 - **Reset por email** — bloqueado hasta definir SMTP.
+- **Catálogos lookup TC-03/05** — UI (bajo valor inicial).
+- **Rotar el password de Supabase** — el proyecto ref quedó expuesto; ver
+  `platform/docs/CLOSURE-EXECUTION-LOG.md`.
 
 ## Licencia
 

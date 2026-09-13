@@ -191,6 +191,47 @@ describe("toCsv — multiples filas", () => {
   });
 });
 
+describe("toCsv — mitigación de inyección de fórmulas (P3-11)", () => {
+  it.each(["=1+1", "+SUM(A1)", "-2+3", "@cmd", "\tfoo", "\rbar"])(
+    "neutraliza celda que empieza con %j anteponiendo apóstrofo",
+    (payload) => {
+      const out = toCsv(
+        [{ a: payload }],
+        [{ key: "a", header: "a" }],
+        { bom: false, lineEnding: "\r\n" },
+      );
+      expect(out).toContain("'");
+    },
+  );
+
+  it("el ejemplo '=1+1' sale como texto '=1+1 (no como fórmula)", () => {
+    const out = toCsv(
+      [{ a: "=1+1" }],
+      [{ key: "a", header: "a" }],
+      { bom: false, lineEnding: "\r\n" },
+    );
+    expect(out).toBe("a\r\n'=1+1");
+  });
+
+  it("texto normal NO se altera", () => {
+    const out = toCsv(
+      [{ a: "hola mundo" }],
+      [{ key: "a", header: "a" }],
+      { bom: false, lineEnding: "\r\n" },
+    );
+    expect(out).toBe("a\r\nhola mundo");
+  });
+
+  it("número negativo nativo NO se prefija (no es string)", () => {
+    const out = toCsv(
+      [{ a: -5 }],
+      [{ key: "a", header: "a" }],
+      { bom: false, lineEnding: "\r\n" },
+    );
+    expect(out).toBe("a\r\n-5");
+  });
+});
+
 describe("slugFilename", () => {
   it('genera formato "<slug>-YYYY-MM-DD.<ext>"', () => {
     const out = slugFilename("Reporte R1", "csv");
