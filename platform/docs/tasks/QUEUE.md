@@ -63,6 +63,25 @@
 | `DEEPSEEK-44` `AGENTS.md`: coordinación + fuente única | T1 | P3 | 🔁 re-emitida | [T1-doc-agents-coordination.md](./T1-doc-agents-coordination.md) |
 | `DEEPSEEK-54` E2E endpoints de datos (reportes CSV + metas snapshots) | T1 | P2 | 🆕 nueva | [T1-e2e-api-data.md](./T1-e2e-api-data.md) |
 
+## Lote 04 (cerrado 2026-09-13)
+
+> 6 branches `t1/*` mergeadas a `main` (octopus implícito de 6 merges
+> `--no-ff`). Validación pre-commit por cada agente: `npx tsc --noEmit` 0
+> errors; `npx vitest run <archivo>` verde (o skip sin DATABASE_URL).
+
+| Card | Tier | Prioridad | Estado | Commit + Merge |
+|------|------|-----------|--------|----------------|
+| `DEEPSEEK-35` Component tests `SortableHeader` + `Badge` | T1 | P3 | ✅ done | `a0ea651` → merge `86a5bf5` |
+| `DEEPSEEK-41` Integración `propuestas` (read) | T1 | P2 | ✅ done | `9c78a7d` → merge `bc95a0a` |
+| `DEEPSEEK-40` E2E `/intervenciones` (list + detalle) | T1 | P2 | ✅ done | `df67b6d` → merge `0549355` |
+| `DEEPSEEK-29` `RUNBOOK` de operación | T1 | P2 | ✅ done | `9aece48` → merge `0407496` |
+| `DEEPSEEK-44` `AGENTS.md`: coordinación + fuente única | T1 | P3 | ✅ done | `1067283` → merge `1553d85` |
+| `DEEPSEEK-54` E2E endpoints de datos (CSV + snapshots) | T1 | P2 | ✅ done | `812f6ea` → merge `9224066` |
+
+**Lote 04 cerrado** (HEAD `9224066`). Tests verdes: 13 (DEEPSEEK-35) + 4
+skip-sin-DB (DEEPSEEK-41) + 2 e2e CI (DEEPSEEK-40) + 2 e2e CI (DEEPSEEK-54).
+
+
 ## Reservado a T0 (no delegar)
 - `scripts/db/init/36-indicadores-fuente-unica.sql`, `src/lib/repos/metas-convenio.ts`
 - `.github/workflows/ci.yml`, `scripts/ci-migrate.sh`
