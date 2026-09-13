@@ -22,10 +22,16 @@ Antes de leer el código, correr:
 ```bash
 # Desde platform/
 npm install
-npx tsc --noEmit          # 0 errors esperado
-npm test                  # 156+ tests, 0 failures esperado
-npm run lint              # 0 errors, 0 warnings esperado
-node scripts/prod_smoke.mjs  # 55/56 pass esperado (el fail preexistente es drenaje doble geom=0)
+npx tsc --noEmit                  # 0 errors esperado
+npm test                          # 300+ tests, 0 failures esperado.
+                                 # Incluye unit + component + integration.
+                                 # Los integration (tests/integration/*.int.test.ts)
+                                 # se saltan sin DATABASE_URL y corren en CI con PostGIS.
+npm run lint                      # 0 errors, 0 warnings esperado
+npm run release:gate              # Gate completo del FINAL-CLOSURE-PLAN §21.
+                                 # typecheck + lint + test + build + smoke BD +
+                                 # reconciliación. Exit 0 = GOAL_COMPLETED = TRUE.
+node scripts/prod_smoke.mjs       # 55/56 pass esperado (el fail preexistente es drenaje doble geom=0)
 ```
 
 Si alguno falla, **rechazar el PR** con un comentario citando el output. No abrir discusión sobre
@@ -48,6 +54,7 @@ Ver `AGENTS.md` § "Anti-patrones". Los más importantes para un reviewer:
 | `ghp_` o cualquier secret en diff | `grep -n "ghp_\|password\|secret" $(git diff main...HEAD)` | CRÍTICO — bloquear merge. |
 | `sql.array(.*, "int")` (string) | `grep -rn 'sql\.array.*"int"' src/` | TS error. Usar `sql.array(value, 23)` (OID). |
 | Filtros territoriales sin server query | buscar `useState` + `?componente=` en client components | Placebo UX. |
+| Duplicar patrones de actividad fuera de la migración 36 | `grep -rn "%cerco vivo%\|%silvopastoril%\|%cosecha%\|%limnimet%\|%captacion%" src/lib/repos/ scripts/db/init/` | La fuente única de indicadores es `sgs_v_indicador_*` (migración 36). Cualquier fuzzy match duplicado en código diverge de la vista y rompe la auditoría. Si necesitás una métrica nueva, agregala a `sgs_v_indicador_*` y referenciala. |
 
 Si encuentras alguno, **rechazo inmediato** con la cita del código.
 
@@ -257,3 +264,6 @@ Si encuentras alguno, **rechazo inmediato** con la cita del código.
 - `docs/TECH-DEBT.md` — deuda técnica cerrada
 - `docs/ui-ux-audit-2026-07-24.md` — audit vivo de UX
 - `docs/review-producto-2026-07-23.md` — checklist de revisión para el cliente (histórico, 2026-07)
+- `docs/DEEPSEEK-COORDINATION.md` — coordinación multi-agente, plantillas §0, backlog activo
+- `docs/tasks/QUEUE.md` — cola priorizada de cards P3
+- `tests/integration/` — tests de integración (Postgres real, skip sin DATABASE_URL)
