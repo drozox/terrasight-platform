@@ -12,7 +12,8 @@
 
 ## Tablero
 
-> **Lote paralelo activo:** [`PARALLEL-BATCH-01.md`](./PARALLEL-BATCH-01.md) (4 cards disjuntas).
+> **Lote paralelo activo:** [`PARALLEL-BATCH-02.md`](./PARALLEL-BATCH-02.md) (6 cards disjuntas).
+> Lote anterior: [`PARALLEL-BATCH-01.md`](./PARALLEL-BATCH-01.md) (cerrado).
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
@@ -23,6 +24,17 @@
 | `DEEPSEEK-11` E2E de `/metas/convenio` + drill-down | T1 | P2 | ✅ done (`c74102e`) | [T1-e2e-metas-drilldown.md](./T1-e2e-metas-drilldown.md) |
 
 **Lote 01 cerrado.** DEEPSEEK-9 detectó un bug real (SRID mixto en `getIntersectPorBoundingBox`) y T0 lo arregló.
+
+## Lote 02 (activo)
+
+| Card | Tier | Prioridad | Estado | Archivo |
+|------|------|-----------|--------|---------|
+| `DEEPSEEK-12` Integración catálogos (read) | T1 | P3 | 🟢 listo | [T1-integration-catalogos.md](./T1-integration-catalogos.md) |
+| `DEEPSEEK-13` Unit tests `geo-import` | T1 | P3 | 🟢 listo | [T1-unit-geo-import.md](./T1-unit-geo-import.md) |
+| `DEEPSEEK-25` Component test `WorkflowPanel` | T1 | P3 | 🟢 listo | [T1-component-workflow-panel.md](./T1-component-workflow-panel.md) |
+| `DEEPSEEK-24` E2E guardas de auth en API | T1 | P2 | 🟢 listo | [T1-e2e-api-auth.md](./T1-e2e-api-auth.md) |
+| `DEEPSEEK-15` `DEPLOY.md` a 37 migraciones | T1 | P3 | 🟢 listo | [T1-doc-deploy-37.md](./T1-doc-deploy-37.md) |
+| `DEEPSEEK-16` `TECH-DEBT.md` al día | T1 | P3 | 🟢 listo | [T1-doc-tech-debt.md](./T1-doc-tech-debt.md) |
 
 ## Reservado a T0 (no delegar)
 - `scripts/db/init/36-indicadores-fuente-unica.sql`, `src/lib/repos/metas-convenio.ts`
