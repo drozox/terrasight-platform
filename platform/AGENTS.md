@@ -24,7 +24,11 @@
    sprint actual.
 7. **Si vas a hacer code review** — lee `docs/REVIEW-GUIDE.md` con el
    checklist.
-8. **Sigue las convenciones**:
+8. **Lee la coordinación multiagente** — `docs/DEEPSEEK-COORDINATION.md` define
+   los tiers T0/T1, las plantillas de tarea (§0.5) y de reporte (§0.6). Si
+   vas a trabajar en modo multiagente (lotes `PARALLEL-BATCH-*`), revisá
+   también `docs/tasks/QUEUE.md` para ver el estado actual.
+9. **Sigue las convenciones**:
    - Componentes UI primitivos en `src/components/ui/` (Button, Card, Input, Badge).
    - Composición con `cn()` de `lib/utils.ts`.
    - Tailwind v4 — NO redefinir `--spacing-{sm,md,lg,...}` ni
@@ -98,6 +102,7 @@ npm run build              # build de producción
 npm run lint               # ESLint (next config)
 npm test                   # Vitest (156+ unit + component tests)
 npm run test:e2e           # Playwright (smoke + flujos)
+npm run release:gate       # Gate completo (typecheck + lint + test + build; T0 lo corre al integrar)
 npm run db:up              # docker compose up -d db
 npm run db:reset           # wipe + re-seed
 npm run db:seed            # scripts/seed.ps1
@@ -178,6 +183,12 @@ Verificar: `node scripts/db-state.mjs`.
 - ❌ Z-index random (999, 9999) — usar escala: 10, 20, 30, 50.
 - ❌ Animaciones > 500ms o que cambien layout.
 - ❌ Imports cruzados `repository.ts` → `db.ts` en client (debt viejo).
+- ❌ Duplicar patrones de actividad (`%cerco vivo%`, `%silvopastoril%`,
+  `%obra de captación%`, etc.) fuera de la migración 36 — la **fuente
+  única** de los 10 indicadores del convenio es `sgs_v_indicador_*`
+  (vista `sgs_v_indicador_global` + `sgs_v_indicador_propuesta`).
+  Si necesitás un patrón nuevo, agregá una fila en la vista, no copies
+  el `ILIKE` en otro repo.
 
 ## Contacto
 
