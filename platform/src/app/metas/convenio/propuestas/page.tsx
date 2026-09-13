@@ -98,8 +98,8 @@ export default async function PropuestasIndicadorPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {propuestas.map((p) => (
-                    <tr key={p.id_propuesta} className="border-b border-outline-variant/50 hover:bg-surface-container-high/50">
+                  {propuestas.map((p, idx) => (
+                    <tr key={`${p.id_propuesta}-${idx}`} className="border-b border-outline-variant/50 hover:bg-surface-container-high/50">
                       <td className="py-2 pr-3 text-on-surface-variant font-mono text-xs">
                         #{p.id_propuesta}
                       </td>

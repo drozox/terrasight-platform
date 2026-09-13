@@ -35,7 +35,7 @@ function pct(indicador: { actual: number; meta: number }): { pct: number; classN
 function IndicadorCard({
   indicadorKey, label, actual, meta, unidad, pct: p, className, statusLabel,
 }: {
-  indicadorKey: string;
+  indicadorKey?: string;
   label: string;
   actual: number;
   meta: number;
@@ -44,11 +44,8 @@ function IndicadorCard({
   className: string;
   statusLabel: string;
 }) {
-  return (
-    <Link
-      href={`/metas/convenio/propuestas?indicador=${indicadorKey}`}
-      className="block rounded-lg border border-outline-variant bg-surface-container-lowest p-4 hover:border-primary hover:shadow-sm transition-all group"
-    >
+  const content = (
+    <>
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <span className="text-sm font-medium text-on-surface group-hover:text-primary">{label}</span>
         <span className="text-xs text-on-surface-variant">{statusLabel}</span>
@@ -62,9 +59,29 @@ function IndicadorCard({
           <div className={`h-full transition-all ${className}`} style={{ width: `${Math.min(100, p)}%` }} />
         </div>
       )}
-      <div className="mt-2 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-        Ver propuestas →
+      {indicadorKey && (
+        <div className="mt-2 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+          Ver propuestas →
+        </div>
+      )}
+    </>
+  );
+
+  // Indicadores "extra" (ej. multiestrat) no tienen key de drill-down → no
+  // renderizamos link muerto.
+  if (!indicadorKey) {
+    return (
+      <div className="block rounded-lg border border-outline-variant bg-surface-container-lowest p-4">
+        {content}
       </div>
+    );
+  }
+  return (
+    <Link
+      href={`/metas/convenio/propuestas?indicador=${indicadorKey}`}
+      className="block rounded-lg border border-outline-variant bg-surface-container-lowest p-4 hover:border-primary hover:shadow-sm transition-all group"
+    >
+      {content}
     </Link>
   );
 }

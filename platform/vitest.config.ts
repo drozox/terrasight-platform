@@ -8,10 +8,15 @@ export default defineConfig({
     environment: "happy-dom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
-    // Solo unit + components. Los e2e en tests/e2e/** los corre Playwright
-    // (otro runner, distinto `@playwright/test`) — si Vitest los recoge
-    // falla el import de `test.describe`.
-    include: ["tests/unit/**/*.test.ts", "tests/components/**/*.test.{ts,tsx}"],
+    // Unit + components en happy-dom. Integración (tests/integration) usa
+    // `// @vitest-environment node` y se SALTA si no hay DATABASE_URL, así que
+    // es seguro incluirlos acá: CI (con Postgres) los corre, local sin BD los
+    // skip. Los e2e en tests/e2e/** los corre Playwright.
+    include: [
+      "tests/unit/**/*.test.ts",
+      "tests/components/**/*.test.{ts,tsx}",
+      "tests/integration/**/*.int.test.ts",
+    ],
     exclude: [
       "**/node_modules/**",
       "**/dist/**",

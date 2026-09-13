@@ -13,7 +13,7 @@
 // =============================================================================
 
 import { sql, pgInt, pgText } from "../db";
-import { getMetasConvenio, type IndicadorKey } from "./metas-convenio";
+import { getIndicadoresFlat, type IndicadorKey } from "./metas-convenio";
 
 export interface MetaSnapshot {
   id_snapshot: number;
@@ -45,8 +45,10 @@ export async function crearSnapshotMetas(opts: {
   descripcion?: string;
   usuario: string;
 }): Promise<{ id_snapshot: number; ya_existia: boolean }> {
-  // Calcular metas actuales
-  const metas = await getMetasConvenio();
+  // Calcular metas actuales en formato plano (key → {actual, meta, pct, cumplida}),
+  // que es lo que `compararSnapshots` lee. Antes se guardaba el objeto anidado
+  // (MetasConvenio), por lo que el diff siempre daba 0.
+  const snapshot = await getIndicadoresFlat();
 
   // Verificar si ya existe
   const existing = await sql<Array<{ id_snapshot: number }>>`
@@ -59,7 +61,7 @@ export async function crearSnapshotMetas(opts: {
   // Crear nuevo
   const rows = await sql<Array<{ id_snapshot: number }>>`
     INSERT INTO sgs_adm_meta_snapshot (fecha_corte, descripcion, snapshot, usuario)
-    VALUES (${opts.fechaCorte}::date, ${opts.descripcion ?? null}, ${JSON.stringify(metas)}, ${opts.usuario})
+    VALUES (${opts.fechaCorte}::date, ${opts.descripcion ?? null}, ${JSON.stringify(snapshot)}, ${opts.usuario})
     RETURNING id_snapshot
   `;
   return { id_snapshot: pgInt(rows[0].id_snapshot), ya_existia: false };

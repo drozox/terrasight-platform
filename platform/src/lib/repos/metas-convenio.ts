@@ -1,13 +1,19 @@
 // =============================================================================
 // metas-convenio.ts — Indicadores del convenio CAR-WWF-Fundación Natura
 //
-// 5 metas operativas con sus targets y consultas SQL optimizadas.
-// Usa unaccent() para tolerar tildes en nombres de actividad
-// (ej. "Obras de captación" → "captacion").
+// FUENTE ÚNICA DE VERDAD (FINAL-CLOSURE-PLAN, mejora #1):
+//   Los 10 indicadores se calculan en la vista SQL `sgs_v_indicador_global`,
+//   que a su vez deriva de `sgs_v_indicador_propuesta` (migración 36).
+//   Este archivo YA NO contiene patrones de fuzzy-match (ILIKE): solo consume
+//   las vistas. Cambiar un patrón = editar `36-indicadores-fuente-unica.sql`.
 //
-// Targets (definidos en el spec de Nikoll):
+//   - Global      → sgs_v_indicador_global
+//   - Drill-down  → sgs_v_indicador_propuesta WHERE indicador_key = ?
+//   - Municipio   → sgs_v_indicador_propuesta JOIN (propuestas del municipio)
+//
+// Targets (spec de Nikoll):
 //   C1A1: 12 km cercos vivos + 12 km aislamientos (cerco de alambre)
-//   C1A2: 15 ha conectividad + 15 ha silvopastoriles + 15 ha agroforestales
+//   C1A2: 15 km conectividad + 15 ha silvopastoriles + 15 ha agroforestales
 //   C2A1: 79 cosecha de agua + 79 compostaje
 //   C2A2: 7 estaciones limnimétricas + 48 obras de captación
 //   C3:   35 predios en áreas protegidas
@@ -49,14 +55,11 @@ export interface DetalleMunicipio {
 }
 
 // =============================================================================
-// Metadata de los 10 indicadores: para drill-down a propuestas específicas
+// Metadata de los 10 indicadores (presentación + drill-down).
 //
-// kind = "lineas" | "poligonos" | "puntos" | "super"
-// patterns = OR de LIKE para filtrar la actividad (unaccent + ILIKE)
-// ca = "C1A1" | "C1A2" | "C2A1" | "C2A2" | "C3"
-//
-// Cada card de meta usa esto para construir el link "Ver X propuestas →"
-// que apunta a /metas/convenio/propuestas?ca=...&kind=...&pat=...
+// NO contiene patrones de match: la definición vive en la vista SQL (migración
+// 36). `kind` se usa para mapear `medida` → hectáreas/longitud_km en el
+// drill-down y para decidir si el drill-down aplica (super = C3).
 // =============================================================================
 export type IndicadorKey =
   | "cercos_vivos"
@@ -75,117 +78,21 @@ export interface IndicadorMeta {
   label: string;
   ca: "C1A1" | "C1A2" | "C2A1" | "C2A2" | "C3";
   kind: "lineas" | "poligonos" | "puntos" | "super";
-  patterns: string[]; // OR de LIKE patterns
   meta: number;
   unidad: string;
-  /**
-   * Si es true, el drill-down NO filtra por componente/acción — alinea con
-   * el cálculo global (C2A2 estaciones/obras suman todos los C-A similares
-   * por spec, no solo C2A2). Default: false.
-   */
-  globalSinFiltroCA?: boolean;
 }
 
 export const INDICADORES_META: Record<IndicadorKey, IndicadorMeta> = {
-  cercos_vivos: {
-    key: "cercos_vivos",
-    label: "Cercos vivos",
-    ca: "C1A1",
-    kind: "lineas",
-    patterns: ["%cerco vivo%", "%cerca viva%"],
-    meta: 12,
-    unidad: "km",
-  },
-  alambre: {
-    key: "alambre",
-    label: "Aislamientos (cerco de alambre)",
-    ca: "C1A1",
-    kind: "lineas",
-    patterns: ["%alambre%"],
-    meta: 12,
-    unidad: "km",
-  },
-  conectividad: {
-    key: "conectividad",
-    label: "Franjas de conectividad",
-    ca: "C1A2",
-    kind: "lineas",
-    patterns: ["%franja%conectividad%", "%conectividad%"],
-    meta: 15,
-    unidad: "km",
-  },
-  silvopastoril: {
-    key: "silvopastoril",
-    label: "Sistemas silvopastoriles",
-    ca: "C1A2",
-    kind: "poligonos",
-    patterns: [
-      "%silvopastoril%", "%silvopast%", "%pastos arbolados%",
-      "%enriquecimiento%pastos%", "%enriquecimiento%arbol%dispers%",
-      "%arboles dispersos%", "%rastrojo%", "%pradera%", "%potrero%", "%ssp%",
-    ],
-    meta: 15,
-    unidad: "ha",
-  },
-  agroforestal: {
-    key: "agroforestal",
-    label: "Sistemas agroforestales",
-    ca: "C1A2",
-    kind: "poligonos",
-    patterns: [
-      "%agroforestal%", "%bosque%comestible%", "%modulo%alta densidad%",
-      "%modulo%", "%banco%proteina%", "%banco%", "%huerta%", "%callejon%",
-    ],
-    meta: 15,
-    unidad: "ha",
-  },
-  cosecha: {
-    key: "cosecha",
-    label: "Cosecha de agua",
-    ca: "C2A1",
-    kind: "puntos",
-    patterns: ["%cosecha%"],
-    meta: 79,
-    unidad: "obras",
-  },
-  compostaje: {
-    key: "compostaje",
-    label: "Kit de compostaje",
-    ca: "C2A1",
-    kind: "puntos",
-    patterns: ["%compostaje%", "%compost%"],
-    meta: 79,
-    unidad: "kits",
-  },
-  estaciones: {
-    key: "estaciones",
-    label: "Estaciones limnimétricas",
-    ca: "C2A2",
-    kind: "puntos",
-    patterns: ["%estacion%limnimet%", "%limnimet%"],
-    meta: 7,
-    unidad: "estaciones",
-    globalSinFiltroCA: true, // P1-4: global suma C2A2 + C3A1
-  },
-  obras_captacion: {
-    key: "obras_captacion",
-    label: "Obras de captación",
-    ca: "C2A2",
-    kind: "puntos",
-    patterns: ["%captacion%", "%captaci%"],
-    meta: 48,
-    unidad: "obras",
-    globalSinFiltroCA: true, // P1-4: global suma C2A2 + C3A1
-  },
-  predios_c3: {
-    key: "predios_c3",
-    label: "Predios intervenidos en áreas protegidas",
-    ca: "C3",
-    kind: "super",
-    patterns: [], // C3 = filtro por componente, no por actividad
-    meta: 35,
-    unidad: "predios",
-  },
+  cercos_vivos: { key: "cercos_vivos", label: "Cercos vivos", ca: "C1A1", kind: "lineas", meta: 12, unidad: "km" },
+  alambre: { key: "alambre", label: "Aislamientos (cerco de alambre)", ca: "C1A1", kind: "lineas", meta: 12, unidad: "km" },
+  conectividad: { key: "conectividad", label: "Franjas de conectividad", ca: "C1A2", kind: "lineas", meta: 15, unidad: "km" },
+  silvopastoril: { key: "silvopastoril", label: "Sistemas silvopastoriles", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
+  agroforestal: { key: "agroforestal", label: "Sistemas agroforestales", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
+  cosecha: { key: "cosecha", label: "Cosecha de agua", ca: "C2A1", kind: "puntos", meta: 79, unidad: "obras" },
+  compostaje: { key: "compostaje", label: "Kit de compostaje", ca: "C2A1", kind: "puntos", meta: 79, unidad: "kits" },
+  estaciones: { key: "estaciones", label: "Estaciones limnimétricas", ca: "C2A2", kind: "puntos", meta: 7, unidad: "estaciones" },
+  obras_captacion: { key: "obras_captacion", label: "Obras de captación", ca: "C2A2", kind: "puntos", meta: 48, unidad: "obras" },
+  predios_c3: { key: "predios_c3", label: "Predios intervenidos en áreas protegidas", ca: "C3", kind: "super", meta: 35, unidad: "predios" },
 };
 
 export interface PropuestaIndicador {
@@ -199,10 +106,24 @@ export interface PropuestaIndicador {
 }
 
 // =============================================================================
-// Lista de propuestas de un indicador (drill-down desde /metas/convenio/propuestas)
-//
-// Construye un WHERE dinámico según kind + patterns. Devuelve hasta `limit`
-// propuestas con datos del predio y municipio cuando están disponibles.
+// Indicadores globales — 1 query a la vista agregada.
+// Devuelve un mapa key → actual (incluye `multiestrat`, que no es uno de los
+// 10 indicadores oficiales pero se muestra como fila extra en C1A1).
+// =============================================================================
+type GlobalIndicadores = Record<string, number>;
+
+async function getGlobalIndicadores(): Promise<GlobalIndicadores> {
+  const rows = await sql<{ indicador_key: string; actual: number | string }[]>`
+    SELECT indicador_key, actual
+    FROM   sgs_v_indicador_global;
+  `;
+  const out: GlobalIndicadores = {};
+  for (const r of rows) out[pgText(r.indicador_key)] = pgNum(r.actual);
+  return out;
+}
+
+// =============================================================================
+// Drill-down: propuestas que componen un indicador (desde la vista única).
 // =============================================================================
 const getPropuestasPorIndicadorImpl = async (
   key: IndicadorKey,
@@ -211,10 +132,40 @@ const getPropuestasPorIndicadorImpl = async (
   const meta: IndicadorMeta | undefined = INDICADORES_META[key];
   if (!meta) return [];
   try {
-    if (meta.kind === "super") {
-      return await queryPropuestasSuper(limit);
-    }
-    return await queryPropuestasHija(meta, limit);
+    const rows = await sql<{
+      id_propuesta: number | string;
+      actividad: string | null;
+      medida: number | string | null;
+      id_predio: number | string | null;
+      nombre_predio: string | null;
+      nombre_municipio: string | null;
+      nombre_vereda: string | null;
+    }[]>`
+      SELECT
+        vp.id_propuesta,
+        vp.actividad,
+        vp.medida,
+        vp.id_predio,
+        pr.nombre_predio,
+        m.nombre_municipio,
+        ve.nombre_vereda
+      FROM   sgs_v_indicador_propuesta vp
+      LEFT JOIN sgs_pre_predio     pr ON pr.id_predio   = vp.id_predio
+      LEFT JOIN bcs_lpa_vereda     ve ON ve.id_vereda   = pr.id_vereda
+      LEFT JOIN bcs_lpa_municipio  m  ON m.id_municipio = ve.id_municipio
+      WHERE  vp.indicador_key = ${key}
+      ORDER BY vp.id_propuesta
+      LIMIT  ${limit};
+    `;
+    return rows.map((r) => ({
+      id_propuesta: pgInt(r.id_propuesta),
+      actividad: r.actividad ? pgText(r.actividad) : "—",
+      nombre_predio: r.nombre_predio ? pgText(r.nombre_predio) : null,
+      nombre_municipio: r.nombre_municipio ? pgText(r.nombre_municipio) : null,
+      nombre_vereda: r.nombre_vereda ? pgText(r.nombre_vereda) : null,
+      hectareas: meta.kind === "poligonos" && r.medida != null ? pgNum(r.medida) : null,
+      longitud_km: meta.kind === "lineas" && r.medida != null ? pgNum(r.medida) : null,
+    }));
   } catch (err) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(`[terrasight] getPropuestasPorIndicador(${key}) failed:`, (err as Error).message);
@@ -227,322 +178,118 @@ export const getPropuestasPorIndicador = cached(getPropuestasPorIndicadorImpl, {
   ttl: 60,
 });
 
-async function queryPropuestasSuper(limit: number): Promise<PropuestaIndicador[]> {
-  const rows = await sql<
-    {
-      id_propuesta: number | string;
-      actividad: string;
-      nombre_predio: string | null;
-      nombre_municipio: string | null;
-      nombre_vereda: string | null;
-    }[]
-  >`
-    SELECT DISTINCT
-      pp.id_propuesta,
-      COALESCE(pp.tipo, 'PREDIO')::text AS actividad,
-      pr.nombre_predio,
-      m.nombre_municipio,
-      v.nombre_vereda
-    FROM sgs_pro_propuesta pp
-    JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-    JOIN sgs_pre_predio pr ON pr.id_predio = pp.id_predio
-    LEFT JOIN bcs_lpa_vereda v ON v.id_vereda = pr.id_vereda
-    LEFT JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
-    WHERE c.nombre = 'C3' AND pp.id_predio IS NOT NULL
-    ORDER BY pp.id_propuesta
-    LIMIT ${limit}
-  `;
-  return rows.map((r: any) => ({
-    id_propuesta: pgInt(r.id_propuesta),
-    actividad: pgText(r.actividad),
-    nombre_predio: r.nombre_predio ? pgText(r.nombre_predio) : null,
-    nombre_municipio: r.nombre_municipio ? pgText(r.nombre_municipio) : null,
-    nombre_vereda: r.nombre_vereda ? pgText(r.nombre_vereda) : null,
-    hectareas: null,
-    longitud_km: null,
-  }));
+// =============================================================================
+// Builders de MetaComponente a partir del mapa global.
+// =============================================================================
+function mk(label: string, actual: number, meta: number, unidad: string): MetaIndicador {
+  return { label, actual, meta, unidad, pct: pct(actual, meta) };
 }
 
-async function queryPropuestasHija(meta: IndicadorMeta, limit: number): Promise<PropuestaIndicador[]> {
-  // Para los demás kinds: WHERE dinámico con patterns OR
-  // Los patterns vienen de INDICADORES_META (hardcoded), no de input del usuario.
-  const table = meta.kind === "lineas" ? "sgs_pro_propuesta_linea"
-              : meta.kind === "poligonos" ? "sgs_pro_propuesta_poligono"
-              : "sgs_pro_propuesta_punto";
-  const medidaCol: string = meta.kind === "lineas" ? "t.longitud_km"
-                          : meta.kind === "poligonos" ? "t.area_ha"
-                          : "NULL::numeric";
-
-  // Construir whereParts con sql`` fragments (patrón del proyecto)
-  // P1-3: substring(2,4) — antes era substring(2,3) que daba "A" en vez de "A1"/"A2"
-  // P1-4: si globalSinFiltroCA es true, NO filtrar por C/A (alinea con el cálculo global)
-  const whereParts: ReturnType<typeof sql>[] = [];
-  if (!meta.globalSinFiltroCA) {
-    whereParts.push(
-      sql`c.nombre = ${meta.ca.substring(0, 2)}`,
-      sql`a.nombre = ${meta.ca.substring(2, 4)}`,
-    );
-  }
-  if (meta.patterns.length > 0) {
-    const patternFragments = meta.patterns.map((p) =>
-      sql`unaccent(t.actividad) ILIKE unaccent(${p})`,
-    );
-    whereParts.push(
-      sql`(${patternFragments.reduce((acc, p, i) => (i === 0 ? p : sql`${acc} OR ${p}`))})`,
-    );
-  }
-  const whereSql = whereParts.length === 0
-    ? sql``
-    : sql`WHERE ${whereParts.reduce((acc, p, i) => (i === 0 ? p : sql`${acc} AND ${p}`))}`;
-
-  const rows = await sql<
-    {
-      id_propuesta: number | string;
-      actividad: string;
-      nombre_predio: string | null;
-      nombre_municipio: string | null;
-      nombre_vereda: string | null;
-      medida: number | string | null;
-    }[]
-  >`
-    SELECT DISTINCT
-      t.id_propuesta,
-      t.actividad,
-      pr.nombre_predio,
-      m.nombre_municipio,
-      v.nombre_vereda,
-      ${sql.unsafe(medidaCol)} AS medida
-    FROM ${sql.unsafe(table)} t
-    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = t.id_propuesta
-    JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-    LEFT JOIN sgs_pre_predio pr ON pr.id_predio = pp.id_predio
-    LEFT JOIN bcs_lpa_vereda v ON v.id_vereda = pr.id_vereda
-    LEFT JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
-    ${whereSql}
-    ORDER BY t.id_propuesta
-    LIMIT ${limit}
-  `;
-  return rows.map((r: any) => ({
-    id_propuesta: pgInt(r.id_propuesta),
-    actividad: pgText(r.actividad),
-    nombre_predio: r.nombre_predio ? pgText(r.nombre_predio) : null,
-    nombre_municipio: r.nombre_municipio ? pgText(r.nombre_municipio) : null,
-    nombre_vereda: r.nombre_vereda ? pgText(r.nombre_vereda) : null,
-    hectareas: meta.kind === "poligonos" && r.medida != null ? pgNum(r.medida) : null,
-    longitud_km: meta.kind === "lineas" && r.medida != null ? pgNum(r.medida) : null,
-  }));
-}
-
-// =============================================================================
-// C1A1: Conservación del Recurso Hídrico (líneas)
-// =============================================================================
-async function getC1A1(): Promise<MetaComponente> {
-  const rows = await sql<{
-    km_cercos_vivos: number | string;
-    km_alambre: number | string;
-    km_multiestrat: number | string;
-  }[]>`
-    SELECT
-      round(SUM(CASE WHEN unaccent(pl.actividad) ILIKE unaccent('%cerco vivo%')
-                       OR unaccent(pl.actividad) ILIKE unaccent('%cerca viva%')
-                      THEN pl.longitud_km ELSE 0 END)::numeric, 3) AS km_cercos_vivos,
-      round(SUM(CASE WHEN unaccent(pl.actividad) ILIKE unaccent('%alambre%')
-                      THEN pl.longitud_km ELSE 0 END)::numeric, 3) AS km_alambre,
-      round(SUM(CASE WHEN unaccent(pl.actividad) ILIKE unaccent('%multiestrat%')
-                      THEN pl.longitud_km ELSE 0 END)::numeric, 3) AS km_multiestrat
-    FROM sgs_pro_propuesta_linea pl
-    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pl.id_propuesta
-    JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-    WHERE c.nombre = 'C1' AND a.nombre = 'A1'
-  `;
-  const r = rows[0];
-  const cerVivos = pgNum(r.km_cercos_vivos);
-  const alambre = pgNum(r.km_alambre);
-  const multiestrat = pgNum(r.km_multiestrat);
+function getC1A1(g: GlobalIndicadores): MetaComponente {
+  const cerVivos = g.cercos_vivos ?? 0;
+  const alambre = g.alambre ?? 0;
+  const multiestrat = g.multiestrat ?? 0;
   return {
     componente: "C1",
     accion: "A1",
     descripcion: "Conservación del Recurso Hídrico a través de Medidas de Adaptación al Cambio Climático",
     indicadores: [
-      { label: "Cercos vivos", actual: cerVivos, meta: 12, unidad: "km", pct: pct(cerVivos, 12) },
-      { label: "Aislamientos (cerco de alambre)", actual: alambre, meta: 12, unidad: "km", pct: pct(alambre, 12) },
+      mk("Cercos vivos", cerVivos, 12, "km"),
+      mk("Aislamientos (cerco de alambre)", alambre, 12, "km"),
       { label: "Cercas multiestratificadas (extra)", actual: multiestrat, meta: 0, unidad: "km", pct: 0 },
     ],
   };
 }
 
-// =============================================================================
-// C1A2: 15 km conectividad + 15 ha silvopastoril + 15 ha agroforestal
-//
-// Conectividad operativa = Franjas de Conectividad (líneas) → km lineales.
-// Silvopastoril/Agroforestal = polígonos con actividades relacionadas → ha.
-// =============================================================================
-async function getC1A2(): Promise<MetaComponente> {
-  const rows = await sql<{
-    km_conectividad: number | string;
-    ha_silvopastoril: number | string;
-    ha_agroforestal: number | string;
-  }[]>`
-    SELECT
-      -- Conectividad: suma km de líneas con "Franja de Conectividad"
-      round((
-        SELECT COALESCE(SUM(pl.longitud_km), 0)
-        FROM sgs_pro_propuesta_linea pl
-        JOIN sgs_pro_propuesta pp2 ON pp2.id_propuesta = pl.id_propuesta
-        JOIN sgs_com_accion a2 ON a2.id_accion = pp2.id_accion
-        JOIN sgs_com_componente c2 ON c2.id_componente = a2.id_componente
-        WHERE c2.nombre = 'C1' AND a2.nombre = 'A2'
-          AND (unaccent(pl.actividad) ILIKE unaccent('%franja%conectividad%')
-               OR unaccent(pl.actividad) ILIKE unaccent('%conectividad%'))
-      )::numeric, 3) AS km_conectividad,
-      -- Silvopastoril: polígonos con actividades silvopastoriles
-      round(SUM(CASE WHEN unaccent(pq.actividad) ILIKE unaccent('%silvopastoril%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%silvopast%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%pastos arbolados%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%enriquecimiento%pastos%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%enriquecimiento%arbol%dispers%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%arboles dispersos%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%rastrojo%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%pradera%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%potrero%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%ssp%')
-                      THEN pq.area_ha ELSE 0 END)::numeric, 2) AS ha_silvopastoril,
-      -- Agroforestal: polígonos con actividades agroforestales
-      round(SUM(CASE WHEN unaccent(pq.actividad) ILIKE unaccent('%agroforestal%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%bosque%comestible%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%modulo%alta densidad%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%modulo%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%banco%proteina%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%banco%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%huerta%')
-                       OR unaccent(pq.actividad) ILIKE unaccent('%callejon%')
-                      THEN pq.area_ha ELSE 0 END)::numeric, 2) AS ha_agroforestal
-    FROM sgs_pro_propuesta_poligono pq
-    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
-    JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-    WHERE c.nombre = 'C1' AND a.nombre = 'A2'
-  `;
-  const r = rows[0];
-  const conectividad = pgNum(r.km_conectividad);
-  const silvopastoril = pgNum(r.ha_silvopastoril);
-  const agroforestal = pgNum(r.ha_agroforestal);
+function getC1A2(g: GlobalIndicadores): MetaComponente {
   return {
     componente: "C1",
     accion: "A2",
     descripcion: "Conectividad y reconversión agroforestal",
     indicadores: [
-      // Conectividad se mide en km (franjas lineales), no en ha.
-      { label: "Franjas de conectividad", actual: conectividad, meta: 15, unidad: "km", pct: pct(conectividad, 15) },
-      { label: "Sistemas silvopastoriles", actual: silvopastoril, meta: 15, unidad: "ha", pct: pct(silvopastoril, 15) },
-      { label: "Sistemas agroforestales", actual: agroforestal, meta: 15, unidad: "ha", pct: pct(agroforestal, 15) },
+      mk("Franjas de conectividad", g.conectividad ?? 0, 15, "km"),
+      mk("Sistemas silvopastoriles", g.silvopastoril ?? 0, 15, "ha"),
+      mk("Sistemas agroforestales", g.agroforestal ?? 0, 15, "ha"),
     ],
   };
 }
 
-// =============================================================================
-// C2A1: 79 cosecha de agua + 79 compostaje (puntos)
-// =============================================================================
-async function getC2A1(): Promise<MetaComponente> {
-  const rows = await sql<{ n_cosecha: number; n_compostaje: number }[]>`
-    SELECT
-      SUM(CASE WHEN unaccent(pt.actividad) ILIKE unaccent('%cosecha%') THEN 1 ELSE 0 END)::int AS n_cosecha,
-      SUM(CASE WHEN unaccent(pt.actividad) ILIKE unaccent('%compostaje%')
-                  OR unaccent(pt.actividad) ILIKE unaccent('%compost%')
-                THEN 1 ELSE 0 END)::int AS n_compostaje
-    FROM sgs_pro_propuesta_punto pt
-    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pt.id_propuesta
-    JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-    WHERE c.nombre = 'C2' AND a.nombre = 'A1'
-  `;
-  const r = rows[0];
+function getC2A1(g: GlobalIndicadores): MetaComponente {
   return {
     componente: "C2",
     accion: "A1",
     descripcion: "Manejo del Ciclo del Agua y Restauración de Suelos",
     indicadores: [
-      { label: "Cosecha de agua", actual: r.n_cosecha, meta: 79, unidad: "obras", pct: pct(r.n_cosecha, 79) },
-      { label: "Kit de compostaje", actual: r.n_compostaje, meta: 79, unidad: "kits", pct: pct(r.n_compostaje, 79) },
+      mk("Cosecha de agua", g.cosecha ?? 0, 79, "obras"),
+      mk("Kit de compostaje", g.compostaje ?? 0, 79, "kits"),
     ],
   };
 }
 
-// =============================================================================
-// C2A2: 7 estaciones + 48 obras de captación (puntos)
-//
-// La meta operativa se mide sobre el TOTAL de obras y estaciones
-// (independiente del C-A donde estén). El spec dice "sumar todas las similares":
-//   - Estaciones: 6 en C2A2 + 1 en C3A1 = 7 (meta 7) ✅
-//   - Obras:      95 en C2A2 + 1 en C3A1 = 96 (meta 48) ✅ 200% superada
-// =============================================================================
-async function getC2A2(): Promise<MetaComponente> {
-  const rows = await sql<{ n_estaciones: number; n_obras: number }[]>`
-    SELECT
-      SUM(CASE WHEN unaccent(pt.actividad) ILIKE unaccent('%estacion%limnimet%')
-                  OR unaccent(pt.actividad) ILIKE unaccent('%limnimet%')
-                THEN 1 ELSE 0 END)::int AS n_estaciones,
-      SUM(CASE WHEN unaccent(pt.actividad) ILIKE unaccent('%captacion%')
-                  OR unaccent(pt.actividad) ILIKE unaccent('%captaci%')
-                THEN 1 ELSE 0 END)::int AS n_obras
-    FROM sgs_pro_propuesta_punto pt
-    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pt.id_propuesta
-  `;
-  const r = rows[0];
+function getC2A2(g: GlobalIndicadores): MetaComponente {
   return {
     componente: "C2",
     accion: "A2",
     descripcion: "Estaciones limnimétricas y obras de captación",
     indicadores: [
-      { label: "Estaciones limnimétricas", actual: r.n_estaciones, meta: 7, unidad: "estaciones", pct: pct(r.n_estaciones, 7) },
-      { label: "Obras de captación", actual: r.n_obras, meta: 48, unidad: "obras", pct: pct(r.n_obras, 48) },
+      mk("Estaciones limnimétricas", g.estaciones ?? 0, 7, "estaciones"),
+      mk("Obras de captación", g.obras_captacion ?? 0, 48, "obras"),
     ],
   };
 }
 
-// =============================================================================
-// C3: 35 predios en áreas protegidas
-// =============================================================================
-async function getC3(): Promise<MetaComponente> {
-  const rows = await sql<{
-    n_predios: number;
-    n_predios_con_geom: number;
-  }[]>`
-    SELECT
-      count(DISTINCT pp.id_predio)::int AS n_predios,
-      count(DISTINCT CASE WHEN p.geom IS NOT NULL THEN pp.id_predio END)::int AS n_predios_con_geom
-    FROM sgs_pro_propuesta pp
-    JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-    JOIN sgs_pre_predio p ON p.id_predio = pp.id_predio
-    WHERE c.nombre = 'C3' AND pp.id_predio IS NOT NULL
-  `;
-  const r = rows[0];
+function getC3(g: GlobalIndicadores): MetaComponente {
   return {
     componente: "C3",
     accion: "*",
     descripcion: "Reconversión Productiva en Áreas Protegidas y Páramos",
     indicadores: [
-      { label: "Predios intervenidos en áreas protegidas", actual: r.n_predios, meta: 35, unidad: "predios", pct: pct(r.n_predios, 35) },
+      mk("Predios intervenidos en áreas protegidas", g.predios_c3 ?? 0, 35, "predios"),
     ],
   };
 }
 
 // =============================================================================
-// Adicional: Municipios y veredas intervenidos
+// Indicadores planos (key → { actual, meta, pct, cumplida })
 //
-// Cubre los dos casos del spec:
+// Usado por el versionado/snapshots (Sprint 22) y disponible para cualquier
+// consumidor que necesite los 10 indicadores sin la agrupación por C-A.
+// Deriva de la MISMA vista única.
+// =============================================================================
+export interface IndicadorPlano {
+  actual: number;
+  meta: number;
+  pct: number;
+  cumplida: boolean;
+}
+
+export async function getIndicadoresFlat(): Promise<Record<IndicadorKey, IndicadorPlano>> {
+  const g = await getGlobalIndicadores();
+  const out = {} as Record<IndicadorKey, IndicadorPlano>;
+  for (const k of Object.keys(INDICADORES_META) as IndicadorKey[]) {
+    const meta = INDICADORES_META[k];
+    const actual = g[k] ?? 0;
+    out[k] = {
+      actual,
+      meta: meta.meta,
+      pct: pct(actual, meta.meta),
+      cumplida: actual >= meta.meta,
+    };
+  }
+  return out;
+}
+
+// =============================================================================
+// Municipios y veredas intervenidos
+//
+// Cubre:
 //   1) Propuestas con id_predio → municipio/vereda del predio (lookup)
-//   2) Propuestas con geom (líneas/polígonos) → intersección espacial con municipio/vereda
-//   3) Propuestas_punto sin geom ni id_predio (C2 obras) → se excluyen del detalle geográfico
+//   2) Propuestas con geom (líneas/polígonos) → intersección espacial
+//   3) Puntos sin geom ni id_predio (C2 obras) → excluidos del detalle geográfico
 // =============================================================================
 async function getMunicipiosIntervenidos() {
   return sql<{ id_municipio: number; nombre: string; num_propuestas: number }[]>`
     WITH propuestas_geo AS (
-      -- (1) Propuestas con id_predio: municipio via vereda
       SELECT DISTINCT pp.id_propuesta, m.id_municipio, m.nombre_municipio
       FROM sgs_pro_propuesta pp
       JOIN sgs_pre_predio p ON p.id_predio = pp.id_predio
@@ -550,13 +297,11 @@ async function getMunicipiosIntervenidos() {
       JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
       WHERE pp.id_predio IS NOT NULL
       UNION
-      -- (2) Líneas: intersección espacial
       SELECT DISTINCT pp.id_propuesta, m.id_municipio, m.nombre_municipio
       FROM sgs_pro_propuesta_linea pl
       JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pl.id_propuesta
       JOIN bcs_lpa_municipio m ON ST_Intersects(m.geom, pl.geom)
       UNION
-      -- (2) Polígonos: intersección espacial
       SELECT DISTINCT pp.id_propuesta, m.id_municipio, m.nombre_municipio
       FROM sgs_pro_propuesta_poligono pq
       JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
@@ -572,7 +317,6 @@ async function getMunicipiosIntervenidos() {
 async function getVeredasIntervenidas() {
   return sql<{ id_vereda: number; nombre: string; id_municipio: number; nombre_municipio: string; num_propuestas: number }[]>`
     WITH propuestas_geo AS (
-      -- (1) Propuestas con id_predio: vereda directa
       SELECT DISTINCT pp.id_propuesta, v.id_vereda, v.nombre_vereda, m.id_municipio, m.nombre_municipio
       FROM sgs_pro_propuesta pp
       JOIN sgs_pre_predio p ON p.id_predio = pp.id_predio
@@ -580,14 +324,12 @@ async function getVeredasIntervenidas() {
       JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
       WHERE pp.id_predio IS NOT NULL
       UNION
-      -- (2) Líneas: intersección espacial con vereda
       SELECT DISTINCT pp.id_propuesta, v.id_vereda, v.nombre_vereda, m.id_municipio, m.nombre_municipio
       FROM sgs_pro_propuesta_linea pl
       JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pl.id_propuesta
       JOIN bcs_lpa_vereda v ON ST_Intersects(v.geom, pl.geom)
       JOIN bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
       UNION
-      -- (2) Polígonos: intersección espacial con vereda
       SELECT DISTINCT pp.id_propuesta, v.id_vereda, v.nombre_vereda, m.id_municipio, m.nombre_municipio
       FROM sgs_pro_propuesta_poligono pq
       JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
@@ -613,21 +355,17 @@ function pct(actual: number, meta: number): number {
 // Public API
 // =============================================================================
 const getMetasConvenioImpl = async (): Promise<MetasConvenio> => {
-  const [c1a1, c1a2, c2a1, c2a2, c3, municipios, veredas] = await Promise.all([
-    getC1A1(),
-    getC1A2(),
-    getC2A1(),
-    getC2A2(),
-    getC3(),
+  const [g, municipios, veredas] = await Promise.all([
+    getGlobalIndicadores(),
     getMunicipiosIntervenidos(),
     getVeredasIntervenidas(),
   ]);
   return {
-    c1a1,
-    c1a2,
-    c2a1,
-    c2a2,
-    c3,
+    c1a1: getC1A1(g),
+    c1a2: getC1A2(g),
+    c2a1: getC2A1(g),
+    c2a2: getC2A2(g),
+    c3: getC3(g),
     municipios_intervenidos: municipios.map((r) => ({
       id_municipio: pgInt(r.id_municipio),
       nombre: pgText(r.nombre),
@@ -650,17 +388,14 @@ export const getMetasConvenio = cached(getMetasConvenioImpl, {
 // =============================================================================
 // Detalle por municipio: drill-down desde /metas/convenio/[id_municipio]
 //
-// Devuelve:
-//   - metadatos del municipio
-//   - 5 indicadores de meta (mismos nombres que la página principal) pero
-//     filtrados a las propuestas que intersectan el municipio
-//   - lista de veredas con conteo
-//   - distribución por componente/acción
-//
-// Cuando una propuesta_linea o poligono cruza múltiples municipios, se cuenta
-// para todos los que toca (vía ST_Intersects). Para prop_super con id_predio,
-// se asigna al municipio del predio.
+// Los indicadores se calculan sobre la MISMA vista única filtrando las
+// propuestas que tocan el municipio — garantiza global == municipio.
 // =============================================================================
+const ORDEN_DETALLE: IndicadorKey[] = [
+  "cercos_vivos", "alambre", "conectividad", "silvopastoril", "agroforestal",
+  "cosecha", "compostaje", "estaciones", "obras_captacion", "predios_c3",
+];
+
 export const getDetalleMunicipio = cached(
   async (idMunicipio: number): Promise<DetalleMunicipio | null> => {
     // 1) Metadatos del municipio
@@ -675,148 +410,56 @@ export const getDetalleMunicipio = cached(
       nombre: pgText(muniRows[0].nombre),
     };
 
-    // CTE con todas las propuestas que tocan este municipio
-    // (id_predio → vereda → municipio, o intersección espacial con líneas/polígonos)
-    const idsResult = await sql<{ id_propuesta: number; fuente: string }[]>`
+    // 2) Propuestas que tocan el municipio (predio→vereda, o intersección espacial)
+    const idsResult = await sql<{ id_propuesta: number }[]>`
       WITH propuestas_municipio AS (
-        SELECT DISTINCT pp.id_propuesta, 'predio'::text AS fuente
+        SELECT DISTINCT pp.id_propuesta
         FROM sgs_pro_propuesta pp
         JOIN sgs_pre_predio p ON p.id_predio = pp.id_predio
         JOIN bcs_lpa_vereda v ON v.id_vereda = p.id_vereda
         WHERE v.id_municipio = ${idMunicipio}
         UNION
-        SELECT DISTINCT pp.id_propuesta, 'linea'::text
+        SELECT DISTINCT pp.id_propuesta
         FROM sgs_pro_propuesta_linea pl
         JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pl.id_propuesta
         JOIN bcs_lpa_municipio m ON m.id_municipio = ${idMunicipio} AND ST_Intersects(m.geom, pl.geom)
         UNION
-        SELECT DISTINCT pp.id_propuesta, 'poligono'::text
+        SELECT DISTINCT pp.id_propuesta
         FROM sgs_pro_propuesta_poligono pq
         JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
         JOIN bcs_lpa_municipio m ON m.id_municipio = ${idMunicipio} AND ST_Intersects(m.geom, pq.geom)
       )
-      SELECT id_propuesta, fuente FROM propuestas_municipio
+      SELECT id_propuesta FROM propuestas_municipio
     `;
     const propIds: number[] = idsResult.map((r) => Number(r.id_propuesta)).filter((n) => Number.isFinite(n));
     if (propIds.length === 0) {
-      return {
-        municipio,
-        indicadores: [],
-        veredas: [],
-        propuestas_por_componente: [],
-      };
+      return { municipio, indicadores: [], veredas: [], propuestas_por_componente: [] };
     }
 
-    // 2) Indicadores de las 5 metas operativas (filtrados al municipio)
-    //    Reutilizamos la misma lógica de fuzzy match que getC1A1, etc.
-    const indRows = await sql<{
-      km_cercos_vivos: number | string;
-      km_alambre: number | string;
-      km_conectividad: number | string;
-      ha_silvopastoril: number | string;
-      ha_agroforestal: number | string;
-      n_cosecha: number;
-      n_compostaje: number;
-      n_estaciones: number;
-      n_obras: number;
-      n_predios_c3: number;
-    }[]>`
+    // 3) Indicadores del municipio — MISMA vista que el global.
+    const indRows = await sql<{ indicador_key: string; actual: number | string }[]>`
       WITH prop_muni AS (
         SELECT id_propuesta FROM unnest(${sql.array(propIds, 23)}) AS id_propuesta
       )
-      SELECT
-        -- C1A1 (líneas)
-        (SELECT round(COALESCE(SUM(pl.longitud_km), 0)::numeric, 3)
-         FROM sgs_pro_propuesta_linea pl
-         JOIN prop_muni ON prop_muni.id_propuesta = pl.id_propuesta
-         WHERE unaccent(pl.actividad) ILIKE unaccent('%cerco vivo%')
-            OR unaccent(pl.actividad) ILIKE unaccent('%cerca viva%')
-        ) AS km_cercos_vivos,
-        (SELECT round(COALESCE(SUM(pl.longitud_km), 0)::numeric, 3)
-         FROM sgs_pro_propuesta_linea pl
-         JOIN prop_muni ON prop_muni.id_propuesta = pl.id_propuesta
-         WHERE unaccent(pl.actividad) ILIKE unaccent('%alambre%')
-        ) AS km_alambre,
-        -- C1A2 conectividad (líneas)
-        (SELECT round(COALESCE(SUM(pl.longitud_km), 0)::numeric, 3)
-         FROM sgs_pro_propuesta_linea pl
-         JOIN prop_muni ON prop_muni.id_propuesta = pl.id_propuesta
-         WHERE unaccent(pl.actividad) ILIKE unaccent('%franja%conectividad%')
-            OR unaccent(pl.actividad) ILIKE unaccent('%conectividad%')
-        ) AS km_conectividad,
-        -- C1A2 silvopastoril (polígonos)
-        (SELECT round(COALESCE(SUM(pq.area_ha), 0)::numeric, 2)
-         FROM sgs_pro_propuesta_poligono pq
-         JOIN prop_muni ON prop_muni.id_propuesta = pq.id_propuesta
-         WHERE unaccent(pq.actividad) ILIKE unaccent('%silvopastoril%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%silvopast%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%pastos arbolados%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%enriquecimiento%pastos%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%enriquecimiento%arbol%dispers%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%arboles dispersos%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%rastrojo%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%pradera%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%potrero%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%ssp%')
-        ) AS ha_silvopastoril,
-        -- C1A2 agroforestal (polígonos)
-        (SELECT round(COALESCE(SUM(pq.area_ha), 0)::numeric, 2)
-         FROM sgs_pro_propuesta_poligono pq
-         JOIN prop_muni ON prop_muni.id_propuesta = pq.id_propuesta
-         WHERE unaccent(pq.actividad) ILIKE unaccent('%agroforestal%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%bosque%comestible%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%modulo%alta densidad%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%modulo%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%banco%proteina%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%banco%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%huerta%')
-            OR unaccent(pq.actividad) ILIKE unaccent('%callejon%')
-        ) AS ha_agroforestal,
-        -- C2A1 cosecha + compostaje (puntos)
-        (SELECT COUNT(*)::int FROM sgs_pro_propuesta_punto pt
-         JOIN prop_muni ON prop_muni.id_propuesta = pt.id_propuesta
-         WHERE unaccent(pt.actividad) ILIKE unaccent('%cosecha%')
-        ) AS n_cosecha,
-        (SELECT COUNT(*)::int FROM sgs_pro_propuesta_punto pt
-         JOIN prop_muni ON prop_muni.id_propuesta = pt.id_propuesta
-         WHERE unaccent(pt.actividad) ILIKE unaccent('%compostaje%')
-            OR unaccent(pt.actividad) ILIKE unaccent('%compost%')
-        ) AS n_compostaje,
-        -- C2A2 estaciones + obras (puntos, total)
-        (SELECT COUNT(*)::int FROM sgs_pro_propuesta_punto pt
-         JOIN prop_muni ON prop_muni.id_propuesta = pt.id_propuesta
-         WHERE unaccent(pt.actividad) ILIKE unaccent('%estacion%limnimet%')
-            OR unaccent(pt.actividad) ILIKE unaccent('%limnimet%')
-        ) AS n_estaciones,
-        (SELECT COUNT(*)::int FROM sgs_pro_propuesta_punto pt
-         JOIN prop_muni ON prop_muni.id_propuesta = pt.id_propuesta
-         WHERE unaccent(pt.actividad) ILIKE unaccent('%captacion%')
-            OR unaccent(pt.actividad) ILIKE unaccent('%captaci%')
-        ) AS n_obras,
-        -- C3 predios
-        (SELECT COUNT(DISTINCT pp.id_predio)::int
-         FROM sgs_pro_propuesta pp
-         JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-         JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-         JOIN prop_muni ON prop_muni.id_propuesta = pp.id_propuesta
-         WHERE c.nombre = 'C3' AND pp.id_predio IS NOT NULL
-        ) AS n_predios_c3
+      SELECT vp.indicador_key,
+             CASE
+               WHEN max(vp.agregacion) = 'count_distinct_predio'
+                 THEN count(DISTINCT vp.id_predio)::numeric
+               ELSE COALESCE(SUM(vp.medida), 0)::numeric
+             END AS actual
+      FROM sgs_v_indicador_propuesta vp
+      JOIN prop_muni pm ON pm.id_propuesta = vp.id_propuesta
+      GROUP BY vp.indicador_key
     `;
-    const r = indRows[0];
-    const indicadores: DetalleMunicipio["indicadores"] = [
-      { label: "Cercos vivos", actual: pgNum(r.km_cercos_vivos), meta: 12, unidad: "km", pct: pct(pgNum(r.km_cercos_vivos), 12) },
-      { label: "Aislamientos (alambre)", actual: pgNum(r.km_alambre), meta: 12, unidad: "km", pct: pct(pgNum(r.km_alambre), 12) },
-      { label: "Franjas de conectividad", actual: pgNum(r.km_conectividad), meta: 15, unidad: "km", pct: pct(pgNum(r.km_conectividad), 15) },
-      { label: "Sistemas silvopastoriles", actual: pgNum(r.ha_silvopastoril), meta: 15, unidad: "ha", pct: pct(pgNum(r.ha_silvopastoril), 15) },
-      { label: "Sistemas agroforestales", actual: pgNum(r.ha_agroforestal), meta: 15, unidad: "ha", pct: pct(pgNum(r.ha_agroforestal), 15) },
-      { label: "Cosecha de agua", actual: pgInt(r.n_cosecha), meta: 79, unidad: "obras", pct: pct(pgInt(r.n_cosecha), 79) },
-      { label: "Kit de compostaje", actual: pgInt(r.n_compostaje), meta: 79, unidad: "kits", pct: pct(pgInt(r.n_compostaje), 79) },
-      { label: "Estaciones limnimétricas", actual: pgInt(r.n_estaciones), meta: 7, unidad: "estaciones", pct: pct(pgInt(r.n_estaciones), 7) },
-      { label: "Obras de captación", actual: pgInt(r.n_obras), meta: 48, unidad: "obras", pct: pct(pgInt(r.n_obras), 48) },
-      { label: "Predios C3 (áreas protegidas)", actual: pgInt(r.n_predios_c3), meta: 35, unidad: "predios", pct: pct(pgInt(r.n_predios_c3), 35) },
-    ];
+    const actualPorKey: Record<string, number> = {};
+    for (const row of indRows) actualPorKey[pgText(row.indicador_key)] = pgNum(row.actual);
+    const indicadores: DetalleMunicipio["indicadores"] = ORDEN_DETALLE.map((k) => {
+      const meta = INDICADORES_META[k];
+      const actual = actualPorKey[k] ?? 0;
+      return { label: meta.label, actual, meta: meta.meta, unidad: meta.unidad, pct: pct(actual, meta.meta) };
+    });
 
-    // 3) Veredas del municipio con propuestas
+    // 4) Veredas del municipio con propuestas
     const veredasRows = await sql<{ id_vereda: number; nombre: string; num_propuestas: number }[]>`
       WITH prop_muni AS (
         SELECT id_propuesta FROM unnest(${sql.array(propIds, 23)}) AS id_propuesta
@@ -831,7 +474,7 @@ export const getDetalleMunicipio = cached(
       ORDER BY num_propuestas DESC, v.nombre_vereda
     `;
 
-    // 4) Distribución por componente/acción
+    // 5) Distribución por componente/acción
     const distRows = await sql<{ componente: string; accion: string; n: number }[]>`
       WITH prop_muni AS (
         SELECT id_propuesta FROM unnest(${sql.array(propIds, 23)}) AS id_propuesta

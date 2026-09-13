@@ -1,179 +1,115 @@
 // =============================================================================
-// Tests para src/lib/repos/metas-convenio.ts — drill-down de indicadores
+// Tests para src/lib/repos/metas-convenio.ts — fuente única de indicadores
+//
+// Desde la migración 36, el repo NO contiene patrones ILIKE: consume las
+// vistas sgs_v_indicador_global / sgs_v_indicador_propuesta.
 //
 // Cubre:
-//   1. P1-3 — El filtro de acción usa "A1"/"A2" (substring(2,4)), NO "A"
-//     (antes substring(2,3) daba "A" y matcheaba 0 filas)
-//   2. P1-4 — globalSinFiltroCA=true omite el filtro de C/A para alinear
-//     drill-down con el cálculo global (C2A2 estaciones/obras)
-//   3. Mapeo snake_case → camelCase en PropuestaIndicador.
+//   1. getMetasConvenio mapea el global (incluye multiestrat y pct).
+//   2. getPropuestasPorIndicador consulta la vista y mapea medida→km/ha.
+//   3. key desconocida → [] sin consultar.
 // =============================================================================
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// `vi.mock` se hoistea al top del archivo, por lo que las refs de mocks
-// deben declararse con `vi.hoisted` para que estén disponibles en la
-// factory del mock.
 const { mockSql } = vi.hoisted(() => ({
-  // `unsafe` se usa para SQL dinámico (tabla/columna). Devuelve el string
-  // tal cual, igual que postgres-js.
-  mockSql: Object.assign(vi.fn(), { unsafe: (s: string) => s }),
+  mockSql: Object.assign(vi.fn(), { unsafe: (s: string) => s, array: (v: unknown) => v }),
 }));
 
-// Mockeamos `@/lib/db` para controlar las filas que devuelve `sql`.
-// Mantenemos los helpers pgInt/pgNum/pgText reales (son funciones puras, no
-// tocan BD), mockeando solo `sql`.
 vi.mock("@/lib/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db")>();
   return { ...actual, sql: mockSql };
 });
 
-// Mock `next/cache` (vía el wrapper local) para que `cached()` pase como
-// función identidad en tests. Sin esto, unstable_cache usa React's cache
-// y rompe el mock de sql.
+// `cached()` envuelve unstable_cache de Next; en tests es identidad.
 vi.mock("@/lib/repos/_cache", () => ({
   cached: <T extends (...args: any[]) => any>(fn: T) => fn,
 }));
 
-// Helper: una llamada a `sql\`SELECT...\`` retorna `mockReturnData`.
-// Las llamadas previas a `sql\`c.nombre = ...\`` y `sql\`a.nombre = ...\`` no
-// retornan nada (son fragmentos que se interpolan en el SELECT).
-function setupMockResult(mockReturnData: unknown[] | unknown) {
-  // Por defecto, las llamadas a sql`` no resuelven a nada útil. Solo la
-  // llamada final al SELECT debe devolver datos. Usamos mockImplementation
-  // que retorna mockReturnData si es la última llamada (la del SELECT grande).
-  let callCount = 0;
-  mockSql.mockImplementation(() => {
-    callCount++;
-    // Guardar el callCount en el mock para identificarlo después
-    return Promise.resolve(mockReturnData);
-  });
-}
-
 import {
+  getMetasConvenio,
   getPropuestasPorIndicador,
   INDICADORES_META,
   type IndicadorKey,
 } from "@/lib/repos/metas-convenio";
 
+type Row = Record<string, unknown>;
+
+// Dispatcher: las queries del repo son tagged templates. Reconstruimos el SQL
+// (sin los params) para elegir qué filas devolver.
+function dispatch(handler: (query: string, values: unknown[]) => Row[]) {
+  mockSql.mockImplementation((strings: unknown, ...values: unknown[]) => {
+    const query = Array.isArray(strings) ? strings.join(" ") : String(strings);
+    return Promise.resolve(handler(query, values));
+  });
+}
+
 beforeEach(() => {
   mockSql.mockReset();
 });
 
-describe("P1-3 — Drill-down usa A1/A2 (no 'A') en el filtro de acción", () => {
-  it("cercos_vivos (ca='C1A1') filtra por a.nombre='A1', no por 'A'", async () => {
-    setupMockResult([
-      {
-        id_propuesta: 1,
-        actividad: "Cerco vivo",
-        nombre_predio: "P1",
-        nombre_municipio: "Guasca",
-        nombre_vereda: "V1",
-        medida: 1.5,
-      },
-    ]);
+const GLOBAL_ROWS: Row[] = [
+  { indicador_key: "cercos_vivos", actual: 6, unidad: "km" },
+  { indicador_key: "alambre", actual: 12, unidad: "km" },
+  { indicador_key: "multiestrat", actual: 1.5, unidad: "km" },
+  { indicador_key: "conectividad", actual: 15, unidad: "km" },
+  { indicador_key: "silvopastoril", actual: 7.5, unidad: "ha" },
+  { indicador_key: "agroforestal", actual: 3, unidad: "ha" },
+  { indicador_key: "cosecha", actual: 79, unidad: "obras" },
+  { indicador_key: "compostaje", actual: 40, unidad: "kits" },
+  { indicador_key: "estaciones", actual: 7, unidad: "estaciones" },
+  { indicador_key: "obras_captacion", actual: 96, unidad: "obras" },
+  { indicador_key: "predios_c3", actual: 39, unidad: "predios" },
+];
 
-    const out = await getPropuestasPorIndicador("cercos_vivos", 100);
-    expect(out).toHaveLength(1);
+describe("getMetasConvenio — consume la vista global (fuente única)", () => {
+  it("mapea los 11 valores (10 oficiales + multiestrat) y calcula pct", async () => {
+    dispatch((query) => {
+      if (query.includes("sgs_v_indicador_global")) return GLOBAL_ROWS;
+      if (query.includes("nombre_vereda AS nombre")) {
+        return [{ id_vereda: 1, nombre: "V1", id_municipio: 1, nombre_municipio: "Guasca", num_propuestas: 5 }];
+      }
+      if (query.includes("nombre_municipio AS nombre")) {
+        return [{ id_municipio: 1, nombre: "Guasca", num_propuestas: 5 }];
+      }
+      return [];
+    });
 
-    // Buscar el filtro de acción entre las llamadas. Las llamadas a
-    // `sql\`a.nombre = ${...}\`` reciben un array de strings + el valor.
-    const allValues: unknown[] = [];
-    for (const call of mockSql.mock.calls) {
-      // Cada call es [strings, ...values] para tagged templates
-      const values = call.slice(1);
-      allValues.push(...values);
-    }
-    // P1-3: el filtro de acción debe usar "A1" (no "A")
-    expect(allValues).toContain("A1");
-    expect(allValues).toContain("C1");
-    expect(allValues).not.toContain("A");
-  });
+    const out = await getMetasConvenio();
 
-  it("conectividad (ca='C1A2') filtra por a.nombre='A2'", async () => {
-    setupMockResult([]);
-    await getPropuestasPorIndicador("conectividad", 100);
+    expect(out.c1a1.indicadores).toHaveLength(3);
+    expect(out.c1a1.indicadores[0]).toMatchObject({ label: "Cercos vivos", actual: 6, meta: 12, pct: 50 });
+    expect(out.c1a1.indicadores[1]).toMatchObject({ actual: 12, pct: 100 });
+    expect(out.c1a1.indicadores[2].actual).toBe(1.5); // multiestrat (extra)
 
-    const allValues: unknown[] = [];
-    for (const call of mockSql.mock.calls) {
-      allValues.push(...call.slice(1));
-    }
-    expect(allValues).toContain("C1");
-    expect(allValues).toContain("A2");
-    expect(allValues).not.toContain("A");
-  });
+    expect(out.c1a2.indicadores[0].pct).toBe(100); // 15/15
+    expect(out.c1a2.indicadores[1].pct).toBe(50);  // 7.5/15
+    expect(out.c2a1.indicadores[1].pct).toBe(51);  // 40/79 → 50.6 → 51
+    expect(out.c2a2.indicadores[1]).toMatchObject({ actual: 96, pct: 200 });
+    expect(out.c3.indicadores[0]).toMatchObject({ actual: 39, meta: 35, pct: 111 });
 
-  it("cosecha (ca='C2A1') filtra por a.nombre='A1'", async () => {
-    setupMockResult([]);
-    await getPropuestasPorIndicador("cosecha", 100);
+    expect(out.municipios_intervenidos).toHaveLength(1);
+    expect(out.veredas_intervenidas).toHaveLength(1);
 
-    const allValues: unknown[] = [];
-    for (const call of mockSql.mock.calls) {
-      allValues.push(...call.slice(1));
-    }
-    expect(allValues).toContain("C2");
-    expect(allValues).toContain("A1");
+    // La query del global debe apuntar a la vista única
+    const globalCall = mockSql.mock.calls.find((c) =>
+      String((c[0] as string[]).join(" ")).includes("sgs_v_indicador_global"),
+    );
+    expect(globalCall).toBeDefined();
   });
 });
 
-describe("P1-4 — globalSinFiltroCA=true omite el filtro C/A en el drill-down", () => {
-  it("estaciones NO filtra por C/A en el drill-down (alinea con global)", async () => {
-    setupMockResult([]);
-    await getPropuestasPorIndicador("estaciones", 100);
-
-    const allValues: unknown[] = [];
-    for (const call of mockSql.mock.calls) {
-      allValues.push(...call.slice(1));
-    }
-    // NO debe haber "C2" ni "A2" en los valores — el filtro C/A está omitido
-    expect(allValues).not.toContain("C2");
-    expect(allValues).not.toContain("A2");
-  });
-
-  it("obras_captacion NO filtra por C/A en el drill-down", async () => {
-    setupMockResult([]);
-    await getPropuestasPorIndicador("obras_captacion", 100);
-
-    const allValues: unknown[] = [];
-    for (const call of mockSql.mock.calls) {
-      allValues.push(...call.slice(1));
-    }
-    expect(allValues).not.toContain("C2");
-    expect(allValues).not.toContain("A2");
-  });
-
-  it("INDICADORES_META.estaciones expone globalSinFiltroCA=true", () => {
-    expect(INDICADORES_META.estaciones.globalSinFiltroCA).toBe(true);
-    expect(INDICADORES_META.obras_captacion.globalSinFiltroCA).toBe(true);
-  });
-
-  it("indicadores que NO son globales sí filtran por C/A", () => {
-    // cerco_vivos, conectividad, etc. deben tener globalSinFiltroCA=false o undefined
-    const filteredKeys: IndicadorKey[] = [
-      "cercos_vivos",
-      "alambre",
-      "conectividad",
-      "silvopastoril",
-      "agroforestal",
-      "cosecha",
-      "compostaje",
-    ];
-    for (const k of filteredKeys) {
-      expect(INDICADORES_META[k].globalSinFiltroCA).not.toBe(true);
-    }
-  });
-});
-
-describe("Mapeo snake_case → camelCase en PropuestaIndicador", () => {
-  it("mapea correctamente los campos de la fila (kind=lineas → longitud_km)", async () => {
-    setupMockResult([
+describe("getPropuestasPorIndicador — consulta la vista única", () => {
+  it("mapea medida→longitud_km para líneas", async () => {
+    dispatch(() => [
       {
         id_propuesta: 42,
         actividad: "Cerco vivo",
+        medida: 2.5,
+        id_predio: 7,
         nombre_predio: "La Esperanza",
         nombre_municipio: "Guasca",
         nombre_vereda: "Vereda Alta",
-        medida: 2.5,
       },
     ]);
 
@@ -182,33 +118,45 @@ describe("Mapeo snake_case → camelCase en PropuestaIndicador", () => {
     expect(out[0]).toMatchObject({
       id_propuesta: 42,
       actividad: "Cerco vivo",
-      nombre_predio: "La Esperanza",
-      nombre_municipio: "Guasca",
-      nombre_vereda: "Vereda Alta",
-      longitud_km: 2.5, // kind=lineas → longitud_km
-      hectareas: null, // kind=lineas → hectareas=null
+      longitud_km: 2.5,
+      hectareas: null,
     });
+
+    const query = String((mockSql.mock.calls[0][0] as string[]).join(" "));
+    expect(query).toContain("sgs_v_indicador_propuesta");
+    expect(query).toContain("vp.indicador_key");
   });
 
-  it("maneja campos opcionales null", async () => {
-    setupMockResult([
+  it("mapea medida→hectareas para polígonos", async () => {
+    dispatch(() => [
       {
-        id_propuesta: 1,
-        actividad: "Punto sin predio",
+        id_propuesta: 5,
+        actividad: "Sistema silvopastoril",
+        medida: 3.2,
+        id_predio: null,
         nombre_predio: null,
         nombre_municipio: null,
         nombre_vereda: null,
-        medida: null,
       },
     ]);
+    const out = await getPropuestasPorIndicador("silvopastoril", 100);
+    expect(out[0]).toMatchObject({ hectareas: 3.2, longitud_km: null });
+  });
 
-    const out = await getPropuestasPorIndicador("cosecha", 100);
-    expect(out).toHaveLength(1);
-    expect(out[0]).toMatchObject({
-      id_propuesta: 1,
-      nombre_predio: null,
-      nombre_municipio: null,
-      nombre_vereda: null,
-    });
+  it("key desconocida → [] sin consultar la BD", async () => {
+    dispatch(() => []);
+    const out = await getPropuestasPorIndicador("no_existe" as IndicadorKey, 100);
+    expect(out).toEqual([]);
+    expect(mockSql).not.toHaveBeenCalled();
+  });
+});
+
+describe("INDICADORES_META — metadata de presentación", () => {
+  it("ya no expone patterns (la definición vive en la vista SQL)", () => {
+    for (const k of Object.keys(INDICADORES_META) as IndicadorKey[]) {
+      expect(INDICADORES_META[k]).not.toHaveProperty("patterns");
+      expect(INDICADORES_META[k].label.length).toBeGreaterThan(0);
+      expect(INDICADORES_META[k].unidad.length).toBeGreaterThan(0);
+    }
   });
 });

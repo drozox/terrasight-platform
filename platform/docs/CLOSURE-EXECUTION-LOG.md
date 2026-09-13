@@ -4,7 +4,7 @@
 > Leer esto ANTES de tocar código. Actualizar DESPUÉS de cada item.
 >
 > Plan fuente: [`FINAL-CLOSURE-PLAN.md`](./FINAL-CLOSURE-PLAN.md)
-> Última actualización: 2026-09-10 (turno Agente 2 — P1-6/P2-8/P3-11 + hardening)
+> Última actualización: 2026-09-10 (turno Agente 3 — fuente única de indicadores + CI)
 
 ---
 
@@ -61,6 +61,10 @@ P0-2 (secretos) ├─► P1-5 (fuente única metas) ─► P1-3 (drill-down) �
 | **P3-10** | Limpiar código muerto (`/api/analysis/*` vs `/api/analisis/*`, `_archive/`, scripts debug) | 🟡 PENDING | ver §5. Se dejó documentado, no se borró |
 | **P3-11** | Sanitizar CSV (inyección de fórmulas `=+-@`) | ✅ DONE | turno Agente 2 · `src/lib/csv.ts` + `tests/unit/csv.test.ts` |
 | **P3-HARD** | Error boundary global filtraba stack trace (`error.tsx` debug) | ✅ DONE | turno Agente 2 · `src/app/error.tsx` (UI friendly, sin stack) |
+| **P3-12** ⭐ | **Fuente única de indicadores** (vista `sgs_v_indicador_*`, migración 36) | ✅ DONE (pend. validar en CI) | turno Agente 3 · `36-indicadores-fuente-unica.sql`, `metas-convenio.ts`, `audit_resultados.mjs` |
+| **P2-10** | CI aplicaba solo migraciones 01–07 (esquema incompleto) | ✅ DONE | turno Agente 3 · `ci-migrate.sh` |
+| **P2-11** | Test de **integración** con Postgres real (red de seguridad) | ✅ DONE | turno Agente 3 · `tests/integration/indicadores.int.test.ts` + `vitest.config.ts` |
+| **P2-12** | Fix versionado: snapshot se guardaba anidado y `compararSnapshots` daba diff 0 | ✅ DONE | turno Agente 3 · `versionado.ts` + `getIndicadoresFlat()` |
 
 Leyenda: ✅ cerrado · 🟠 parcial · 🟡 pendiente · 🔴 bloqueante · ⏳ acción del owner.
 
@@ -72,7 +76,7 @@ Leyenda: ✅ cerrado · 🟠 parcial · 🟡 pendiente · 🔴 bloqueante · ⏳
 |-------|---------|-----------|
 | Typecheck | `npx tsc --noEmit` | ✅ 0 errors |
 | Lint | `npm run lint` | ✅ 0 errors (1 warning preexistente `map-client.tsx:76`) |
-| Unit tests | `npm test` | ✅ **331/331** |
+| Unit tests | `npm test` | ✅ **327 passed, 3 skipped** (integración, sin BD local) |
 | Build | `npm run build` | ✅ verde (todas las rutas) |
 | Smoke DB | `node scripts/prod_smoke.mjs` | ⚠️ requiere `DATABASE_URL` (owner) |
 | Reconciliación | `npm run audit:resultados` | ⚠️ requiere `DATABASE_URL` (owner) |
@@ -118,6 +122,44 @@ Commits en `main`: `9c36a69` (P0-1), `c04a6f6` (P0-2), `c4d00bb` (P1-3/4/5/6 + P
 **Estado del working tree:** estos cambios quedaron **sin commitear** (working tree).
 El siguiente agente puede commitearlos con un mensaje tipo:
 `fix(platform): P1-6/P2-8/P3-11 — README, CI build, CSV formula guard, error boundary`.
+
+---
+
+### Turno Agente 3 (2026-09-10) — fuente única de indicadores + red de seguridad
+
+**Objetivo:** atacar la mejora #1 (correctitud de indicadores) con la práctica
+correcta: crear la **fuente única** y al mismo tiempo la **red de seguridad**
+(test de integración) para poder refactorizar sin ciegas.
+
+**Contexto/diagnóstico previo:** `audit_resultados.mjs` **reimplementaba** los 10
+patrones de ILIKE (4ª copia del negocio), y `ci-migrate.sh` solo aplicaba las
+migraciones **01–07** (el CI testeaba un esquema incompleto). Docker no está
+disponible en la máquina local, así que la validación SQL se hará en CI.
+
+| # | Cambio | Archivo(s) |
+|---|--------|-----------|
+| 1 | Vista **fuente única** `sgs_v_indicador_propuesta` + agregado `sgs_v_indicador_global`. Todos los patrones de actividad viven acá | `scripts/db/init/36-indicadores-fuente-unica.sql` (nuevo) |
+| 2 | `metas-convenio.ts` consume las vistas (global, drill-down y municipio). Se eliminaron los 5 bloques SQL duplicados y `INDICADORES_META.patterns` | `src/lib/repos/metas-convenio.ts` |
+| 3 | Drill-down ya **no dedupea** por propuesta → Σ drill-down == global (antes `DISTINCT` ocultaba puntos repetidos) | `metas-convenio.ts`, `metas/convenio/propuestas/page.tsx` |
+| 4 | `audit_resultados.mjs` consume la fuente única (dejó de reimplementar patrones) | `scripts/audit_resultados.mjs` |
+| 5 | CI aplica **todas** las migraciones y quita la sección demo de `01` (evita doble seed) | `scripts/ci-migrate.sh` |
+| 6 | Test de **integración** (Postgres real; skip sin `DATABASE_URL`): reconcilia drill-down vs global | `tests/integration/indicadores.int.test.ts`, `vitest.config.ts` |
+| 7 | Fix bug de versionado (snapshot plano) | `src/lib/repos/versionado.ts`, `getIndicadoresFlat()` |
+| 8 | `IndicadorCard` no renderiza link muerto para indicadores extra (multiestrat) | `src/app/metas/convenio/page.tsx` |
+
+**Validación ejecutada localmente:**
+- `npx tsc --noEmit` → **0 errors**
+- `npm test` → **327 passed, 3 skipped** (los 3 de integración se saltan sin BD)
+- `npm run lint` → **0 errors** (1 warning preexistente)
+- `npm run build` → **verde**
+
+**⚠️ Pendiente de validar en CI (no hay Docker local):**
+- Que `36-indicadores-fuente-unica.sql` aplique compilado contra PostGIS.
+- Que el test `tests/integration/indicadores.int.test.ts` pase con datos del seed
+  (01 sin demo + 02 ampliada + DDL 03..36).
+- Si el CI falla en alguna migración 08–35 por el seed, revisar §5.
+
+**Estado del working tree:** estos cambios quedaron **sin commitear**.
 
 ---
 

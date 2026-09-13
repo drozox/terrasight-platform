@@ -1,7 +1,7 @@
 # Sprint Status — SIG TERRITORIO
 
 > Estado actual del proyecto: qué está hecho, qué falta, qué viene.
-> Última actualización: 2026-09-10 (Sprint 23 — FINAL-CLOSURE-PLAN: P0-1 estados, P0-2 secretos, P1-3/4/5 metas).
+> Última actualización: 2026-09-10 (Sprint 23 — FINAL-CLOSURE-PLAN: P0-1 estados, P0-2 secretos, P1-3/4/5 metas, **fuente única de indicadores + CI**).
 
 ---
 
@@ -9,14 +9,14 @@
 
 | Indicador | Valor |
 |-----------|-------|
-| **Commits en `main`** | `c04a6f6` (HEAD) |
+| **Commits en `main`** | `e107268` (HEAD) |
 | **Tag baseline** | `v0.1.0-pre-final` |
 | **Fases completadas** | MVP-1, Phase 1-7, Metas del convenio, Branding, **Sprint 18 (4 herramientas SIG + MVT)**, **Sprint 19 (búsqueda + calidad)**, **Sprint 20 (workflow)**, **Sprint 21 (importación CSV)**, **Sprint 22 (versionado de metas)**, **Sprint 23 (FINAL-CLOSURE-PLAN: estados + secretos + drill-down metas)** |
 | **Datos reales en Supabase** | 1,381 propuestas, 132 predios, 5,959 vías, 656 quebradas, 14 municipios |
-| **Migraciones aplicadas** | 35 |
+| **Migraciones aplicadas** | 36 |
 | **Audit UI/UX** | 46/55 (84%) cerrados |
 | **TECH-DEBT** | 0 items abiertos |
-| **Tests** | 322 unit (313 + 9 nuevos metas-convenio), 6 E2E, smoke 55/56 (sin regresión) |
+| **Tests** | 327 unit/component (incl. CSV formula guard), **3 integración** (skip local sin BD), 6 E2E, smoke 55/56 (sin regresión) |
 | **Última URL de Vercel** | ver https://vercel.com/drozox/terrasight-platform |
 
 > **Importante:** los 10 reportes R1–R10 del convenio están **implementados y verificados E2E** en `/reportes` (`src/lib/repos/reportes.ts` + `src/app/api/reportes/route.ts` + `src/app/reportes/page.tsx`). El item "Sprint 23 — Faltan R2/R4/R5/R6/R7/R10" del SPRINT-STATUS previo es **stale**.
@@ -30,6 +30,11 @@ Estado al 2026-09-08 con datos reales del GDB. Drill-down de propuestas en
 
 > **Importante:** `/metas` (vistas SQL) **redirige** a `/metas/convenio` desde
 > Sprint 23 / P1-5 — una única fuente de verdad.
+>
+> **Fuente única (migración 36):** los 10 indicadores se calculan en la vista
+> `sgs_v_indicador_global` (deriva de `sgs_v_indicador_propuesta`). Los patrones
+> de actividad viven SOLO ahí; `metas-convenio.ts` y `scripts/audit_resultados.mjs`
+> la consumen. Cambiar un patrón = editar `36-indicadores-fuente-unica.sql`.
 
 | Meta | Indicador | Actual | Meta | % | Estado |
 |------|-----------|--------|------|---|--------|
@@ -179,10 +184,14 @@ estado fixed, 1 P0 secretos fixed, 1 P1 drill-down fixed, 1 P1 C2A2 fixed,
 ## 4. Por hacer (sprints siguientes)
 
 ### Sprint 24+ — Pendientes
-- **P2-7**: resolver `/dashboard` placeholder (apuntar al dashboard real `/` o quitar item del sidebar)
-- **P2-8**: reactivar step `Build` en `.github/workflows/ci.yml`
 - **P3-10**: limpiar código muerto (`/api/analysis/*` vs `/api/analisis/*`, `_archive/`, scripts de debug one-shot)
-- **P3-11**: sanitizar CSV (prevenir inyección de fórmulas `=+-@`)
+- **P3-11.b**: quoting de `csv.ts` con coma cuando el separador es `;` (prolijidad, no seguridad)
+- **Catálogo cerrado de actividades**: reemplazar el fuzzy-match (`ILIKE`) por una tabla + FK en `sgs_pro_propuesta`. Requiere decisión de negocio sobre la lista canónica (no inventar).
+
+### Cerrados en Sprint 23
+- ✅ P0-1 estados unificados · P0-2 secretos redactados · P1-3 drill-down · P1-4 C2A2
+- ✅ P1-5 `/metas` redirect · P1-6 docs · P2-7 dashboard · P2-8 CI build · P2-9 audit:resultados
+- ✅ P3-11 CSV formula guard · **P3-12 fuente única de indicadores (migración 36)** · P2-10 CI aplica 36 migraciones · P2-11 test de integración · P2-12 fix versionado
 
 ### Pendientes menores de UX (P3)
 - UX-33 clustering mapa

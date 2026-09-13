@@ -33,17 +33,20 @@ if [[ ! -d "$INIT_DIR" ]]; then
   exit 1
 fi
 
-# Orden de aplicación. Si agregás un NN.sql nuevo, sumalo al final y bumpeá
-# el comentario de cabecera. NO incluyas 00-truncate.sql (es destructivo).
-MIGRATIONS=(
-  "01-schema.sql"
-  "02-datos-ejemplo.sql"
-  "03-auth-schema.sql"
-  "04-intervencion-estado.sql"
-  "05-catalogos-unique.sql"
-  "06-propuesta-avance.sql"
-  "07-monitoreo-punto.sql"
-)
+# Orden de aplicación: TODAS las migraciones NN-*.sql de db/init en orden
+# lexicográfico (los archivos están zero-padded: 01, 02, … 36). Así una
+# migración nueva se incluye automáticamente sin editar este script.
+# Se excluye `00-truncate.sql` (destructivo, solo db:reset local).
+#
+# Historial: hasta Sprint 23 este array estaba hardcodeado con solo 01..07,
+# por lo que el CI testeaba un esquema incompleto (sin unaccent, workflow,
+# indicadores, búsqueda, etc.). Corregido en FINAL-CLOSURE-PLAN.
+MIGRATIONS=()
+while IFS= read -r f; do
+  base="$(basename "$f")"
+  [[ "$base" == "00-truncate.sql" ]] && continue
+  MIGRATIONS+=("$base")
+done < <(find "$INIT_DIR" -maxdepth 1 -name '*.sql' | sort)
 
 # Espera a que Postgres acepte conexiones (el service del job suele estar
 # listo antes de que este step corra, pero por las dudas).
@@ -73,6 +76,21 @@ for file in "${MIGRATIONS[@]}"; do
   fi
   echo ""
   echo "=== Aplicando ${file} ==="
+
+  # 01-schema.sql incluye una sección "DATOS DE PRUEBA (Ejemplo)" que
+  # 02-datos-ejemplo.sql (versión ampliada) también cubre. La quitamos para no
+  # duplicar filas y no chocar con los UNIQUE de migraciones posteriores
+  # (mismo criterio que `migrate.mjs --no-seed` en producción).
+  if [[ "$file" == "01-schema.sql" ]]; then
+    stripped="$(mktemp)"
+    awk '
+      index($0, "-- DATOS DE PRUEBA (Ejemplo)") > 0 { skip=1 }
+      index($0, "-- FIN DEL SCRIPT") > 0           { skip=0 }
+      !skip                                        { print }
+    ' "$path" > "$stripped"
+    path="$stripped"
+  fi
+
   PGPASSWORD="$POSTGRES_PASSWORD" psql \
     -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
     -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
