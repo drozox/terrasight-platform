@@ -540,3 +540,29 @@ export async function agregarAvancePropuesta(args: {
     createdAt: new Date(pgText(r.created_at)),
   };
 }
+
+// -----------------------------------------------------------------------------
+// crearPropuesta — DEEPSEEK-F2.2
+// Inserta en sgs_pro_propuesta (super-tipo). La geometría específica
+// (punto/línea/polígono) se inserta después en la tabla hija correspondiente.
+// El id_accion referencia sgs_com_accion (FK real de la BD; los IDs del GDB
+// original 2040201..2040205 fueron re-mapeados durante el import).
+// -----------------------------------------------------------------------------
+export async function crearPropuesta(args: {
+  tipo: "punto" | "linea" | "poligono";
+  idAccion: number;
+  idPredio: number | null;
+  actividad: string;
+  observaciones?: string;
+}): Promise<{ idPropuesta: number }> {
+  const rows = await sql<{ id_propuesta: number | string }[]>`
+    INSERT INTO sgs_pro_propuesta (tipo, id_accion, id_predio, actividad, observaciones, estado)
+    VALUES (${args.tipo}, ${args.idAccion}, ${args.idPredio}, ${args.actividad}, ${args.observaciones ?? ""}, 'BORRADOR')
+    RETURNING id_propuesta;
+  `;
+  const r = rows[0];
+  if (!r) throw new Error("Insert de propuesta no devolvió fila");
+  return { idPropuesta: pgInt(r.id_propuesta) };
+}
+
+
