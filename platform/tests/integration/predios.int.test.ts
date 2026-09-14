@@ -14,7 +14,14 @@
 // NO crea/modifica predios (solo lectura).
 // =============================================================================
 
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, afterAll, vi } from "vitest";
+
+// `getPredioAnalisisCompleto` usa cached()/unstable_cache, que no funciona fuera
+// de un request de Next. Lo mockeamos a identidad (patrón de los otros int tests).
+vi.mock("@/lib/repos/_cache", () => ({
+  cached: <T extends (...args: any[]) => any>(fn: T) => fn,
+}));
+
 import { sql } from "@/lib/db";
 import { getPredioById } from "@/lib/repos/predios";
 import { getPredioAnalisisCompleto } from "@/lib/repos/fase6";
