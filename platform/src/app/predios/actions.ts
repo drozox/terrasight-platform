@@ -14,6 +14,7 @@ import { safeParseForm } from "@/lib/validation";
 import { requireRole } from "@/lib/auth-guard";
 import {
   crearPredio,
+  crearPredioConShape,
   actualizarPredio,
   eliminarPredio,
 } from "@/lib/repos";
@@ -24,11 +25,53 @@ type Result =
   | { ok: false; message: string; field?: string };
 
 // -----------------------------------------------------------------------------
-// Crear
+// Crear — DEEPSEEK-F3.4: si viene `shapeWKT` (obligatorio), el shape se
+// persiste y las métricas se extraen automáticamente del WKT con PostGIS.
+// Si no viene WKT (legacy form), caemos a la creación con métricas manuales.
 // -----------------------------------------------------------------------------
 export async function crearPredioAction(formData: FormData): Promise<Result> {
   await requireRole(["ADMIN", "GESTOR"] as const);
 
+  const shapeWkt = String(formData.get("shapeWKT") ?? "").trim();
+
+  // ── Camino 1: con WKT (preferido) ────────────────────────────────────────
+  if (shapeWkt) {
+    const parsed = safeParseForm(formData, {
+      nombrePredio:    { name: "nombrePredio",    required: true, type: "string", min: 2, max: 255 },
+      cedulaCatastral: { name: "cedulaCatastral", required: true, type: "string", min: 1, max: 50 },
+      cedulaAnt:       { name: "cedulaAnt",       required: true, type: "string", min: 1, max: 50 },
+      nucleoPredial:   { name: "nucleoPredial",   required: true, type: "string", min: 1, max: 255 },
+      idPropietario:   { name: "idPropietario",   required: true, type: "number", integer: true, min: 1 },
+      idVereda:        { name: "idVereda",        required: true, type: "number", integer: true, min: 1 },
+      observaciones:   { name: "observaciones",   required: false, type: "string", max: 2000 },
+    });
+    if (!parsed.ok) return { ok: false, message: parsed.message, field: parsed.field };
+    const data = parsed.data as Record<string, unknown>;
+    try {
+      const fresh = await crearPredioConShape({
+        nombrePredio:    String(data.nombrePredio),
+        cedulaCatastral: String(data.cedulaCatastral),
+        cedulaAnt:       String(data.cedulaAnt),
+        nucleoPredial:   String(data.nucleoPredial),
+        idPropietario:   Number(data.idPropietario),
+        idVereda:        Number(data.idVereda),
+        shapeWkt,
+        observaciones:   data.observaciones == null ? undefined : String(data.observaciones),
+      });
+      revalidateTag("predios");
+      revalidateTag("dashboard");
+      revalidateTag("mapa");
+      revalidateTag("analisis");
+      revalidateTag("reportes");
+      revalidateTag("catalogos:lookup");
+      revalidatePath("/predios");
+      return { ok: true, message: `Predio ${fresh.nombrePredio} creado con shape.`, idPredio: fresh.idPredio };
+    } catch (err) {
+      return { ok: false, message: (err as Error).message ?? "No se pudo crear el predio." };
+    }
+  }
+
+  // ── Camino 2: legacy (métricas manuales) ────────────────────────────────
   const parsed = safeParseForm(formData, {
     nombrePredio:      { name: "nombrePredio",      required: true, type: "string", min: 2, max: 255 },
     cedulaCatastral:   { name: "cedulaCatastral",   required: true, type: "string", min: 1, max: 50 },

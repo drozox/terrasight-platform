@@ -19,11 +19,19 @@ import {
 
 type Mode = "create" | "edit";
 
+// DEEPSEEK-F3.4: en modo create, el shape (WKT) es OBLIGATORIO y las
+// métricas (area/lon/lat/perimetro) se extraen automáticamente desde el shape
+// con ST_GeomFromText / ST_Area / ST_Centroid / ST_Perimeter.
+// En modo edit se mantienen los inputs manuales para corregir un predio
+// sin tener que re-subir el shape.
 const FIELD_DEFS = [
-  { name: "nombrePredio",      label: "Nombre del predio",          type: "string",  min: 2, max: 255, required: true },
-  { name: "cedulaCatastral",   label: "Cédula catastral",           type: "string",  required: true },
-  { name: "cedulaAnt",         label: "Cédula anterior",            type: "string",  required: true },
-  { name: "nucleoPredial",     label: "Núcleo predial",             type: "string",  required: true },
+  { name: "nombrePredio",    label: "Nombre del predio",        type: "string",  min: 2, max: 255, required: true },
+  { name: "cedulaCatastral", label: "Cédula catastral",         type: "string",  required: true },
+  { name: "cedulaAnt",       label: "Cédula ANT (Agencia Nacional de Tierras)", type: "string", required: true },
+  { name: "nucleoPredial",   label: "Núcleo predial",           type: "string",  required: true },
+] as const;
+
+const METRIC_FIELDS = [
   { name: "areaHa",            label: "Área (ha)",                  type: "number",  required: true, step: "0.01", min: 0 },
   { name: "longitudCentroide", label: "Longitud centroide (lon)",   type: "number",  required: true, step: "0.000001", min: -180, max: 180 },
   { name: "latitudCentroide",  label: "Latitud centroide (lat)",    type: "number",  required: true, step: "0.000001", min: -90,  max: 90 },
@@ -122,6 +130,37 @@ export function PredioForm({
       action={mode === "create" ? onSubmitCreate : onSubmitEdit}
       className="space-y-4"
     >
+      {/* DEEPSEEK-F3.4: campo WKT obligatorio en modo create */}
+      {mode === "create" && (
+        <Field
+          label="Shape (WKT) — POLYGON o MULTIPOLYGON, SRID 4686"
+          hint="Pegá el WKT del polígono (ej. POLYGON((-73.85 4.65, ...)). El área, perímetro y centroide se calculan automáticamente del shape."
+          error={
+            error && !initial?.idPredio
+              ? error.includes("shape") || error.includes("ST_")
+                ? error
+                : null
+              : null
+          }
+        >
+          <textarea
+            name="shapeWKT"
+            rows={4}
+            required
+            placeholder="POLYGON((-73.8500 4.6500, -73.8400 4.6500, -73.8400 4.6600, -73.8500 4.6600, -73.8500 4.6500))"
+            className="w-full rounded-lg border border-outline-variant bg-surface-container-highest px-3 py-2 font-mono text-[11px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </Field>
+      )}
+
+      {/* DEEPSEEK-F3.4: las métricas manuales solo se muestran en modo edit
+          (en create se calculan del shape). */}
+      {mode === "create" && (
+        <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-low p-3 text-body-sm text-on-surface-variant">
+          El área, perímetro, longitud y latitud del centroide se calculan
+          automáticamente del WKT. No los ingreses manualmente.
+        </div>
+      )}
       {flash && (
         <div
           role="status"
@@ -148,6 +187,26 @@ export function PredioForm({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {FIELD_DEFS.map((f) => {
+          const v = initial ? (initial as unknown as Record<string, unknown>)[f.name] : undefined;
+          // FIELD_DEFS ya no incluye campos numéricos (DEEPSEEK-F3.4).
+          return (
+            <Field
+              key={f.name}
+              label={f.label + (f.required ? "" : " (opcional)")}
+            >
+              <Input
+                name={f.name}
+                type="text"
+                required={f.required}
+                defaultValue={v !== undefined && v !== null && v !== "" ? String(v) : ""}
+              />
+            </Field>
+          );
+        })}
+
+        {/* DEEPSEEK-F3.4: en modo edit se mantienen los inputs manuales para
+            permitir correcciones sin tener que re-subir el shape. */}
+        {mode === "edit" && METRIC_FIELDS.map((f) => {
           const v = initial ? (initial as unknown as Record<string, unknown>)[f.name] : undefined;
           const isNum = f.type === "number";
           return (

@@ -263,6 +263,53 @@ export async function crearPredio(input: Omit<PredioFull, "idPredio">): Promise<
   return fresh;
 }
 
+// -----------------------------------------------------------------------------
+// crearPredioConShape — DEEPSEEK-F3.4
+// Variante que recibe WKT del shape. Extrae automáticamente:
+//   - longitud_centroide / latitud_centroide (ST_Centroid)
+//   - area_ha (ST_Area ::geography / 10000)
+//   - perimetro (ST_Perimeter ::geography)
+//   - geom (MULTIPOLYGON, SRID 4686) — usa migración 39
+// El WKT DEBE ser POLYGON o MULTIPOLYGON.
+// -----------------------------------------------------------------------------
+export async function crearPredioConShape(input: {
+  nombrePredio: string;
+  cedulaCatastral: string;
+  cedulaAnt: string;
+  nucleoPredial: string;
+  idPropietario: number;
+  idVereda: number;
+  shapeWkt: string;
+  observaciones?: string;
+}): Promise<PredioFull> {
+  const rows = await sql<{ id_predio: number | string }[]>`
+    INSERT INTO sgs_pre_predio (
+      nombre_predio, area_ha, cedula_catastral, cedula_ant,
+      longitud_centroide, latitud_centroide, nucleo_predial,
+      observaciones, perimetro, id_propietario, id_vereda,
+      geom
+    )
+    SELECT
+      ${input.nombrePredio},
+      ST_Area(ST_GeomFromText(${input.shapeWkt}, 4686)::geography) / 10000.0,
+      ${input.cedulaCatastral},
+      ${input.cedulaAnt},
+      ST_X(ST_Centroid(ST_GeomFromText(${input.shapeWkt}, 4686))),
+      ST_Y(ST_Centroid(ST_GeomFromText(${input.shapeWkt}, 4686))),
+      ${input.nucleoPredial},
+      ${input.observaciones ?? ""},
+      ST_Perimeter(ST_GeomFromText(${input.shapeWkt}, 4686)::geography),
+      ${input.idPropietario},
+      ${input.idVereda},
+      ST_Multi(ST_GeomFromText(${input.shapeWkt}, 4686))
+    RETURNING id_predio;
+  `;
+  if (!rows[0]) throw new Error("Insert de predio con shape fallido");
+  const fresh = await getPredioById(pgInt(rows[0].id_predio));
+  if (!fresh) throw new Error("Insert OK pero no se puede releer");
+  return fresh;
+}
+
 export async function actualizarPredio(
   id: number,
   input: Omit<PredioFull, "idPredio">,
