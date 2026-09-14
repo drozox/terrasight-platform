@@ -131,6 +131,8 @@ export type PredioFull = {
   perimetro: number;
   idPropietario: number;
   idVereda: number;
+  /** DEEPSEEK-F3.3: nombre del propietario (JOIN opcional). */
+  nombrePropietario?: string;
 }
 
 export type PropietarioMini = {

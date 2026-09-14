@@ -104,7 +104,8 @@ export function PredioDetail({
             `PR-${String(initial.idPredio).padStart(5, "0")}`}
         </Field>
         <Field label="Cédula catastral">{initial.cedulaCatastral}</Field>
-        <Field label="Cédula anterior">{initial.cedulaAnt}</Field>
+        {/* DEEPSEEK-F3.3: Cédula ANT (Agencia Nacional de Tierras), no "anterior". */}
+        <Field label="Cédula ANT (Agencia Nacional de Tierras)">{initial.cedulaAnt}</Field>
         <Field label="Núcleo predial">{initial.nucleoPredial}</Field>
         <Field label="Área">
           {initial.areaHa.toLocaleString("es-CO", { maximumFractionDigits: 2 })} ha
@@ -117,7 +118,10 @@ export function PredioDetail({
           {initial.longitudCentroide.toFixed(4)}
         </Field>
         <Field label="Propietario">
-          {propietario?.nombreRazonSocial ?? `id=${initial.idPropietario}`}
+          {/* DEEPSEEK-F3.3: prioriza el nombre del JOIN en BD; fallback al lookup. */}
+          {initial.nombrePropietario
+            ? initial.nombrePropietario
+            : propietario?.nombreRazonSocial ?? `id=${initial.idPropietario}`}
         </Field>
         <Field label="Vereda / Municipio">
           {vereda

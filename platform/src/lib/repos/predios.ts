@@ -169,15 +169,39 @@ export async function listPrediosFiltrados(args: {
 }
 
 export async function getPredioById(id: number): Promise<PredioFull | null> {
-  const rows = await sql<PredioRow[]>`
-    SELECT id_predio, nombre_predio, area_ha, cedula_catastral, cedula_ant,
-           longitud_centroide, latitud_centroide, nucleo_predial,
-           observaciones, perimetro, id_propietario, id_vereda
-    FROM   sgs_pre_predio
-    WHERE  id_predio = ${id}
+  // DEEPSEEK-F3.3: agregamos JOIN con propietario para que la ficha muestre
+  // el nombre del propietario (no solo el ID).
+  type RowConProp = {
+    id_predio: number | string;
+    nombre_predio: string;
+    area_ha: number | string;
+    cedula_catastral: string;
+    cedula_ant: string;
+    longitud_centroide: number | string;
+    latitud_centroide: number | string;
+    nucleo_predial: string;
+    observaciones: string;
+    perimetro: number | string;
+    id_propietario: number | string;
+    id_vereda: number | string;
+    nombre_propietario: string | null;
+  };
+  const rows = (await sql`
+    SELECT p.id_predio, p.nombre_predio, p.area_ha, p.cedula_catastral, p.cedula_ant,
+           p.longitud_centroide, p.latitud_centroide, p.nucleo_predial,
+           p.observaciones, p.perimetro, p.id_propietario, p.id_vereda,
+           pr.nombre_razon_social AS nombre_propietario
+    FROM   sgs_pre_predio p
+    LEFT JOIN sgs_pre_propietario pr ON pr.id_propietario = p.id_propietario
+    WHERE  p.id_predio = ${id}
     LIMIT  1;
-  `;
-  return rows[0] ? mapPredioRow(rows[0]) : null;
+  `) as RowConProp[];
+  if (rows.length === 0) return null;
+  const r = rows[0]!;
+  return {
+    ...mapPredioRow(r),
+    nombrePropietario: pgText(r.nombre_propietario ?? ""),
+  };
 }
 
 const listPropietariosImpl = async (): Promise<PropietarioMini[]> => {
