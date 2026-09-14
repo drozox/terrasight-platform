@@ -62,9 +62,10 @@ export default async function LoginPage({
           Alianza del convenio
         </p>
         <div className="flex flex-col items-center gap-4">
-          <PartnerLogo name="wwf"    src="/partners/wwf-panda.png"  className="h-10" />
-          <PartnerLogo name="car"    src="/partners/car.png"         className="h-10" />
-          <PartnerLogo name="natura" src="/partners/natura-2018.png" className="h-10" />
+          {/* DEEPSEEK-F6: solo los 4 logos oficiales del convenio */}
+          <PartnerLogo name="car"    src="/logos/car.png"              className="h-12" />
+          <PartnerLogo name="wwf"    src="/logos/wwf.png"              className="h-12" />
+          <PartnerLogo name="natura" src="/logos/fundacion-natura.jpg" className="h-12" />
         </div>
         <p className="mt-2 text-center text-[11px] leading-relaxed text-on-surface-variant">
           Plataforma desarrollada en el marco del convenio CAR · WWF · Fundación Natura

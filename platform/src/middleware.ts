@@ -8,7 +8,7 @@
 //   - /login (form de autenticación)
 //   - /api/auth/* (handlers de NextAuth)
 //   - /_next/*   (assets de Next.js)
-//   - /favicon.ico, /partners/* (assets estáticos públicos)
+//   - /favicon.ico, /logos/*, /images/* (assets estáticos públicos)
 // =============================================================================
 
 import { auth } from "@/lib/auth";
@@ -26,7 +26,7 @@ export default auth((req) => {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
-    pathname.startsWith("/partners") ||
+    pathname.startsWith("/logos") ||
     pathname.startsWith("/images");
 
   if (isPublic) {
@@ -53,6 +53,6 @@ export default auth((req) => {
 // Mantener sincronizado con los paths públicos arriba.
 export const config = {
   matcher: [
-    "/((?!api/health|api/auth|_next/static|_next/image|favicon.ico|partners|images).*)",
+    "/((?!api/health|api/auth|_next/static|_next/image|favicon.ico|logos|images).*)",
   ],
 };
