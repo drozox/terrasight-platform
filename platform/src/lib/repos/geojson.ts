@@ -184,3 +184,51 @@ export const getPropuestasLineaGeoJSON = unstable_cache(
   ["geo-propuestas-linea"],
   { revalidate: 300, tags: ["mapa"] },
 );
+
+/** Propuestas punto — puntos de intervención (cosecha, compostaje, estaciones, obras). */
+export const getPropuestasPuntoGeoJSON = unstable_cache(
+  async (): Promise<FeatureCollection> => {
+    const rows = await sql<{ id: number; nombre: string | null; tipo: string | null; geom: string }[]>`
+      SELECT pt.id_prop_punto AS id, pt.actividad AS nombre, pt.tipo_punto AS tipo,
+             ST_AsGeoJSON(pt.geom) AS geom
+      FROM sgs_pro_propuesta_punto pt
+      WHERE pt.geom IS NOT NULL
+      ORDER BY pt.id_prop_punto;
+    `;
+    return {
+      type: "FeatureCollection",
+      features: rows.map((r) => ({
+        type: "Feature",
+        id: r.id,
+        properties: { id: r.id, nombre: r.nombre, tipo: r.tipo, layer: "propuestas_punto" },
+        geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
+      })),
+    };
+  },
+  ["geo-propuestas-punto"],
+  { revalidate: 300, tags: ["mapa"] },
+);
+
+/** Propuestas polígono — áreas de intervención. */
+export const getPropuestasPoligonoGeoJSON = unstable_cache(
+  async (): Promise<FeatureCollection> => {
+    const rows = await sql<{ id: number; nombre: string | null; area_ha: number; geom: string }[]>`
+      SELECT pq.id_propuesta AS id, pq.actividad AS nombre, pq.area_ha,
+             ST_AsGeoJSON(pq.geom) AS geom
+      FROM sgs_pro_propuesta_poligono pq
+      WHERE pq.geom IS NOT NULL
+      ORDER BY pq.id_propuesta;
+    `;
+    return {
+      type: "FeatureCollection",
+      features: rows.map((r) => ({
+        type: "Feature",
+        id: r.id,
+        properties: { id: r.id, nombre: r.nombre, areaHa: Number(r.area_ha), layer: "propuestas_poligono" },
+        geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
+      })),
+    };
+  },
+  ["geo-propuestas-poligono"],
+  { revalidate: 300, tags: ["mapa"] },
+);

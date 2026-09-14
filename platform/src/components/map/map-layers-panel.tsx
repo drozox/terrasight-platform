@@ -10,6 +10,7 @@ import {
   Building2,
   Mountain,
   ChevronRight,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +23,9 @@ export type MapLayerKey =
   | "biomas"
   | "parques"
   | "reservas"
-  | "predios";
+  | "predios"
+  | "propuestas_punto"
+  | "propuestas_poligono";
 
 interface MapLayersPanelProps {
   basemap: "osm" | "topo" | "satellite";
@@ -95,6 +98,14 @@ const LAYER_GROUPS: Array<{
     Icon: Trees,
     items: [
       { key: "biomas",       label: "Biomas IAVH" },
+    ],
+  },
+  {
+    title: "Intervenciones",
+    Icon: Wrench,
+    items: [
+      { key: "propuestas_punto",    label: "Intervenciones (puntos)" },
+      { key: "propuestas_poligono", label: "Intervenciones (áreas)" },
     ],
   },
   {

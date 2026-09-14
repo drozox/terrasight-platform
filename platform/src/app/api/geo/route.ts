@@ -25,19 +25,23 @@ import {
   getDrenajesSimplesGeoJSON,
   getViasGeoJSON,
   getPropuestasLineaGeoJSON,
+  getPropuestasPuntoGeoJSON,
+  getPropuestasPoligonoGeoJSON,
 } from "@/lib/repos/geojson";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const LAYERS = {
-  municipios:  getMunicipiosGeoJSON,
-  veredas:     getVeredasGeoJSON,
-  predios:     getPrediosGeoJSON,
-  biomas:      getBiomasGeoJSON,
-  drenajes:    getDrenajesSimplesGeoJSON,
-  vias:        getViasGeoJSON,
-  propuestas:  getPropuestasLineaGeoJSON,
+  municipios:         getMunicipiosGeoJSON,
+  veredas:            getVeredasGeoJSON,
+  predios:            getPrediosGeoJSON,
+  biomas:             getBiomasGeoJSON,
+  drenajes:           getDrenajesSimplesGeoJSON,
+  vias:               getViasGeoJSON,
+  propuestas:         getPropuestasLineaGeoJSON,
+  propuestas_punto:   getPropuestasPuntoGeoJSON,
+  propuestas_poligono: getPropuestasPoligonoGeoJSON,
 } as const;
 
 type LayerKey = keyof typeof LAYERS;

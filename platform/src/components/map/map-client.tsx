@@ -89,6 +89,8 @@ export default function MapClient({
     biomas: false,
     parques: false,
     reservas: false,
+    propuestas_punto: false,
+    propuestas_poligono: false,
   });
   const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
   // Sprint 18: discriminated union con payload por herramienta
@@ -348,6 +350,24 @@ export default function MapClient({
             weight={2}
             fillColor="#006d37"
             fillOpacity={0.35}
+          />
+        )}
+        {layers.propuestas_poligono && (
+          <GeoJsonLayer
+            url="/api/geo?layer=propuestas_poligono"
+            color="#b26a00"
+            weight={2}
+            fillColor="#f0b24a"
+            fillOpacity={0.25}
+          />
+        )}
+        {layers.propuestas_punto && (
+          <GeoJsonLayer
+            url="/api/geo?layer=propuestas_punto"
+            color="#b26a00"
+            weight={2}
+            fillColor="#f0b24a"
+            fillOpacity={0.8}
           />
         )}
         {layers.biomas && (
