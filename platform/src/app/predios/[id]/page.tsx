@@ -1,9 +1,10 @@
 ﻿// =============================================================================
-// /predios/[id] — Ficha del predio.
+// /predios/[id] — Ficha del predio (DEEPSEEK-71 / F4).
 // Server Component que carga y delega a la vista interactiva.
 // =============================================================================
 
 import Link from "next/link";
+import dynamicImport from "next/dynamic";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -13,6 +14,8 @@ import {
   getPrediosGeoJSON,
   listPropietarios,
   listVeredas,
+  getPredioAnalisisCompleto,
+  listIntervencionesByPredio,
 } from "@/lib/repos";
 import { PredioDetail } from "./predio-detail";
 
@@ -29,15 +32,19 @@ export default async function PredioDetailPage({
   const idNum = Number(id);
   if (!Number.isFinite(idNum) || idNum <= 0) notFound();
 
-  const [predio, geojson, propietarios, veredas] = await Promise.all([
-    getPredioById(idNum),
-    getPrediosGeoJSON(),
-    listPropietarios(),
-    listVeredas(),
-  ]);
+  const [predio, geojson, propietarios, veredas, analisis, intervenciones] =
+    await Promise.all([
+      getPredioById(idNum),
+      getPrediosGeoJSON(),
+      listPropietarios(),
+      listVeredas(),
+      getPredioAnalisisCompleto(idNum),
+      listIntervencionesByPredio(idNum),
+    ]);
   if (!predio) notFound();
 
-  const feature = geojson.features.find((f) => f.properties.id === idNum) ?? null;
+  const feature =
+    geojson.features.find((f) => f.properties.id === idNum) ?? null;
 
   // Permiso: ADMIN o GESTOR pueden editar; ANALISTA queda read-only.
   const canEdit = user.rol === "ADMIN" || user.rol === "GESTOR";
@@ -53,14 +60,15 @@ export default async function PredioDetailPage({
           Volver a Predios
         </Link>
 
-        <Card className="p-6">
+        <Card className="overflow-hidden p-6">
           <div className="mb-4 flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Building2 className="size-6" />
             </div>
             <div>
               <p className="font-mono text-[11px] text-on-surface-variant">
-                {feature?.properties.codigo ?? `PR-${String(idNum).padStart(5, "0")}`}
+                {feature?.properties.codigo ??
+                  `PR-${String(idNum).padStart(5, "0")}`}
               </p>
               <h1 className="text-2xl font-bold text-on-surface">
                 {predio.nombrePredio}
@@ -83,6 +91,8 @@ export default async function PredioDetailPage({
             canEdit={canEdit}
             propietarios={propietarios}
             veredas={veredas}
+            intervenciones={intervenciones}
+            analisis={analisis}
           />
         </Card>
       </div>

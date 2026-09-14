@@ -427,6 +427,55 @@ export async function listAvancesByPropuesta(id: number): Promise<AvancePropuest
 }
 
 // -----------------------------------------------------------------------------
+// listIntervencionesByPredio — DEEPSEEK-71 (F4)
+// Lista todas las intervenciones (punto/línea/polígono) asociadas a un predio.
+// Se usa en la ficha del predio para mostrar el historial de acciones.
+// -----------------------------------------------------------------------------
+export async function listIntervencionesByPredio(
+  idPredio: number,
+): Promise<Array<{
+  idPropuesta: number;
+  tipo: "punto" | "linea" | "poligono";
+  actividad: string;
+  estado: string;
+  idAccion: number | null;
+  nombreAccion: string | null;
+  nombreComponente: string | null;
+}>> {
+  const rows = await sql<{
+    id_propuesta: number | string;
+    tipo: string;
+    actividad: string;
+    estado: string;
+    id_accion: number | string | null;
+    nombre_accion: string | null;
+    nombre_componente: string | null;
+  }[]>`
+    SELECT pp.id_propuesta,
+           pp.tipo,
+           pp.actividad,
+           pp.estado,
+           a.id_accion,
+           a.nombre      AS nombre_accion,
+           c.nombre      AS nombre_componente
+    FROM   sgs_pro_propuesta pp
+    LEFT JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+    LEFT JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+    WHERE  pp.id_predio = ${idPredio}
+    ORDER  BY pp.id_propuesta DESC;
+  `;
+  return rows.map((r) => ({
+    idPropuesta: pgInt(r.id_propuesta),
+    tipo: pgText(r.tipo) as "punto" | "linea" | "poligono",
+    actividad: pgText(r.actividad),
+    estado: pgText(r.estado),
+    idAccion: r.id_accion == null ? null : pgInt(r.id_accion),
+    nombreAccion: r.nombre_accion,
+    nombreComponente: r.nombre_componente,
+  }));
+}
+
+// -----------------------------------------------------------------------------
 // agregarAvancePropuesta — INSERT + return. Lanza con mensaje claro si viola
 // CHECK (0-100) o FK a propuesta/usuario.
 // -----------------------------------------------------------------------------
