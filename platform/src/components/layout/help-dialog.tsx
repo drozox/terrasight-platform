@@ -9,7 +9,7 @@
 //  - Atajos de teclado básicos (búsqueda, navegación sidebar)
 //  - Contacto del equipo (mailto)
 //
-// Patrón: reuse Radix Dialog primitive (mismo que View3DDialog y ConfirmDialog).
+// Patrón: reuse Radix Dialog primitive (mismo que ConfirmDialog).
 // El usuario entiende qué hace el producto + cómo pedir soporte sin necesidad
 // de documentación externa.
 // =============================================================================

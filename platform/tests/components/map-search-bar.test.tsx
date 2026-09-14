@@ -1,6 +1,6 @@
 // =============================================================================
-// Tests para MapSearchBar — input de búsqueda + botones 3D, Layers (eliminado),
-// Bookmark del mapa. Verifica que los placebos ahora abren mocks honestos.
+// Tests para MapSearchBar — input de búsqueda + debounce.
+// (Los botones 3D y Marcadores se eliminaron en el acotamiento — ver ALCANCE.md.)
 // =============================================================================
 
 import { describe, it, expect, vi } from "vitest";
@@ -24,36 +24,14 @@ describe("<MapSearchBar>", () => {
     expect(input).toBeInTheDocument();
   });
 
-  it("el botón 3D tiene aria-label y abre el View3DDialog al click", async () => {
+  it("NO incluye botones fuera de alcance (3D, Marcadores, Layers)", () => {
     render(<MapSearchBar />);
-    const user = userEvent.setup();
-
-    // El botón 3D debe existir
-    const btn3d = screen.getByRole("button", { name: /Ver vista 3D/i });
-    expect(btn3d).toBeInTheDocument();
-
-    await user.click(btn3d);
-    // El dialog se abre
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText(/Vista 3D · Próxima fase/)).toBeInTheDocument();
-  });
-
-  it("el botón Marcadores abre el BookmarksDialog al click", async () => {
-    render(<MapSearchBar />);
-    const user = userEvent.setup();
-
-    const btnBookmark = screen.getByRole("button", { name: /Marcadores guardados/i });
-    expect(btnBookmark).toBeInTheDocument();
-
-    await user.click(btnBookmark);
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(
-      screen.getByText(/Marcadores guardados · Próxima fase/),
-    ).toBeInTheDocument();
-  });
-
-  it("NO incluye el botón Layers (era duplicado del MapLayersPanel a la izquierda)", () => {
-    render(<MapSearchBar />);
+      screen.queryByRole("button", { name: /Ver vista 3D/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Marcadores/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /^Capas$/i }),
     ).not.toBeInTheDocument();
@@ -69,11 +47,7 @@ describe("<MapSearchBar>", () => {
     expect(screen.getByLabelText(/Buscando/i)).toBeInTheDocument();
   });
 
-  it("typing + submit actualiza la URL via router.replace", async () => {
-    // Mockeamos useRouter para capturar el replace. El mock arriba usa
-    // vi.fn() que podemos inspeccionar via el hook. Pero como el módulo es
-    // mockeado, los mocks son compartidos entre tests — sólo verificamos que
-    // el input + Enter no rompa y la UI siga estable.
+  it("typing + submit no rompe (el input mantiene su valor)", async () => {
     render(<MapSearchBar initialQuery="" />);
     const user = userEvent.setup();
     const input = screen.getByPlaceholderText(/Buscar municipio/i);
@@ -81,7 +55,6 @@ describe("<MapSearchBar>", () => {
     await user.type(input, "Chingaza");
     await user.keyboard("{Enter}");
 
-    // El input mantiene su valor tras Enter (el estado es local)
     expect((input as HTMLInputElement).value).toBe("Chingaza");
   });
 });

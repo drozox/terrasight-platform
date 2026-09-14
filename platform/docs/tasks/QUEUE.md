@@ -52,17 +52,16 @@
 | `DEEPSEEK-29` `RUNBOOK` de operación | T1 | P2 | ⚠️ no entregado | [T1-doc-runbook.md](./T1-doc-runbook.md) |
 | `DEEPSEEK-44` `AGENTS.md`: coordinación + fuente única | T1 | P3 | ⚠️ no entregado | [T1-doc-agents-coordination.md](./T1-doc-agents-coordination.md) |
 
-## Lote 06 (activo) — acotamiento + entregables
+## Lote 06 (cerrado) — acotamiento + entregables
 
-> Deja la app SOLO con lo que cumplen los objetivos. Guía: [`../ALCANCE.md`](../ALCANCE.md).
-> (Absorbe las cards del lote 05.)
+> Ejecutado por **T0 (DeepSeek)** a pedido del owner. Guía: [`../ALCANCE.md`](../ALCANCE.md).
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
-| `DEEPSEEK-62` Sidebar al alcance estricto | T1 | P1 | 🟢 listo | [T1-scope-nav.md](./T1-scope-nav.md) |
-| `DEEPSEEK-63` Quitar placeholders 3D/marcadores | T1 | P1 | 🟢 listo | [T1-scope-placeholders.md](./T1-scope-placeholders.md) |
-| `DEEPSEEK-60` Diccionario de datos (OE1) | T1 | P1 | 🟢 listo | [T1-doc-modelo-datos.md](./T1-doc-modelo-datos.md) |
-| `DEEPSEEK-61` Matriz objetivo → evidencia | T1 | P1 | 🟢 listo | [T1-doc-entregable-objetivos.md](./T1-doc-entregable-objetivos.md) |
+| `DEEPSEEK-62` Sidebar al alcance estricto | T0 | P1 | ✅ done | [T1-scope-nav.md](./T1-scope-nav.md) |
+| `DEEPSEEK-63` Quitar placeholders 3D/marcadores | T0 | P1 | ✅ done | [T1-scope-placeholders.md](./T1-scope-placeholders.md) |
+| `DEEPSEEK-60` Diccionario de datos (OE1) | T0 | P1 | ✅ done | [T1-doc-modelo-datos.md](./T1-doc-modelo-datos.md) |
+| `DEEPSEEK-61` Matriz objetivo → evidencia | T0 | P1 | ✅ done | [T1-doc-entregable-objetivos.md](./T1-doc-entregable-objetivos.md) |
 
 ## Lote 04 (cerrado 2026-09-13)
 

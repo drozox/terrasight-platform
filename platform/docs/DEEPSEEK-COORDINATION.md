@@ -270,6 +270,7 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 10 | **Revisión/integración lote 02** (6 cards, ramas `t1/*`): merge octopus `8cfd731` + fixes T0 (`afterEach` sin import, 2 nombres de tabla en DEPLOY, `BASE` sin uso) | `8cfd731` |
 | MiniMax (lote 04) | 6 cards T1 entregadas y **auto-mergeadas** a main en ramas `t1/*` (override del flujo; requiere review T0) | `a0ea651`…`9224066`, `97e48d5` |
 | DeepSeek 12 | **Revisión lote 04**: gate verde + fixes T0 (`BASE` sin uso en `api-data.spec.ts`, puerto dev en RUNBOOK) | (este commit) |
+| DeepSeek 13 | **Acotamiento a objetivos** (lote 06 ejecutado por T0): sidebar estricto, placeholders 3D/marcadores fuera, `ALCANCE.md`, `MODELO-DATOS.md`, `ENTREGABLE-OBJETIVOS.md` | (este commit) |
 
 ## 9. Cola de trabajo y asignaciones
 

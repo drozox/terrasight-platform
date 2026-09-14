@@ -25,10 +25,8 @@ import {
   MapIcon,
   Building2,
   Wrench,
-  Activity,
   PieChart,
   FileText,
-  Droplet,
   Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,9 +41,9 @@ type Item = {
   roles: readonly RolSistema[] | null;
 };
 
-// Navegación reducida al alcance del entregable del Convenio 3038-2024
-// (ver docs/PLAN-CIERRE-HOY.md §3 Fase 1). Los módulos fuera de alcance
-// (Catálogos, Alertas, Admin, Configuración, Dashboard) siguen accesibles por
+// Navegación reducida al ALCANCE del entregable del Convenio 3038-2024
+// (ver docs/ALCANCE.md). Los módulos fuera de alcance (Quebradas, Monitoreo,
+// Catálogos, Alertas, Admin, Configuración, Dashboard) siguen accesibles por
 // URL pero no se muestran en el nav. Reactivar = re-agregar la fila acá.
 const ALL_ITEMS: Item[] = [
   { href: "/",               label: "Inicio",             icon: HomeIcon,    roles: null },
@@ -53,8 +51,6 @@ const ALL_ITEMS: Item[] = [
   { href: "/predios",        label: "Predios",            icon: Building2,   roles: null },
   { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,      roles: null },
   { href: "/metas/convenio", label: "Metas del convenio", icon: Target,      roles: null },
-  { href: "/quebradas",      label: "Quebradas",          icon: Droplet,     roles: null },
-  { href: "/monitoreo",      label: "Monitoreo",          icon: Activity,    roles: ["ADMIN", "GESTOR"] },
   { href: "/analisis",       label: "Análisis Espacial",  icon: PieChart,    roles: ["ADMIN", "ANALISTA"] },
   { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
 ];
