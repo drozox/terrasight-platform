@@ -271,6 +271,7 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | MiniMax (lote 04) | 6 cards T1 entregadas y **auto-mergeadas** a main en ramas `t1/*` (override del flujo; requiere review T0) | `a0ea651`…`9224066`, `97e48d5` |
 | DeepSeek 12 | **Revisión lote 04**: gate verde + fixes T0 (`BASE` sin uso en `api-data.spec.ts`, puerto dev en RUNBOOK) | (este commit) |
 | DeepSeek 13 | **Acotamiento a objetivos** (lote 06 ejecutado por T0): sidebar estricto, placeholders 3D/marcadores fuera, `ALCANCE.md`, `MODELO-DATOS.md`, `ENTREGABLE-OBJETIVOS.md` | (este commit) |
+| DeepSeek 14 | **Fix geometría puntos C2 + mapa** (capas de intervenciones, panel de datos por capa, logos fuera, `/analisis`→`/mapa`, metas en dashboard) + **revisión lote 07** | `5b40670`, `51eed9e`, `d8d027c`, merge lote 07 |
 
 ## 9. Cola de trabajo y asignaciones
 
