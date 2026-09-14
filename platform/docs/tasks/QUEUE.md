@@ -12,9 +12,10 @@
 
 ## Tablero
 
-> **Lote paralelo activo:** [`PARALLEL-BATCH-07.md`](./PARALLEL-BATCH-07.md) (5 cards).
-> Alcance: [`../ALCANCE.md`](../ALCANCE.md) · Plan: [`../PLAN-CIERRE-HOY.md`](../PLAN-CIERRE-HOY.md).
-> Lotes cerrados: 01, 02, 04, 06 (03 no entregado → 04; 05 absorbido por 06).
+> **Lote paralelo activo:** [`PARALLEL-BATCH-08.md`](./PARALLEL-BATCH-08.md) (4 cards: predios + dashboard).
+> Plan mejoras: [`../PLAN-MEJORAS-MAPA-DASHBOARD.md`](../PLAN-MEJORAS-MAPA-DASHBOARD.md).
+> El mapa (F1/F2/F3/F6) lo hace T0.
+> Lotes cerrados: 01, 02, 04, 06, 07 (03 no entregado → 04; 05 absorbido por 06).
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
