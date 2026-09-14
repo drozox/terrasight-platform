@@ -37,6 +37,7 @@ import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
 import { MapLayerDataPanel } from "./map-layer-data-panel";
+import { MapFeaturePanel } from "./map-feature-panel";
 import { MapToolFeedback } from "./map-tool-feedback";
 import { MapMeasureLayer, MapMeasureCursor } from "./map-measure-layer";
 import { MapResultPanel } from "./map-result-panel";
@@ -96,6 +97,8 @@ export default function MapClient({
   const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
   // Capa cuyos DATOS (atributos) se muestran en el panel de datos.
   const [dataLayer, setDataLayer] = React.useState<MapLayerKey | null>(null);
+  // Entidad clickeada en el mapa → panel de atributos (experiencia SIG).
+  const [selectedFeature, setSelectedFeature] = React.useState<GeoJSON.Feature | null>(null);
   // Sprint 18: discriminated union con payload por herramienta
   const [interaction, setInteraction] = React.useState<MapInteraction>({ kind: "none" });
   // Sprint 18.2: estado para el panel de identificar
@@ -334,6 +337,7 @@ export default function MapClient({
             fillColor="#1f6feb"
             fillOpacity={0.06}
             dashArray="6 4"
+            onClick={setSelectedFeature}
           />
         )}
         {layers.veredas && (
@@ -344,6 +348,7 @@ export default function MapClient({
             fillColor="#0b7c3a"
             fillOpacity={0.05}
             dashArray="3 3"
+            onClick={setSelectedFeature}
           />
         )}
         {layers.predios && (
@@ -353,6 +358,7 @@ export default function MapClient({
             weight={2}
             fillColor="#006d37"
             fillOpacity={0.35}
+            onClick={setSelectedFeature}
           />
         )}
         {layers.propuestas_poligono && (
@@ -362,6 +368,7 @@ export default function MapClient({
             weight={2}
             fillColor="#f0b24a"
             fillOpacity={0.25}
+            onClick={setSelectedFeature}
           />
         )}
         {layers.propuestas_punto && (
@@ -371,6 +378,7 @@ export default function MapClient({
             weight={2}
             fillColor="#f0b24a"
             fillOpacity={0.8}
+            onClick={setSelectedFeature}
           />
         )}
         {layers.biomas && (
@@ -380,6 +388,7 @@ export default function MapClient({
             weight={1}
             fillColor="#a3d977"
             fillOpacity={0.18}
+            onClick={setSelectedFeature}
           />
         )}
         {layers.quebradas && (
@@ -388,6 +397,7 @@ export default function MapClient({
             color="#1f79b9"
             weight={1.5}
             fillOpacity={0}
+            onClick={setSelectedFeature}
           />
         )}
         {layers.rios && (
@@ -396,6 +406,7 @@ export default function MapClient({
             color="#1f79b9"
             weight={2.5}
             fillOpacity={0}
+            onClick={setSelectedFeature}
           />
         )}
         {layers.vias && (
@@ -405,6 +416,7 @@ export default function MapClient({
             weight={1.2}
             fillOpacity={0}
             dashArray="2 3"
+            onClick={setSelectedFeature}
           />
         )}
 
@@ -447,6 +459,8 @@ export default function MapClient({
       {showLayersPanel && (
         <MapLayerDataPanel layer={dataLayer} onClose={() => setDataLayer(null)} />
       )}
+
+      <MapFeaturePanel feature={selectedFeature} onClose={() => setSelectedFeature(null)} />
 
       {/* Tools toolbar inferior */}
       <MapTools
