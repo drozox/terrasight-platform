@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { IconLeaf, IconDrop, IconForest, IconUpload } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -126,6 +128,21 @@ export function ComponentRibbon({ active }: { active?: string | null }) {
                 <p className="line-clamp-2 text-body-sm text-on-surface-variant">
                   {c.desc}
                 </p>
+                {/* DEEPSEEK-72 — drill-through a /intervenciones?componente=Cx */}
+                {k !== "IMPORT" && (
+                  <Link
+                    href={`/intervenciones?componente=${k}`}
+                    aria-label={`Ver intervenciones de ${c.label}`}
+                    className={cn(
+                      "mt-1 inline-flex items-center gap-1 text-[11px] font-bold opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest",
+                      c.textClass,
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Ver intervenciones
+                    <ArrowRight className="size-3" />
+                  </Link>
+                )}
               </div>
               {isActive && (
                 <span

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { DonutChart } from "./donut-chart";
 import { LineChart, type LineSeries } from "./line-chart";
@@ -63,7 +64,7 @@ export function RightPanel({
     },
   ];
 
-  // Indicadores principales (4 tarjetas 2x2)
+  // Indicadores principales (4 tarjetas 2x2) — drill-through a su vista (DEEPSEEK-72)
   const indicadores = [
     {
       label: "Predios",
@@ -71,6 +72,7 @@ export function RightPanel({
       icon: Building2,
       tint: "primary" as const,
       delta: `${formatInt(footer.predios)} totales`,
+      href: "/predios",
     },
     {
       label: "Intervenciones",
@@ -78,6 +80,7 @@ export function RightPanel({
       icon: Activity,
       tint: "secondary" as const,
       delta: `${formatInt(kpis.propuestasEjecucion)} en ejecución`,
+      href: "/intervenciones",
     },
     {
       label: "Hectáreas",
@@ -85,13 +88,15 @@ export function RightPanel({
       icon: MapIcon,
       tint: "tertiary" as const,
       delta: `${formatHa(kpis.hectareasPredios)} registradas`,
+      href: "/predios",
     },
     {
-      label: "Quebradas",
-      valor: formatInt(footer.quebradas),
+      label: "Metas",
+      valor: `${componentes.length} cmp.`,
       icon: Droplets,
       tint: "primary" as const,
       delta: `${formatInt(footer.veredas)} veredas`,
+      href: "/metas/convenio",
     },
   ];
 
@@ -151,9 +156,11 @@ export function RightPanel({
           {indicadores.map((ind) => {
             const Icon = ind.icon;
             return (
-              <div
+              <Link
                 key={ind.label}
-                className="rounded-lg border border-outline-variant bg-surface-container-lowest p-2.5 transition-colors hover:border-primary/50"
+                href={ind.href}
+                aria-label={`Ver ${ind.label}`}
+                className="block rounded-lg border border-outline-variant bg-surface-container-lowest p-2.5 transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest"
               >
                 <div className="mb-1.5 flex items-center gap-2">
                   <span
@@ -176,7 +183,7 @@ export function RightPanel({
                 <p className="mt-1 text-[10px] leading-tight text-on-surface-variant">
                   {ind.delta}
                 </p>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -204,26 +211,28 @@ export function RightPanel({
           />
           <ul className="flex-1 space-y-1.5">
             {donutPorComponente.map((s) => (
-              <li
-                key={s.label}
-                className="flex items-center justify-between text-[11px]"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={cn("h-2.5 w-2.5 rounded-sm", {
-                      "bg-primary":   s.color === "primary",
-                      "bg-secondary": s.color === "secondary",
-                      "bg-tertiary":  s.color === "tertiary",
-                    })}
-                  />
-                  <span className="text-on-surface-variant">{s.label}</span>
-                </div>
-                <span className="font-bold text-on-surface">
-                  {Math.round((s.value / totalPropuestas) * 100)}%{" "}
-                  <span className="text-on-surface-variant font-normal">
-                    ({formatInt(s.value)})
+              <li key={s.label}>
+                <Link
+                  href={`/intervenciones?componente=${s.label.replace(/\s+/g, "")}`}
+                  className="flex items-center justify-between rounded-md px-1.5 py-0.5 text-[11px] transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={cn("h-2.5 w-2.5 rounded-sm", {
+                        "bg-primary":   s.color === "primary",
+                        "bg-secondary": s.color === "secondary",
+                        "bg-tertiary":  s.color === "tertiary",
+                      })}
+                    />
+                    <span className="text-on-surface-variant">{s.label}</span>
+                  </div>
+                  <span className="font-bold text-on-surface">
+                    {Math.round((s.value / totalPropuestas) * 100)}%{" "}
+                    <span className="text-on-surface-variant font-normal">
+                      ({formatInt(s.value)})
+                    </span>
                   </span>
-                </span>
+                </Link>
               </li>
             ))}
           </ul>

@@ -68,34 +68,33 @@ export function BottomSections({
 }
 
 /**
- * SummaryBar — barra horizontal con KPIs clave.
- * Inspirado en `SummaryBar` del dashboard de referencia, adaptado a tokens
- * SIG TERRITORIO (primary en lugar del verde del cliente).
+ * SummaryBar — barra horizontal con KPIs clave (DEEPSEEK-72: drill-through).
+ * Cada item ahora es un Link a su vista.
  */
 export function SummaryBar({ footer }: { footer: FooterKpis }) {
   const items = [
-    { valor: formatInt(footer.municipios),    label: "Municipios",            icon: Building2 },
-    { valor: formatInt(footer.veredas),       label: "Veredas",               icon: Sprout },
-    { valor: formatInt(footer.predios),       label: "Predios Concertados",   icon: Building2 },
-    { valor: formatHa(footer.hectareasIntervenidas), label: "Hectáreas Intervenidas", icon: Sprout },
-    { valor: formatInt(footer.quebradas),     label: "Fuentes Hídricas",      icon: Droplets },
+    { valor: formatInt(footer.municipios),    label: "Municipios",            icon: Building2, href: "/predios" },
+    { valor: formatInt(footer.veredas),       label: "Veredas",               icon: Sprout,    href: "/predios" },
+    { valor: formatInt(footer.predios),       label: "Predios Concertados",   icon: Building2, href: "/predios" },
+    { valor: formatHa(footer.hectareasIntervenidas), label: "Hectáreas Intervenidas", icon: Sprout, href: "/intervenciones" },
+    { valor: formatInt(footer.quebradas),     label: "Fuentes Hídricas",      icon: Droplets,  href: "/mapa" },
   ];
 
   return (
     // UX-68 (audit 2026-07-24): antes el SummaryBar se veia clickeable (card
-    // verde solido, sin estado) y no llevaba a ningun lado. Ahora es un
-    // Link al dashboard analitico (cuando exista) con aria-label descriptivo
-    // y hover sutil. Sigue funcionando como informacion visual.
-    <Link
-      href="/dashboard"
-      aria-label="Ver resumen de indicadores del convenio"
-      className="block rounded-xl bg-primary p-4 text-on-primary transition-[background-color,box-shadow] hover:bg-primary/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest"
-    >
+    // verde solido, sin estado) y no llevaba a ningun lado. Ahora cada KPI
+    // es un Link a su vista (DEEPSEEK-72).
+    <div className="rounded-xl bg-primary p-4 text-on-primary">
       <div className="flex flex-wrap items-center justify-between gap-4">
         {items.map((r) => {
           const Icon = r.icon;
           return (
-            <div key={r.label} className="flex items-center gap-3">
+            <Link
+              key={r.label}
+              href={r.href}
+              aria-label={`Ver ${r.label}`}
+              className="flex items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-primary focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+            >
               <Icon className="size-6 shrink-0 opacity-90" />
               <div className="leading-tight">
                 <p className="text-title-lg font-bold">{r.valor}</p>
@@ -106,10 +105,10 @@ export function SummaryBar({ footer }: { footer: FooterKpis }) {
                   {r.label}
                 </p>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
-    </Link>
+    </div>
   );
 }
