@@ -281,7 +281,21 @@ export const getCoberturaVegetal = cached(getCoberturaVegetalImpl, {
 const getIntervencionesRecientesImpl = async (
   limit = 6,
   componente: string | null = null,
+  accion: string | null = null,
 ): Promise<IntervencionReciente[]> => {
+  // Filtros WHERE encadenados (componente y/o accion). DEEPSEEK-F2: el user
+  // pidió filtrar también por acción (A1/A2/U) además del componente.
+  const conditions: ReturnType<typeof sql>[] = [];
+  if (componente) conditions.push(sql`c.nombre = ${componente}`);
+  if (accion) conditions.push(sql`a.nombre = ${accion}`);
+  const whereClause =
+    conditions.length === 0
+      ? sql``
+      : sql`WHERE ${conditions.reduce(
+          (acc, c, i) => (i === 0 ? c : sql`${acc} AND ${c}`),
+          sql``,
+        )}`;
+
   return withFallback("intervencionesRecientes", async () => {
     const rows = await sql<
       {
@@ -293,6 +307,7 @@ const getIntervencionesRecientesImpl = async (
         nombre_municipio: string;
         nombre_componente: string;
         nombre_accion: string;
+        id_accion: number | string;
         hectareas: number | string | null;
         longitud: number | string | null;
         avance: number | string | null;
@@ -311,6 +326,7 @@ const getIntervencionesRecientesImpl = async (
         m.nombre_municipio,
         c.nombre                                                     AS nombre_componente,
         a.nombre                                                     AS nombre_accion,
+        a.id_accion                                                  AS id_accion,
         pol.area_ha                                                  AS hectareas,
         pl.longitud_m                                                AS longitud,
         av.avance_pct                                                AS avance,
@@ -335,7 +351,7 @@ const getIntervencionesRecientesImpl = async (
         ORDER  BY av2.created_at DESC, av2.id_avance DESC
         LIMIT  1
       ) av ON true
-      ${componente ? sql`WHERE c.nombre = ${componente}` : sql``}
+      ${whereClause}
       ORDER BY pp.id_propuesta ASC
       LIMIT ${limit};
     `;
@@ -356,13 +372,19 @@ const getIntervencionesRecientesImpl = async (
         municipio: pgText(r.nombre_municipio),
         componente: pgText(r.nombre_componente),
         accion: pgText(r.nombre_accion),
+        idAccion: pgInt(r.id_accion),
         hectareas: r.hectareas !== null ? pgNum(r.hectareas) : null,
         longitud: r.longitud !== null ? pgNum(r.longitud) : null,
         avance,
         estado,
       };
     });
-  }, componente ? DEMO_INTERVENCIONES.filter(i => i.componente === componente).slice(0, limit) : DEMO_INTERVENCIONES.slice(0, limit));
+  }, (() => {
+    let demo = DEMO_INTERVENCIONES;
+    if (componente) demo = demo.filter((i) => i.componente === componente);
+    if (accion) demo = demo.filter((i) => i.accion === accion);
+    return demo.slice(0, limit);
+  })());
 };
 export const getIntervencionesRecientes = cached(getIntervencionesRecientesImpl, {
   tags: ["dashboard", "intervenciones"],

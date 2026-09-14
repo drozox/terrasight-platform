@@ -46,6 +46,7 @@ export type IntervencionReciente = {
   municipio: string;
   componente: string;
   accion: string;
+  idAccion?: number | null;
   hectareas: number | null;
   longitud: number | null;
   /**
