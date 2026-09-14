@@ -1,17 +1,13 @@
 "use client";
 
 // =============================================================================
-// HelpDialog — modal "Ayuda" que se abre desde el botón HelpCircle del TopBar.
+// HelpDialog — modal "Ayuda" que se abre desde el botón HelpCircle del TopBar
+// (o con la tecla `?`).
 //
-// El botón HelpCircle del topbar (UX-P3 backlog) era no-op. Ahora abre este
-// dialog con:
-//  - Información del producto (qué es SIG TERRITORIO, para quién)
-//  - Atajos de teclado básicos (búsqueda, navegación sidebar)
-//  - Contacto del equipo (mailto)
+// Contenido (UX): guía de uso paso a paso de los módulos del alcance +
+// atajos de teclado + recursos + contacto.
 //
 // Patrón: reuse Radix Dialog primitive (mismo que ConfirmDialog).
-// El usuario entiende qué hace el producto + cómo pedir soporte sin necesidad
-// de documentación externa.
 // =============================================================================
 
 import * as React from "react";
@@ -23,6 +19,7 @@ import {
   ExternalLink,
   Keyboard,
   Sprout,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,6 +28,16 @@ type HelpDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
+
+// Guía de uso: los módulos del alcance, en el orden recomendado.
+const GUIDE_STEPS = [
+  { module: "Inicio",            step: "Mirá el resumen: KPIs del convenio y el mapa principal." },
+  { module: "Mapa",              step: "Explorá las capas y usá las herramientas: medir, identificar, buffer y selección por rectángulo." },
+  { module: "Predios",           step: "Consultá los predios concertados; abrí el detalle para ver su información y geometría." },
+  { module: "Intervenciones",    step: "Hacé seguimiento a cada acción: estado (workflow), avance y evidencia." },
+  { module: "Metas del convenio", step: "Revisá el cumplimiento de las 5 metas; entrá al drill-down por municipio o a las propuestas." },
+  { module: "Reportes",          step: "Generá los reportes R1–R10 y descargalos en CSV o PDF." },
+];
 
 const SHORTCUTS = [
   { keys: ["⌘", "K"],   description: "Buscar municipio, vereda o predio" },
@@ -66,8 +73,8 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
         <Dialog.Content
           aria-describedby="help-dialog-desc"
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2",
-            "gap-5 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-2xl",
+            "fixed left-1/2 top-1/2 z-50 grid max-h-[85vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2",
+            "gap-5 overflow-y-auto rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-2xl",
             "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           )}
@@ -104,6 +111,31 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
             </Dialog.Close>
           </div>
 
+          {/* Guía de uso */}
+          <section>
+            <h3 className="mb-2 flex items-center gap-2 text-label-lg font-bold uppercase text-on-surface-variant">
+              <BookOpen className="size-3.5" /> Guía de uso
+            </h3>
+            <ol className="space-y-1.5">
+              {GUIDE_STEPS.map((g, i) => (
+                <li
+                  key={g.module}
+                  className="flex items-start gap-3 rounded-md bg-surface-container-low px-3 py-2"
+                >
+                  <span
+                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary"
+                    aria-hidden="true"
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="text-body-sm text-on-surface">
+                    <strong className="font-bold">{g.module}:</strong> {g.step}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
           {/* Acerca de */}
           <section>
             <h3 className="mb-2 flex items-center gap-2 text-label-lg font-bold uppercase text-on-surface-variant">
@@ -111,9 +143,10 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
             </h3>
             <div className="rounded-lg border border-outline-variant/40 bg-surface-container-low p-4 text-body-sm text-on-surface">
               <p>
-                Monitoreo de predios, quebradas, áreas protegidas y alertas
-                ambientales en Cundinamarca. Datos espaciales servidos vía
-                PostGIS + GeoJSON y visualizados con Leaflet.
+                Monitoreo de los predios concertados y sus intervenciones de
+                conservación, restauración, reconversión productiva y manejo del
+                recurso hídrico. Datos espaciales en PostGIS, visualizados con
+                Leaflet, con seguimiento de las metas del convenio.
               </p>
             </div>
           </section>
@@ -179,7 +212,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
               </Button>
             </Dialog.Close>
             <a
-              href="mailto:soporte@terrasight.local?subject=Soporte%20SIG TERRITORIO&body=Hola%2C%20necesito%20ayuda%20con..."
+              href="mailto:soporte@terrasight.local?subject=Soporte%20SIG%20TERRITORIO&body=Hola%2C%20necesito%20ayuda%20con..."
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-label-lg font-bold text-on-primary transition-[background-color,box-shadow] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest"
             >
               <Mail className="size-4" />

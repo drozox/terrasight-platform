@@ -1,153 +1,118 @@
-# TerraSight — Plataforma SIG del Convenio CAR Cundinamarca
+# TerraSight — SIG del Convenio 3038-2024
 
-Plataforma web de análisis geográfico sobre el modelo **BDG** (Base de
-Datos Geográfica) del convenio **CAR Cundinamarca – WWF Colombia –
-Fundación Natura**. Construida sobre PostgreSQL/PostGIS y Next.js 15.
+**Convenio de Asociación 3038-2024 CAR Cundinamarca – WWF Colombia – Fundación Natura.**
+Sistema de Información Geográfica web para integrar, sistematizar y gestionar la
+información ambiental de los predios concertados (19 municipios priorizados +
+localidad de Usme, cubierta por Bogotá).
+
+> **Estado:** ✅ **COMPLETADO** · Tag [`v1.0.0`](https://github.com/drozox/terrasight-platform/releases/tag/v1.0.0) ·
+> Release gate con datos reales: **`GOAL_COMPLETED = TRUE`**.
 
 ---
 
-## Estado
+## Cumplimiento de objetivos
 
-**MVP-1 (`v0.1.0`) cerrado el 2026-07-06.** Cubre las HUs funcionales del
-PRD: consulta (HU-CO-01..04), análisis espacial (HU-AA-01..04),
-catálogos + estado de intervenciones (HU-TC-01/02/04), autenticación con
-roles y auditoría (HU-AD-01..04), y los 10 reportes operativos (R1–R10)
-vivos en `/reportes`. Posteriormente se cerraron los sprints 18–23
-(herramientas SIG, búsqueda/calidad, workflow, importación CSV, versionado
-de metas y el FINAL-CLOSURE-PLAN).
+| Objetivo | Entregable | Evidencia |
+|---|---|---|
+| **General** — SIG para integrar/gestionar la información ambiental y apoyar la toma de decisiones | Base geográfica PostGIS + app web | `node scripts/prod_smoke.mjs` sin fallos |
+| **OE1** — Identificar variables ambientales/territoriales/prediales | 44 tablas por dominio | [`docs/MODELO-DATOS.md`](./platform/docs/MODELO-DATOS.md) |
+| **OE2** — Consolidar la información en una BD geográfica | GDB importada a PostGIS | **1.381 propuestas · 140 predios · 20 municipios · 560 veredas** |
+| **OE3** — Visor web para visualización, análisis y seguimiento | Mapa · Predios · Intervenciones · Metas · Análisis · Reportes | `npm run audit:resultados` → 20/20 PASS |
 
-> Ver [`DOCS/`](./DOCS) para PRD, sprints, HU-* track, matriz de roles y
-> bootstrap. La pista del siguiente sprint queda en cada documento.
+Detalle completo: [`docs/ENTREGABLE-OBJETIVOS.md`](./platform/docs/ENTREGABLE-OBJETIVOS.md) ·
+Resumen para el cliente: [`docs/RESUMEN-CLIENTE.md`](./platform/docs/RESUMEN-CLIENTE.md).
+
+## Alcance (lo que cumple los objetivos)
+
+Inicio · **Mapa** (capas + medir/identificar/buffer/selección) · **Predios** ·
+**Intervenciones** (workflow + avance) · **Metas del convenio** (10 indicadores +
+drill-down) · **Análisis Espacial** · **Reportes** (R1–R10, CSV/PDF).
+Ver [`docs/ALCANCE.md`](./platform/docs/ALCANCE.md).
+
+## Indicadores del convenio (datos reales)
+
+| Meta | Indicador | Avance | Meta | % |
+|---|---|---|---|---|
+| C1A1 | Cercos vivos | 11.10 km | 12 | 92% |
+| C1A1 | Aislamientos (alambre) | 8.89 km | 12 | 74% |
+| C1A2 | Franjas de conectividad | 5.20 km | 15 | 35% |
+| C1A2 | Silvopastoriles | 6.46 ha | 15 | 43% |
+| C1A2 | Agroforestales | 4.44 ha | 15 | 30% |
+| C2A1 | Cosecha de agua | 79 | 79 | 100% ✅ |
+| C2A1 | Kit de compostaje | 79 | 79 | 100% ✅ |
+| C2A2 | Estaciones limnimétricas | 7 | 7 | 100% ✅ |
+| C2A2 | Obras de captación | 96 | 48 | 200% ✅ |
+| C3 | Predios en áreas protegidas | 39 | 35 | 111% ✅ |
+
+Fuente única y auditable: vistas `sgs_v_indicador_*` (migración 36).
 
 ## Stack
 
 | Capa | Tecnología |
 |---|---|
 | Web | Next.js 15 (App Router) + React 19 + TypeScript |
-| UI | Tailwind CSS v4 + Radix UI + Lucide icons |
-| Mapas | Leaflet + react-leaflet + Turf.js |
-| BD | PostgreSQL 16 + PostGIS 3.4 (Docker) |
-| Auth | NextAuth v5 (JWT, `bcryptjs`) |
+| UI | Tailwind CSS v4 + Radix UI + Lucide |
+| Mapas | Leaflet + react-leaflet + Turf.js (MVT + GeoJSON) |
+| BD | PostgreSQL 16 + PostGIS (Supabase) |
+| Auth | NextAuth v5 (JWT + `bcryptjs`, roles ADMIN/ANALISTA/GESTOR) |
 | Driver | `postgres` (postgres-js) — sin ORM |
 | Gráficos | Recharts |
-| Shapefiles | `shpjs` |
 
-## Requisitos
-
-- **Node.js 20+**
-- **Docker Desktop** (levanta Postgres/PostGIS)
-- **PowerShell 5.1+** (los scripts `db:*`, `auth:*` y `setup` son PowerShell)
-
-## Setup
-
-La forma recomendada para primera corrida o después de un `db:reset`:
+## Setup (local)
 
 ```powershell
 cd platform
 npm install
-npm run setup
+npm run setup        # levanta PostGIS, aplica las 37 migraciones + auth + admin
+npm run dev          # http://localhost:3000
 ```
 
-`setup` es el orquestador: prepara `.env` (regenera `NEXTAUTH_SECRET` si está como placeholder),
-levanta Postgres/PostGIS, espera a que esté lista, aplica esquema base + esquema de **auth**
-+ datos demo, y crea el primer `ADMIN`. Es idempotente — podés correrlo varias veces.
+Requisitos: Node 20+, Docker Desktop, PowerShell 5.1+.
 
-Si preferís paso a paso manual (o ya tenés algo andando):
-
-```powershell
-cd platform
-npm install
-Copy-Item .env.example .env
-# Editar .env: regenerar NEXTAUTH_SECRET (ver nota abajo)
-
-npm run db:up
-npm run db:migrate        # esquema del modelo BDG (sgs_pre_*, sgs_pro_*, etc.)
-npm run db:auth-schema    # tablas de auth (sgs_adm_*) — NO se incluye en db:migrate
-npm run db:seed
-npm run auth:create-admin
-```
-
-> **⚠️ `db:auth-schema` no se ejecuta como parte de `db:migrate`** porque vive separado
-> (se aplica después de crear el contenedor). Olvidarlo deja el login roto aunque el resto
-> del sistema funcione. Por eso existe `npm run setup`.
-
-> **NEXTAUTH_SECRET**: generar con
-> `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
-> y reemplazar el placeholder del `.env`.
-
-## Scripts clave
+## Comandos clave
 
 | Comando | Función |
 |---|---|
-| `npm run dev` | Servidor de desarrollo en `http://localhost:3000` |
+| `npm run dev` | Dev server (`:3000`) |
 | `npm run build` | Build de producción |
-| `npm run lint` | ESLint (config `next`) |
-| `npm run setup` | **Orquestador de primera corrida / post-reset** (idempotente) |
-| `npm run db:up` / `db:down` | Levantar / detener contenedor Postgres |
-| `npm run db:reset` | Reset completo del contenedor (⚠ borra datos) |
-| `npm run db:logs` | Logs de Postgres |
-| `npm run db:psql` | Shell `psql` contra `convenio_car_wwf` |
-| `npm run db:migrate` | Aplica `db/migrations/*.sql` en orden lexicográfico |
-| `npm run db:auth-schema` | Aplica `sgs_adm_*` (tablas de auth). **No** se incluye en `db:migrate`. |
-| `npm run db:seed` | Carga datos demo del modelo BDG |
-| `npm run auth:create-admin` | Bootstrap del primer usuario `ADMIN` |
+| `npm run release:gate` | **Gate completo**: typecheck + lint + test + build (+ smoke + reconciliación si hay `DATABASE_URL`) |
+| `npm test` | Unit + integración (integración se salta sin `DATABASE_URL`) |
+| `npm run test:e2e` | Playwright (smoke + flujos) |
+| `npm run db:migrate` | Aplica las 37 migraciones (idempotente) |
+| `npm run audit:resultados` | Reconciliación de los 10 indicadores (global == detalle) |
+| `node scripts/prod_smoke.mjs` | Smoke de datos/integridad/performance |
 
-> **🔀 Correr TerraSight y AeroAdmin AFM a la vez:** ambos usan `:3000` por default.
-> Si tenés AFM también abierto, arrancá TerraSight con `npm run dev -- -p 3001` y
-> en `.env` cambiá `NEXTAUTH_URL=http://localhost:3001`. Cualquier `:30xx` libre
-> sirve, pero `:3001` es el puerto que el resto del equipo espera.
+## Documentación
 
-## Flujo demo sugerido
+| Documento | Contenido |
+|---|---|
+| [`docs/RESUMEN-CLIENTE.md`](./platform/docs/RESUMEN-CLIENTE.md) | Entrega en 1 página |
+| [`docs/ENTREGABLE-OBJETIVOS.md`](./platform/docs/ENTREGABLE-OBJETIVOS.md) | Objetivo → entregable → evidencia |
+| [`docs/MODELO-DATOS.md`](./platform/docs/MODELO-DATOS.md) | Diccionario de datos (44 tablas) |
+| [`docs/ALCANCE.md`](./platform/docs/ALCANCE.md) | Alcance funcional |
+| [`docs/PLAN-CIERRE-HOY.md`](./platform/docs/PLAN-CIERRE-HOY.md) | Plan de cierre |
+| [`platform/docs/ARCHITECTURE.md`](./platform/docs/ARCHITECTURE.md) | Arquitectura y decisiones |
+| [`platform/docs/RUNBOOK.md`](./platform/docs/RUNBOOK.md) | Operación (deploy, secretos, rollback) |
+| [`DEPLOY.md`](./DEPLOY.md) | Deploy en Vercel + Supabase |
+| [`platform/AGENTS.md`](./platform/AGENTS.md) | Convenciones para contribuir |
 
-1. Login con el admin creado en setup → `/dashboard` (KPIs).
-2. `/mapa` → filtros por municipio/componente/quebrada, dibujar bbox.
-3. `/predios` → tabla de propietarios con sort y filtro por vereda.
-4. `/quebradas` → gestión de quebradas + estado de intervenciones.
-5. `/reportes` → selector → 10 reportes operativos (R1–R10) → **CSV** (BOM + `;`)
-   o **Imprimir / PDF** (`window.print()`).
-
-## Arquitectura de carpetas
+## Estructura
 
 ```
 .
 ├── platform/                # App Next.js
-│   ├── app/                 # App Router
-│   │   ├── (platform)/      # Layout autenticado (header + sidebar)
-│   │   ├── api/             # Route handlers
-│   │   └── reportes/        # Reportes server-side
-│   ├── components/          # Componentes UI (Radix + Tailwind v4)
-│   ├── lib/
-│   │   ├── db/              # Pool postgres-js + repositorios
-│   │   ├── auth/            # Config NextAuth v5
-│   │   ├── csv.ts           # Util CSV (BOM, separador `;`, RFC 4180)
-│   │   └── …
-│   ├── scripts/             # db-migrate, seed, create-admin, …
-│   └── db/
-│       ├── migrations/      # SQL versionado
-│       └── seed/            # Datos demo del modelo BDG
-└── DOCS/                    # PRD, sprints, HU-*, matriz de roles
+│   ├── src/app/             # App Router (rutas + API)
+│   ├── src/components/      # UI (layout, map, dashboard, ui)
+│   ├── src/lib/             # repos (queries), auth, db, utils
+│   ├── src/lib/repos/       # metas-convenio, reportes, fase6, …
+│   ├── scripts/             # migrate, seed, prod_smoke, audit, release_gate
+│   ├── scripts/db/init/     # 37 migraciones SQL
+│   └── tests/               # unit + components + integration + e2e
+├── DOCS/                    # PRD, sprints, modelo BDG (cliente)
+└── Stich/                   # design system
 ```
 
-## Pendientes conocidos
+## Licencia y créditos
 
-> Los 10 reportes **R1–R10 están implementados y verificados** en
-> `/reportes` (`src/lib/repos/reportes.ts` + `src/app/api/reportes/route.ts`).
-> La antigua nota "R2/R4/R5/R6/R7/R10 pendientes" quedó obsoleta.
-
-- **`/configuracion`** — placeholder ("Próxima fase").
-- **Vista 3D y marcadores (bookmarks)** — placeholder ("Próxima fase").
-- **Cambio de password por usuario** — Server Action + `bcryptjs` (≈½ día).
-- **Reset por email** — bloqueado hasta definir SMTP.
-- **Catálogos lookup TC-03/05** — UI (bajo valor inicial).
-- **Rotar el password de Supabase** — el proyecto ref quedó expuesto; ver
-  `platform/docs/DEEPSEEK-COORDINATION.md`.
-
-## Licencia
-
-[MIT](./LICENSE).
-
-## Créditos
-
-Convenio **CAR Cundinamarca – WWF Colombia – Fundación Natura** · tesis
-base de **Nikoll Ordoñez (Universidad del Valle, 2026)** · plataforma
-desarrollada por **drozox** (single contributor).
+[MIT](./LICENSE). Convenio **CAR Cundinamarca – WWF Colombia – Fundación Natura** ·
+tesis base de **Nikoll Ordoñez (Universidad del Valle, 2026)** · desarrollado por **drozox**.

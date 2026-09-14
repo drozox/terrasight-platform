@@ -70,6 +70,23 @@ export function TopBar({
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
+  // Atajo `?` abre la ayuda (salvo que el foco esté en un campo de texto).
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      const typing =
+        el?.tagName === "INPUT" ||
+        el?.tagName === "TEXTAREA" ||
+        el?.isContentEditable === true;
+      if (!typing && e.key === "?") {
+        e.preventDefault();
+        setHelpOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const alertasList = alertas ?? [];
 
   async function onLogout() {
