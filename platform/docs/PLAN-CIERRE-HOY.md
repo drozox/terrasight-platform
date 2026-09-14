@@ -61,19 +61,21 @@ npm run audit:resultados               # 10/10 PASS
 - [ ] Ocultar del nav: Dashboard (redirect), Catálogos, Alertas, Admin (calidad/importaciones), Configuración.
 - [ ] (Opcional) quitar botón 3D y bookmarks (placeholders).
 
-### Fase 2 — Entregables documentales + tests core (T1 paralelo) · 1–2 h · **sin BD**
-- [ ] `docs/MODELO-DATOS.md` — diccionario de variables (OE1).
-- [ ] `docs/ENTREGABLE-OBJETIVOS.md` — objetivo → módulo → evidencia (para el cliente).
-- [ ] E2E de los flujos core: `/mapa`, `/predios` (+ metas ya existe).
+### Fase 2 — Entregables documentales + tests core · ✅ EJECUTADA
+- [x] `docs/MODELO-DATOS.md` — diccionario de variables (OE1, generado de la BD real).
+- [x] `docs/ENTREGABLE-OBJETIVOS.md` — objetivo → módulo → evidencia.
+- [x] `docs/ALCANCE.md` — acotamiento de módulos/funcionalidades.
+- [x] E2E core: smoke-routes + `metas.spec` + `intervenciones.spec`.
 
 ### Fase 3 — Deploy + smoke (owner) · 1 h · **crítico**
 - [ ] Deploy Vercel (env: DATABASE_URL pooler, NEXTAUTH_*, AUTH_TRUST_HOST).
 - [ ] Smoke manual: `/`, `/login`, `/mapa`, `/predios`, `/intervenciones`, `/metas/convenio`, `/api/health` → 200.
 - [ ] `GET /api/health` → `{ ok: true }`.
 
-### Fase 4 — Gate de cierre (T0) · 30 min
-- [ ] `RUN_E2E=1 npm run release:gate` → GOAL_COMPLETED = TRUE.
-- [ ] Tag de release (`v1.0.0`) + resumen al cliente.
+### Fase 4 — Gate de cierre (T0) · ✅ (falta E2E con server)
+- [x] `release:gate` con `DATABASE_URL` real → **GOAL_COMPLETED = TRUE**.
+- [ ] `RUN_E2E=1 npm run release:gate` (requiere dev server) — pendiente.
+- [x] Tag de release `v1.0.0`.
 
 ---
 
