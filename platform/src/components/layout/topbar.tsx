@@ -18,7 +18,6 @@ import {
   LogIn,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
-import { PartnerLogo } from "@/components/icons";
 import { HelpDialog } from "@/components/layout/help-dialog";
 import { TopbarSearch } from "@/components/layout/topbar-search";
 import type { Alerta } from "@/lib/types";
@@ -124,12 +123,6 @@ export function TopBar({
       )}
 
       <div className="flex items-center gap-8">
-        <div className="flex items-center gap-6">
-          <PartnerLogo name="wwf"    src="/partners/wwf-panda.png"  className="h-8" />
-          <PartnerLogo name="car"    src="/partners/car.png"         className="h-8" />
-          <PartnerLogo name="natura" src="/partners/natura-2018.png" className="h-8" />
-        </div>
-
         <div className="flex items-center gap-1 border-l border-outline-variant pl-4">
           {/* Notificaciones (solo si hay sesión) */}
           {usuario && (

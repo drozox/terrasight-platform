@@ -36,6 +36,7 @@ import { MapCompass } from "./map-compass";
 import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
+import { MapLayerDataPanel } from "./map-layer-data-panel";
 import { MapToolFeedback } from "./map-tool-feedback";
 import { MapMeasureLayer, MapMeasureCursor } from "./map-measure-layer";
 import { MapResultPanel } from "./map-result-panel";
@@ -93,6 +94,8 @@ export default function MapClient({
     propuestas_poligono: false,
   });
   const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
+  // Capa cuyos DATOS (atributos) se muestran en el panel de datos.
+  const [dataLayer, setDataLayer] = React.useState<MapLayerKey | null>(null);
   // Sprint 18: discriminated union con payload por herramienta
   const [interaction, setInteraction] = React.useState<MapInteraction>({ kind: "none" });
   // Sprint 18.2: estado para el panel de identificar
@@ -437,7 +440,12 @@ export default function MapClient({
           onBasemapChange={setBasemap}
           layers={layers}
           onLayersChange={setLayers}
+          onShowData={setDataLayer}
         />
+      )}
+
+      {showLayersPanel && (
+        <MapLayerDataPanel layer={dataLayer} onClose={() => setDataLayer(null)} />
       )}
 
       {/* Tools toolbar inferior */}

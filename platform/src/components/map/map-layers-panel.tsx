@@ -11,8 +11,10 @@ import {
   Mountain,
   ChevronRight,
   Wrench,
+  Table2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LAYER_DATA_META } from "./map-layer-data-panel";
 
 export type MapLayerKey =
   | "municipios"
@@ -34,6 +36,8 @@ interface MapLayersPanelProps {
   onLayersChange: (l: Record<MapLayerKey, boolean>) => void;
   /** Conteos opcionales por capa. Si no se pasan, no se muestra el badge. */
   counts?: Partial<Record<MapLayerKey, number>>;
+  /** Callback para abrir el panel de datos (atributos) de una capa. */
+  onShowData?: (k: MapLayerKey) => void;
 }
 
 /**
@@ -123,6 +127,7 @@ export function MapLayersPanel({
   layers,
   onLayersChange,
   counts: externalCounts,
+  onShowData,
 }: MapLayersPanelProps) {
   const [open, setOpen] = React.useState(true);
 
@@ -217,6 +222,21 @@ export function MapLayersPanel({
                         <span className="rounded-full bg-tertiary-container/30 px-2 py-0.5 text-[9px] font-bold uppercase text-tertiary">
                           {badge}
                         </span>
+                      )}
+                      {onShowData && !badge && LAYER_DATA_META[key] && (
+                        <button
+                          type="button"
+                          title="Ver datos de la capa"
+                          aria-label={`Ver datos de ${label}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onShowData(key);
+                          }}
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
+                        >
+                          <Table2 className="size-3.5" />
+                        </button>
                       )}
                     </label>
                   </li>

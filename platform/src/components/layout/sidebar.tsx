@@ -25,7 +25,6 @@ import {
   MapIcon,
   Building2,
   Wrench,
-  PieChart,
   FileText,
   Target,
 } from "lucide-react";
@@ -51,7 +50,6 @@ const ALL_ITEMS: Item[] = [
   { href: "/predios",        label: "Predios",            icon: Building2,   roles: null },
   { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,      roles: null },
   { href: "/metas/convenio", label: "Metas del convenio", icon: Target,      roles: null },
-  { href: "/analisis",       label: "Análisis Espacial",  icon: PieChart,    roles: ["ADMIN", "ANALISTA"] },
   { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
 ];
 
