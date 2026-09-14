@@ -272,6 +272,7 @@ npm run db:migrate:no-seed      # sin seed demo (producción/Supabase)
 | DeepSeek 12 | **Revisión lote 04**: gate verde + fixes T0 (`BASE` sin uso en `api-data.spec.ts`, puerto dev en RUNBOOK) | (este commit) |
 | DeepSeek 13 | **Acotamiento a objetivos** (lote 06 ejecutado por T0): sidebar estricto, placeholders 3D/marcadores fuera, `ALCANCE.md`, `MODELO-DATOS.md`, `ENTREGABLE-OBJETIVOS.md` | (este commit) |
 | DeepSeek 14 | **Fix geometría puntos C2 + mapa** (capas de intervenciones, panel de datos por capa, logos fuera, `/analisis`→`/mapa`, metas en dashboard) + **revisión lote 07** | `5b40670`, `51eed9e`, `d8d027c`, merge lote 07 |
+| DeepSeek 15 | **F1** crash `/intervenciones` (Multi*) + **F3** click→atributos + **separación T0/T1** + **worktree T0** + revisión e integración del lote 08 (F4/F5/tests) | `b89b260`, `ba50bba`, `290a508`, `12c7809`, `88d7b80` |
 
 ## 9. Cola de trabajo y asignaciones
 

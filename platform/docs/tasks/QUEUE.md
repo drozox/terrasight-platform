@@ -12,10 +12,11 @@
 
 ## Tablero
 
-> **Lote paralelo activo:** [`PARALLEL-BATCH-08.md`](./PARALLEL-BATCH-08.md) (4 cards: predios + dashboard).
-> Plan mejoras: [`../PLAN-MEJORAS-MAPA-DASHBOARD.md`](../PLAN-MEJORAS-MAPA-DASHBOARD.md).
-> El mapa (F1/F2/F3/F6) lo hace T0.
-> Lotes cerrados: 01, 02, 04, 06, 07 (03 no entregado → 04; 05 absorbido por 06).
+> **Lote 08 (cerrado)**: F5 (dashboard) + tests predios; **F4 (ficha predio) la hizo MiniMax** y T0 la integró.
+> Plan mejoras: [`../PLAN-MEJORAS-MAPA-DASHBOARD.md`](../PLAN-MEJORAS-MAPA-DASHBOARD.md) ·
+> Separación: [`../SEPARACION-COMPLEJOS.md`](../SEPARACION-COMPLEJOS.md).
+> **T0 (DeepSeek)**: F1 `b89b260`, F3 `ba50bba`. Pendiente T0: C1/C5/C4/C2.
+> Lotes cerrados: 01, 02, 04, 06, 07, 08 (03 no entregado → 04; 05 absorbido por 06).
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
