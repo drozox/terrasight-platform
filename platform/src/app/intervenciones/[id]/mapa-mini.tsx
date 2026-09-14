@@ -24,7 +24,13 @@ import {
   Marker,
 } from "react-leaflet";
 import { MapPin, Loader2 } from "lucide-react";
-import type { IntervencionCompleta, GeoJSONLineString, GeoJSONPolygon } from "@/lib/types";
+import type {
+  IntervencionCompleta,
+  GeoJSONLineString,
+  GeoJSONMultiLineString,
+  GeoJSONPolygon,
+  GeoJSONMultiPolygon,
+} from "@/lib/types";
 import { centerAndZoomFromCoords } from "@/lib/geo/centroid";
 
 // -----------------------------------------------------------------------------
@@ -166,7 +172,7 @@ function MapaMiniShell({ intervencion }: { intervencion: IntervencionCompleta })
 // -----------------------------------------------------------------------------
 // Wrappers GeoJSON — FeatureCollection con la geometría de la intervención.
 // -----------------------------------------------------------------------------
-function lineaToFeature(g: GeoJSONLineString, id: number) {
+function lineaToFeature(g: GeoJSONLineString | GeoJSONMultiLineString, id: number) {
   return {
     type: "FeatureCollection" as const,
     features: [
@@ -180,7 +186,7 @@ function lineaToFeature(g: GeoJSONLineString, id: number) {
   };
 }
 
-function poligonoToFeature(g: GeoJSONPolygon, id: number) {
+function poligonoToFeature(g: GeoJSONPolygon | GeoJSONMultiPolygon, id: number) {
   return {
     type: "FeatureCollection" as const,
     features: [

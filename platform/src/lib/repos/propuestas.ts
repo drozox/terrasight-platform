@@ -19,7 +19,9 @@ import type {
   IntervencionCompleta,
   AvancePropuesta,
   GeoJSONLineString,
+  GeoJSONMultiLineString,
   GeoJSONPolygon,
+  GeoJSONMultiPolygon,
   PuntoGeom,
   LineaGeom,
   PoligonoGeom,
@@ -323,7 +325,7 @@ export async function getIntervencionCompleta(
     };
   } else if (tipo === "linea" && geomRow && "longitud_m" in geomRow) {
     const r = geomRow as LineaRow;
-    const geojson = parseGeoJSON<GeoJSONLineString>(r.geojson, "linea");
+    const geojson = parseGeoJSON<GeoJSONLineString | GeoJSONMultiLineString>(r.geojson, "linea");
     if (geojson) {
       geom = {
         longitudM: pgNum(r.longitud_m),
@@ -333,7 +335,7 @@ export async function getIntervencionCompleta(
     }
   } else if (tipo === "poligono" && geomRow && "area_ha" in geomRow) {
     const r = geomRow as PoligonoRow;
-    const geojson = parseGeoJSON<GeoJSONPolygon>(r.geojson, "poligono");
+    const geojson = parseGeoJSON<GeoJSONPolygon | GeoJSONMultiPolygon>(r.geojson, "poligono");
     if (geojson) {
       geom = { areaHa: pgNum(r.area_ha), geojson };
     }

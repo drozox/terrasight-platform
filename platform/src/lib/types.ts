@@ -320,9 +320,21 @@ export type GeoJSONLineString = {
   coordinates: [number, number][];
 }
 
+// El GDB del convenio trae geometrías "multi" (ST_MultiLineString /
+// ST_MultiPolygon): `coordinates` está un nivel más anidado.
+export type GeoJSONMultiLineString = {
+  type: "MultiLineString";
+  coordinates: [number, number][][];
+}
+
 export type GeoJSONPolygon = {
   type: "Polygon";
   coordinates: [number, number][][];
+}
+
+export type GeoJSONMultiPolygon = {
+  type: "MultiPolygon";
+  coordinates: [number, number][][][];
 }
 
 export type PuntoGeom = {
@@ -340,12 +352,12 @@ export type LineaGeom = {
    * una misma card del front.
    */
   areaHa: number;
-  geojson: GeoJSONLineString;
+  geojson: GeoJSONLineString | GeoJSONMultiLineString;
 }
 
 export type PoligonoGeom = {
   areaHa: number;
-  geojson: GeoJSONPolygon;
+  geojson: GeoJSONPolygon | GeoJSONMultiPolygon;
 }
 
 interface IntervencionCompletaBase {
