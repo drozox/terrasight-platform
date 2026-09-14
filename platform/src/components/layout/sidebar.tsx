@@ -27,6 +27,7 @@ import {
   Wrench,
   FileText,
   Target,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SigTerritorioLogo } from "@/components/icons";
@@ -51,6 +52,7 @@ const ALL_ITEMS: Item[] = [
   { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,      roles: null },
   { href: "/metas/convenio", label: "Metas del convenio", icon: Target,      roles: null },
   { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
+  { href: "/informate",      label: "Infórmate",          icon: Info,        roles: null },
 ];
 
 export function Sidebar({ rol }: { rol?: RolSistema | null }) {
