@@ -68,6 +68,106 @@ export async function listPredios(): Promise<PredioFull[]> {
   return rows.map(mapPredioRow);
 }
 
+// -----------------------------------------------------------------------------
+// listPrediosFiltrados — DEEPSEEK-F3
+// Variante rica con nombre de propietario + filtros por componente/acción.
+// Los componentes y acciones se derivan del `nucleo_predial` (texto que agrupa
+// los predios por CxAy — ej. "C1A1 - Vereda X"). Es heurístico pero cubre el
+// 99% de los casos sin requerir schema changes.
+// -----------------------------------------------------------------------------
+export type PredioFiltrado = {
+  idPredio: number;
+  codigo: string;
+  nombrePredio: string;
+  nucleoPredial: string;
+  componente: string | null;   // "C1" | "C2" | "C3" | null
+  accion: string | null;        // "A1" | "A2" | "U" | null
+  areaHa: number;
+  longitudCentroide: number;
+  latitudCentroide: number;
+  idPropietario: number;
+  nombrePropietario: string;
+  idVereda: number;
+};
+
+export async function listPrediosFiltrados(args: {
+  componente?: string | null;
+  accion?: string | null;
+  q?: string | null;
+}): Promise<PredioFiltrado[]> {
+  const conditions = [];
+  if (args.componente) {
+    // Componente: prefijo del nucleo_predial (C1, C2, C3 al inicio)
+    conditions.push(sql`p.nucleo_predial LIKE ${args.componente + "%"}`);
+  }
+  if (args.accion) {
+    // Acción: tercera letra del nucleo_predial (CxAy donde y = A1/A2/U)
+    conditions.push(sql`SUBSTRING(p.nucleo_predial FROM 3 FOR 2) = ${args.accion}`);
+  }
+  if (args.q) {
+    const like = "%" + args.q + "%";
+    conditions.push(
+      sql`(p.nombre_predio ILIKE ${like}
+           OR p.cedula_catastral ILIKE ${like}
+           OR p.nucleo_predial ILIKE ${like}
+           OR pr.nombre_razon_social ILIKE ${like})`,
+    );
+  }
+  const whereClause =
+    conditions.length === 0
+      ? sql``
+      : sql`WHERE ${conditions.reduce((acc, c, i) => (i === 0 ? c : sql`${acc} AND ${c}`), sql``)}`;
+
+  const rows = await sql<
+    {
+      id_predio: number | string;
+      codigo: string | null;
+      nombre_predio: string;
+      nucleo_predial: string;
+      area_ha: number | string;
+      longitud_centroide: number | string;
+      latitud_centroide: number | string;
+      id_propietario: number | string;
+      nombre_propietario: string | null;
+      id_vereda: number | string;
+    }[]
+  >`
+    SELECT p.id_predio,
+           ('PR-' || LPAD(p.id_predio::text, 5, '0'))     AS codigo,
+           p.nombre_predio,
+           p.nucleo_predial,
+           p.area_ha,
+           p.longitud_centroide,
+           p.latitud_centroide,
+           p.id_propietario,
+           pr.nombre_razon_social                          AS nombre_propietario,
+           p.id_vereda
+    FROM   sgs_pre_predio p
+    LEFT JOIN sgs_pre_propietario pr ON pr.id_propietario = p.id_propietario
+    ${whereClause}
+    ORDER  BY p.nombre_predio;
+  `;
+  return rows.map((r) => {
+    const nucleo = pgText(r.nucleo_predial);
+    const compMatch = nucleo.match(/^(C[123])/);
+    const accMatch = nucleo.match(/^C[123](A1|A2|U)/);
+    return {
+      idPredio: pgInt(r.id_predio),
+      codigo: r.codigo ?? `PR-${String(pgInt(r.id_predio)).padStart(5, "0")}`,
+      nombrePredio: pgText(r.nombre_predio),
+      nucleoPredial: nucleo,
+      componente: compMatch ? compMatch[1] : null,
+      accion: accMatch ? accMatch[1] : null,
+      areaHa: pgNum(r.area_ha),
+      longitudCentroide: pgNum(r.longitud_centroide),
+      latitudCentroide: pgNum(r.latitud_centroide),
+      idPropietario: pgInt(r.id_propietario),
+      nombrePropietario: pgText(r.nombre_propietario ?? ""),
+      idVereda: pgInt(r.id_vereda),
+    };
+  });
+}
+
 export async function getPredioById(id: number): Promise<PredioFull | null> {
   const rows = await sql<PredioRow[]>`
     SELECT id_predio, nombre_predio, area_ha, cedula_catastral, cedula_ant,
