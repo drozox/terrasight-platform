@@ -1,39 +1,35 @@
 import * as React from "react";
 
-/** Logo institucional SIG TERRITORIO — hoja + gota de agua (SVG inline, escala libre). */
+/** DEEPSEEK-F6: logo institucional SIG TERRITORIO (frailejón) — imagen real
+ *  servida desde /public/logos/sig-territorio.png. */
 export function SigTerritorioLogo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 40 40"
-      xmlns="http://www.w3.org/2000/svg"
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logos/sig-territorio.png"
+      alt="SIG TERRITORIO"
       className={className}
-      aria-label="SIG TERRITORIO logo"
-    >
-      <rect width="40" height="40" rx="8" fill="#006d37" />
-      <path
-        d="M11 27C11 19.27 17.27 13 25 13c0 7.732-6.268 14-14 14Z"
-        fill="#7efba4"
-      />
-      <circle cx="26" cy="22" r="4" fill="#a3d4fe" />
-    </svg>
+      style={{ height: "auto", width: "auto" }}
+    />
   );
 }
 
-/** Logo de alianza. Si se pasa `src`, renderiza <img> con el archivo en /public.
- *  Si no, usa un placeholder SVG estilizado (queda como fallback). */
+/** DEEPSEEK-F6: logo de aliado. Renderiza <img> con el archivo real en /public/logos/.
+ *  Si no se pasa `src`, usa un placeholder SVG estilizado (fallback). */
 export function PartnerLogo({
   name,
   className,
   src,
 }: {
-  name: "wwf" | "car" | "natura";
+  name: "wwf" | "car" | "natura" | "sig-territorio";
   className?: string;
   src?: string;
 }) {
   const palette: Record<typeof name, { primary: string; secondary: string; label: string; abbr: string }> = {
-    wwf:   { primary: "#000000", secondary: "#FFFFFF", label: "WWF",          abbr: "W" },
-    car:   { primary: "#006d37", secondary: "#FFFFFF", label: "CAR",          abbr: "C" },
-    natura: { primary: "#7a4f1d", secondary: "#FFFFFF", label: "Fund. Natura", abbr: "N" },
+    wwf:   { primary: "#000000", secondary: "#FFFFFF", label: "WWF",                   abbr: "W" },
+    car:   { primary: "#006d37", secondary: "#FFFFFF", label: "CAR Cundinamarca",      abbr: "C" },
+    natura: { primary: "#7a4f1d", secondary: "#FFFFFF", label: "Fundación Natura",      abbr: "N" },
+    "sig-territorio": { primary: "#006d37", secondary: "#FFFFFF", label: "SIG TERRITORIO", abbr: "S" },
   };
   const p = palette[name];
 
