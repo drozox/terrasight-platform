@@ -25,7 +25,6 @@ import {
   getPrediosMini,
   getQuebradasMini,
   getPrediosGeoJSON,
-  getAlertas,
   getFooterKpis,
   getPrediosPorMunicipio,
   getPropuestasPorComponente,
@@ -33,7 +32,6 @@ import {
 import type {
   DashboardKpis,
   ComponenteTotal,
-  Alerta,
   FooterKpis,
   SerieTemporal,
   PredioMini,
@@ -150,27 +148,23 @@ async function BottomSection({
   );
 }
 
-/** Right panel: KPIs + componentes + tendencia + alertas. */
+/** Right panel: KPIs + componentes + tendencia. (DEEPSEEK-66: alertas fuera de alcance.) */
 async function RightPanelSection({
   kpis,
   componentes,
+  footer,
   seriesComponentes,
 }: {
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
+  footer: FooterKpis;
   seriesComponentes: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
 }) {
-  const [alertas, footer] = await Promise.all([
-    getAlertas(5),
-    getFooterKpis(),
-  ]);
-
   return (
     <RightPanel
       kpis={kpis}
       componentes={componentes}
       footer={footer}
-      alertas={alertas}
       seriesComponentes={seriesComponentes}
     />
   );
@@ -260,6 +254,7 @@ export function DashboardContent({
           <RightPanelSection
             kpis={kpis}
             componentes={componentes}
+            footer={footerInicial}
             seriesComponentes={seriesComponentes}
           />
         </Suspense>

@@ -6,9 +6,6 @@ import { LineChart, type LineSeries } from "./line-chart";
 import { formatInt, formatHa, cn } from "@/lib/utils";
 import {
   TrendingUp,
-  AlertTriangle,
-  Info,
-  Clock,
   Building2,
   Droplets,
   Activity,
@@ -18,7 +15,6 @@ import type {
   DashboardKpis,
   ComponenteTotal,
   FooterKpis,
-  Alerta,
   SerieTemporal,
 } from "@/lib/types";
 
@@ -31,19 +27,19 @@ import type {
  *  1. Indicadores Generales (grid 2x2)
  *  2. Intervenciones por Componente (donut + lista)
  *  3. Tendencia de Propuestas (line chart multi-serie)
- *  4. Alertas y Notificaciones (lista con niveles)
+ *
+ * Nota (DEEPSEEK-66): la sección "Alertas y notificaciones" se quitó — el módulo
+ * /alertas está fuera de alcance (ver docs/ALCANCE.md).
  */
 export function RightPanel({
   kpis,
   componentes,
   footer,
-  alertas,
   seriesComponentes,
 }: {
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
   footer: FooterKpis;
-  alertas: Alerta[];
   seriesComponentes?: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
 }) {
   const totalPropuestas =
@@ -252,64 +248,6 @@ export function RightPanel({
         <p className="mt-1 text-[10px] text-on-surface-variant">
           Acumulado trimestral de propuestas por componente.
         </p>
-      </Card>
-
-      {/* SECCIÓN 4 — Alertas y Notificaciones */}
-      <Card className="p-3">
-        <div className="mb-2.5 flex items-center justify-between">
-          {/* En esta card el color error sí tiene sentido porque es un panel
-             de alertas activas — el header lleva el tono para reforzar
-             urgencia visual. */}
-          <h3 className="text-title-md font-bold text-error">
-            Alertas y notificaciones
-          </h3>
-          <AlertTriangle className="size-4 text-error" />
-        </div>
-        <ul className="space-y-2">
-          {alertas.length === 0 && (
-            <p className="py-4 text-center text-body-sm text-on-surface-variant">
-              Sin alertas activas
-            </p>
-          )}
-          {alertas.map((a) => {
-            const Icon =
-              a.tipo === "error"   ? AlertTriangle :
-              a.tipo === "warning" ? Clock        :
-                                     Info;
-            const iconColor =
-              a.tipo === "error"   ? "text-error"   :
-              a.tipo === "warning" ? "text-warning" :
-                                     "text-info";
-            return (
-              <li
-                key={a.id}
-                className={cn(
-                  "rounded-lg border-l-4 bg-surface-container-low p-2.5 transition-colors hover:bg-surface-variant/40",
-                  a.tipo === "error"   && "border-error",
-                  a.tipo === "warning" && "border-warning",
-                  a.tipo === "info"    && "border-info",
-                )}
-              >
-                <div className="flex items-start gap-2">
-                  <Icon className={cn("mt-0.5 size-3.5 shrink-0", iconColor)} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-bold leading-tight text-on-surface">
-                        {a.titulo}
-                      </p>
-                      <span className="shrink-0 text-[9px] text-on-surface-variant">
-                        {a.fecha}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-on-surface-variant">
-                      {a.descripcion}
-                    </p>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
       </Card>
     </aside>
   );
