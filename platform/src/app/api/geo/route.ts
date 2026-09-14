@@ -27,6 +27,7 @@ import {
   getPropuestasLineaGeoJSON,
   getPropuestasPuntoGeoJSON,
   getPropuestasPoligonoGeoJSON,
+  getComponenteFootprintGeoJSON,
 } from "@/lib/repos/geojson";
 
 export const runtime = "nodejs";
@@ -52,7 +53,33 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const layer = new URL(req.url).searchParams.get("layer") as LayerKey | null;
+  const sp = new URL(req.url).searchParams;
+  const layer = sp.get("layer");
+
+  // Capa dinámica: huella de un componente (?layer=componente&componente=C1).
+  // Devuelve punto + polígono + línea de todas las propuestas del componente
+  // para que el visor haga fitBounds y lo resalte.
+  if (layer === "componente") {
+    const componente = sp.get("componente");
+    if (!componente) {
+      return NextResponse.json(
+        { error: "Falta el parámetro 'componente' (C1, C2 o C3)." },
+        { status: 400 },
+      );
+    }
+    try {
+      const data = await getComponenteFootprintGeoJSON(componente);
+      return NextResponse.json(data, {
+        headers: { "Cache-Control": "public, max-age=120" },
+      });
+    } catch (err) {
+      return NextResponse.json(
+        { error: (err as Error).message ?? "Error desconocido" },
+        { status: 503 },
+      );
+    }
+  }
+
   if (!layer || !(layer in LAYERS)) {
     return NextResponse.json(
       { error: `Layer inválido. Permitidos: ${Object.keys(LAYERS).join(", ")}` },
@@ -61,7 +88,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const data = await LAYERS[layer]();
+    const data = await LAYERS[layer as LayerKey]();
     return NextResponse.json(data, {
       headers: { "Cache-Control": "public, max-age=300" },
     });

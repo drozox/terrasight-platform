@@ -37,6 +37,7 @@ import { MapCompass } from "./map-compass";
 import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
+import { MapComponenteFocusLayer } from "./map-componente-focus-layer";
 import { MapLayerDataPanel } from "./map-layer-data-panel";
 import { MapFeaturePanel } from "./map-feature-panel";
 import { MapToolFeedback } from "./map-tool-feedback";
@@ -72,6 +73,7 @@ const BASEMAPS: Record<BasemapKey, { url: string; maxZoom?: number; attribution:
 };
 
 export default function MapClient({
+  activeComponente = null,
   height = "100%",
   showLayersPanel = true,
 }: Props) {
@@ -430,6 +432,13 @@ export default function MapClient({
         )}
 
         <MapRegionLabels />
+
+        {/* Zoom a componente (DEEPSEEK-76): resalta la huella del componente
+           activo y hace fitBounds para que se vea completa. */}
+        <MapComponenteFocusLayer
+          componente={activeComponente}
+          onClick={setSelectedFeature}
+        />
 
         {/* P0-CRÍTICO: estos 3 layers usan useMap() y DEBEN estar dentro
            del MapContainer para tener el contexto de Leaflet. Antes estaban

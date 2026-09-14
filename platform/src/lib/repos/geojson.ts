@@ -232,3 +232,49 @@ export const getPropuestasPoligonoGeoJSON = unstable_cache(
   ["geo-propuestas-poligono"],
   { revalidate: 300, tags: ["mapa"] },
 );
+
+// =============================================================================
+// Huella de un componente (DEEPSEEK-76) — punto + polígono + línea de TODAS las
+// propuestas del componente. Se usa para el "zoom a componente" del mapa: el
+// visor hace fitBounds sobre esta capa y la resalta encima de las capas base.
+// No se cachea: es una consulta acotada (subconjunto) y cambia con cada filtro.
+// =============================================================================
+export async function getComponenteFootprintGeoJSON(
+  componente: string,
+): Promise<FeatureCollection> {
+  const comp = /^C[123]$/.test(componente) ? componente : null;
+  if (!comp) return { type: "FeatureCollection", features: [] };
+
+  const rows = await sql<{ tipo: string; id: number; nombre: string | null; geom: string }[]>`
+    WITH comp AS (
+      SELECT a.id_accion
+      FROM sgs_com_accion a
+      JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+      WHERE c.nombre = ${comp}
+    )
+    SELECT 'punto' AS tipo, pt.id_prop_punto AS id, pt.actividad AS nombre, ST_AsGeoJSON(pt.geom) AS geom
+    FROM sgs_pro_propuesta_punto pt
+    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pt.id_propuesta
+    WHERE pt.geom IS NOT NULL AND pp.id_accion IN (SELECT id_accion FROM comp)
+    UNION ALL
+    SELECT 'poligono', pq.id_prop_poligono, pq.actividad, ST_AsGeoJSON(pq.geom)
+    FROM sgs_pro_propuesta_poligono pq
+    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
+    WHERE pq.geom IS NOT NULL AND pp.id_accion IN (SELECT id_accion FROM comp)
+    UNION ALL
+    SELECT 'linea', pl.id_prop_linea, pl.actividad, ST_AsGeoJSON(pl.geom)
+    FROM sgs_pro_propuesta_linea pl
+    JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pl.id_propuesta
+    WHERE pl.geom IS NOT NULL AND pp.id_accion IN (SELECT id_accion FROM comp);
+  `;
+
+  return {
+    type: "FeatureCollection",
+    features: rows.map((r) => ({
+      type: "Feature",
+      id: r.id,
+      properties: { id: r.id, nombre: r.nombre, tipo: r.tipo, layer: "componente" },
+      geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
+    })),
+  };
+}
