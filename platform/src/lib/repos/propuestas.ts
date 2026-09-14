@@ -540,3 +540,132 @@ export async function agregarAvancePropuesta(args: {
     createdAt: new Date(pgText(r.created_at)),
   };
 }
+
+// -----------------------------------------------------------------------------
+// crearPropuesta — DEEPSEEK-F2.2
+// Inserta en sgs_pro_propuesta (super-tipo). La geometría específica
+// (punto/línea/polígono) se inserta después en la tabla hija correspondiente.
+// El id_accion referencia sgs_com_accion (FK real de la BD; los IDs del GDB
+// original 2040201..2040205 fueron re-mapeados durante el import).
+// -----------------------------------------------------------------------------
+export async function crearPropuesta(args: {
+  tipo: "punto" | "linea" | "poligono";
+  idAccion: number;
+  idPredio: number | null;
+  actividad: string;
+  observaciones?: string;
+}): Promise<{ idPropuesta: number }> {
+  const rows = await sql<{ id_propuesta: number | string }[]>`
+    INSERT INTO sgs_pro_propuesta (tipo, id_accion, id_predio, actividad, observaciones, estado)
+    VALUES (${args.tipo}, ${args.idAccion}, ${args.idPredio}, ${args.actividad}, ${args.observaciones ?? ""}, 'BORRADOR')
+    RETURNING id_propuesta;
+  `;
+  const r = rows[0];
+  if (!r) throw new Error("Insert de propuesta no devolvió fila");
+  return { idPropuesta: pgInt(r.id_propuesta) };
+}
+
+// -----------------------------------------------------------------------------
+// Alarmas de propuesta — DEEPSEEK-F2.3
+// Reportar problemas/necesidades sobre una intervención (firma pendiente,
+// no autorizada por la comunidad, etc.) y resolverlos.
+// -----------------------------------------------------------------------------
+
+export type AlarmaPropuesta = {
+  idAlarma: number;
+  idPropuesta: number;
+  tipo: "firma_pendiente" | "no_autorizada_comunidad" | "problema_tecnico" | "requiere_visita" | "otro";
+  descripcion: string;
+  creadoPor: number | null;
+  creadoPorEmail: string | null;
+  creadoEn: Date;
+  resuelta: boolean;
+  resueltaPor: number | null;
+  resueltaPorEmail: string | null;
+  resueltaEn: Date | null;
+  notaResolucion: string;
+};
+
+export async function listAlarmasByPropuesta(
+  idPropuesta: number,
+): Promise<AlarmaPropuesta[]> {
+  const rows = await sql<{
+    id_alarma: number | string;
+    id_propuesta: number | string;
+    tipo: string;
+    descripcion: string;
+    creado_por: number | string | null;
+    creado_por_email: string | null;
+    creado_en: Date | string;
+    resuelta: boolean | string;
+    resuelta_por: number | string | null;
+    resuelta_por_email: string | null;
+    resuelta_en: Date | string | null;
+    nota_resolucion: string;
+  }[]>`
+    SELECT a.id_alarma,
+           a.id_propuesta,
+           a.tipo,
+           a.descripcion,
+           a.creado_por,
+           uc.email AS creado_por_email,
+           a.creado_en,
+           a.resuelta,
+           a.resuelta_por,
+           ur.email AS resuelta_por_email,
+           a.resuelta_en,
+           a.nota_resolucion
+    FROM   sgs_pro_propuesta_alarma a
+    LEFT JOIN sgs_adm_usuario uc ON uc.id_usuario = a.creado_por
+    LEFT JOIN sgs_adm_usuario ur ON ur.id_usuario = a.resuelta_por
+    WHERE  a.id_propuesta = ${idPropuesta}
+    ORDER  BY a.resuelta ASC, a.creado_en DESC, a.id_alarma DESC;
+  `;
+  return rows.map((r) => ({
+    idAlarma: pgInt(r.id_alarma),
+    idPropuesta: pgInt(r.id_propuesta),
+    tipo: pgText(r.tipo) as AlarmaPropuesta["tipo"],
+    descripcion: pgText(r.descripcion),
+    creadoPor: r.creado_por == null ? null : pgInt(r.creado_por),
+    creadoPorEmail: r.creado_por_email,
+    creadoEn: new Date(pgText(r.creado_en)),
+    resuelta: r.resuelta === true || r.resuelta === "t" || r.resuelta === "true",
+    resueltaPor: r.resuelta_por == null ? null : pgInt(r.resuelta_por),
+    resueltaPorEmail: r.resuelta_por_email,
+    resueltaEn: r.resuelta_en == null ? null : new Date(pgText(r.resuelta_en)),
+    notaResolucion: pgText(r.nota_resolucion),
+  }));
+}
+
+export async function crearAlarma(args: {
+  idPropuesta: number;
+  tipo: AlarmaPropuesta["tipo"];
+  descripcion: string;
+  creadoPor: number | null;
+}): Promise<{ idAlarma: number }> {
+  const rows = await sql<{ id_alarma: number | string }[]>`
+    INSERT INTO sgs_pro_propuesta_alarma (id_propuesta, tipo, descripcion, creado_por)
+    VALUES (${args.idPropuesta}, ${args.tipo}, ${args.descripcion}, ${args.creadoPor})
+    RETURNING id_alarma;
+  `;
+  const r = rows[0];
+  if (!r) throw new Error("Insert de alarma no devolvió fila");
+  return { idAlarma: pgInt(r.id_alarma) };
+}
+
+export async function resolverAlarma(args: {
+  idAlarma: number;
+  notaResolucion: string;
+  resueltaPor: number | null;
+}): Promise<void> {
+  await sql`
+    UPDATE sgs_pro_propuesta_alarma
+    SET    resuelta = TRUE,
+           resuelta_por = ${args.resueltaPor},
+           resuelta_en = now(),
+           nota_resolucion = ${args.notaResolucion}
+    WHERE  id_alarma = ${args.idAlarma};
+  `;
+}
+
+

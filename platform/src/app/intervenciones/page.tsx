@@ -1,8 +1,9 @@
 ﻿import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SortableHeader } from "@/components/ui/sortable-header";
-import { Wrench, ArrowRight, Inbox } from "lucide-react";
+import { Wrench, ArrowRight, Inbox, Plus } from "lucide-react";
 import Link from "next/link";
 import { getIntervencionesRecientes, getComponentes } from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
@@ -11,7 +12,13 @@ import { EstadoIntervencionDropdown } from "./estado-dropdown";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ componente?: string; page?: string; sort?: string; order?: "asc" | "desc" }>;
+type SearchParams = Promise<{
+  componente?: string;
+  accion?: string;
+  page?: string;
+  sort?: string;
+  order?: "asc" | "desc";
+}>;
 
 // UX-65 (audit 2026-07-24): paginacion basica via searchParams.
 const PAGE_SIZE = 25;
@@ -28,13 +35,31 @@ const COMPONENT_ACTIVE_BG: Record<"primary" | "secondary" | "tertiary", string> 
   tertiary:  "border-tertiary bg-tertiary text-on-tertiary",
 };
 
+// DEEPSEEK-F2: acciones válidas por componente (modelo BDG).
+const ACCIONES_POR_COMPONENTE: Record<string, string[]> = {
+  C1: ["A1", "A2"],
+  C2: ["A1", "A2"],
+  C3: ["A1", "A2"],
+};
+
 // UX-65: helper para construir el URL de paginacion preservando el filtro.
-function buildPageUrl(componente: string | null, page: number): string {
+function buildPageUrl(componente: string | null, accion: string | null, page: number): string {
   const params = new URLSearchParams();
   if (componente) params.set("componente", componente);
+  if (accion) params.set("accion", accion);
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
   return qs ? `/intervenciones?${qs}` : "/intervenciones";
+}
+
+// DEEPSEEK-F2: helper que arma el título descriptivo del filtro activo.
+function describeFilter(componente: string | null, accion: string | null): string {
+  if (!componente && !accion) return "Todas las intervenciones del convenio";
+  if (componente && !accion) return `Componente ${componente}`;
+  if (componente && accion) {
+    return `Componente ${componente} — Acción ${accion} (${componente}${accion})`;
+  }
+  return accion ? `Acción ${accion}` : "Todas";
 }
 
 export default async function IntervencionesPage({
@@ -47,6 +72,8 @@ export default async function IntervencionesPage({
     getCurrentUser(),
   ]);
   const componente = params.componente ?? null;
+  // DEEPSEEK-F2: la acción se filtra por nombre (A1/A2/U).
+  const accion = params.accion ?? null;
   // UX-65 (audit 2026-07-24): paginacion. page=1 default. Cap a 9999
   // (mas alla es claramente input malicioso).
   const pageNum = Math.max(1, Math.min(9999, Number(params.page ?? "1") || 1));
@@ -56,7 +83,7 @@ export default async function IntervencionesPage({
 
   // Pedimos 1 fila extra para saber si hay mas paginas sin un COUNT extra.
   const [intervenciones, componentes] = await Promise.all([
-    getIntervencionesRecientes(PAGE_SIZE + 1, componente),
+    getIntervencionesRecientes(PAGE_SIZE + 1, componente, accion),
     getComponentes(),
   ]);
 
@@ -106,8 +133,7 @@ export default async function IntervencionesPage({
                 Intervenciones
               </h1>
               <p className="text-body-sm text-on-surface-variant">
-                {intervencionesPage.length} propuestas
-                {componente ? ` del componente ${componente}` : ""} ·{" "}
+                {describeFilter(componente, accion)} ·{" "}
                 {formatInt(
                   intervencionesPage.reduce((acc, i) => acc + (i.hectareas ?? 0), 0),
                 )}{" "}
@@ -115,9 +141,16 @@ export default async function IntervencionesPage({
               </p>
             </div>
           </div>
+          {/* DEEPSEEK-F2: botón para crear nueva propuesta/intervención */}
+          <Link href="/intervenciones/nueva">
+            <Button>
+              <Plus className="size-4" />
+              Nueva intervención
+            </Button>
+          </Link>
         </div>
 
-        {/* Chips de filtro */}
+        {/* Chips de filtro por componente */}
         <div className="flex flex-wrap gap-2">
           <Link
             href="/intervenciones"
@@ -147,6 +180,38 @@ export default async function IntervencionesPage({
           })}
         </div>
 
+        {/* DEEPSEEK-F2: chips de acción (solo si hay componente activo) */}
+        {componente && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-label-lg font-bold text-on-surface-variant">
+              Acción:
+            </span>
+            <Link
+              href={`/intervenciones?componente=${componente}`}
+              className={`rounded-full border px-3 py-1 text-label-lg font-bold transition-colors ${
+                !accion
+                  ? "border-primary bg-primary text-on-primary"
+                  : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
+              }`}
+            >
+              Todas
+            </Link>
+            {(ACCIONES_POR_COMPONENTE[componente] ?? []).map((a) => (
+              <Link
+                key={a}
+                href={`/intervenciones?componente=${componente}&accion=${a}`}
+                className={`rounded-full border px-3 py-1 text-label-lg font-bold transition-colors ${
+                  accion === a
+                    ? "border-primary bg-primary text-on-primary"
+                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
+                }`}
+              >
+                {componente}{a}
+              </Link>
+            ))}
+          </div>
+        )}
+
         {/* UX-65: indicador de rango + paginador. Server-rendered,
            la paginación se hace via searchParams. */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-body-sm text-on-surface-variant">
@@ -158,7 +223,7 @@ export default async function IntervencionesPage({
           </p>
           <div className="flex items-center gap-1">
             <Link
-              href={buildPageUrl(componente, Math.max(1, pageNum - 1))}
+              href={buildPageUrl(componente, accion, Math.max(1, pageNum - 1))}
               aria-disabled={pageNum === 1}
               className={`flex h-8 items-center gap-1 rounded-md border border-outline-variant px-3 text-label-lg font-bold transition-colors ${
                 pageNum === 1
@@ -170,7 +235,7 @@ export default async function IntervencionesPage({
             </Link>
             <span className="px-2 text-label-lg font-bold">pág {pageNum}</span>
             <Link
-              href={buildPageUrl(componente, pageNum + 1)}
+              href={buildPageUrl(componente, accion, pageNum + 1)}
               aria-disabled={!hasNextPage}
               className={`flex h-8 items-center gap-1 rounded-md border border-outline-variant px-3 text-label-lg font-bold transition-colors ${
                 !hasNextPage
@@ -189,25 +254,25 @@ export default async function IntervencionesPage({
               <thead>
                 <tr className="bg-surface-container-low text-[11px] font-bold uppercase text-on-surface-variant">
                   <th className="px-4 py-3">
-                    <SortableHeader field="id" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>ID</SortableHeader>
+                    <SortableHeader field="id" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>ID</SortableHeader>
                   </th>
                   <th className="px-4 py-3">
-                    <SortableHeader field="actividad" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Actividad</SortableHeader>
+                    <SortableHeader field="actividad" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Actividad</SortableHeader>
                   </th>
                   <th className="px-4 py-3">
-                    <SortableHeader field="nombrePredio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Predio</SortableHeader>
+                    <SortableHeader field="nombrePredio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Predio</SortableHeader>
                   </th>
                   <th className="px-4 py-3">
-                    <SortableHeader field="municipio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Municipio</SortableHeader>
+                    <SortableHeader field="municipio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Municipio</SortableHeader>
                   </th>
                   <th className="px-4 py-3">
-                    <SortableHeader field="componente" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Componente</SortableHeader>
+                    <SortableHeader field="componente" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Componente</SortableHeader>
                   </th>
                   <th className="px-4 py-3">
-                    <SortableHeader field="estado" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }}>Estado</SortableHeader>
+                    <SortableHeader field="estado" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Estado</SortableHeader>
                   </th>
                   <th className="px-4 py-3 text-right">
-                    <SortableHeader field="avance" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined }} className="justify-end">Avance</SortableHeader>
+                    <SortableHeader field="avance" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }} className="justify-end">Avance</SortableHeader>
                   </th>
                   <th className="px-4 py-3"></th>
                 </tr>

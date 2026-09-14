@@ -12,7 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth-guard";
 import { getIntervencionCompleta } from "@/lib/repos";
 import { getHistorial, type EstadoPropuesta } from "@/lib/repos/workflow";
+import { listAlarmasByPropuesta } from "@/lib/repos/propuestas";
 import { WorkflowPanel } from "@/components/workflow/workflow-panel";
+import { AlarmasPanel } from "./alarmas-panel";
 import { IntervencionDetail } from "./intervencion-detail";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +35,8 @@ export default async function IntervencionDetailPage({
 
   // Sprint 20: cargar historial del workflow + estado actual
   const historial = await getHistorial(idNum);
+  // DEEPSEEK-F2.3: cargar alarmas (problemas/necesidades reportadas)
+  const alarmasInicial = await listAlarmasByPropuesta(idNum);
 
   // Permiso: ADMIN o GESTOR pueden editar. ANALISTA queda read-only.
   const canEdit = user.rol === "ADMIN" || user.rol === "GESTOR";
@@ -98,6 +102,15 @@ export default async function IntervencionDetailPage({
             rol={user.rol}
             email={user.email}
             historialInicial={historial}
+          />
+        </Card>
+
+        <Card className="p-6">
+          <AlarmasPanel
+            idPropuesta={idNum}
+            idUsuario={user.idUsuario ?? null}
+            alarmasInicial={alarmasInicial}
+            canEdit={canEdit}
           />
         </Card>
       </div>
