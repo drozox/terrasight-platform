@@ -1,22 +1,23 @@
 // =============================================================================
 // metas-convenio.ts — Indicadores del convenio CAR-WWF-Fundación Natura
 //
-// FUENTE ÚNICA DE VERDAD (FINAL-CLOSURE-PLAN, mejora #1):
+// FUENTE ÚNICA DE VERDAD (DEEPSEEK-F4 — migración 40):
 //   Los 10 indicadores se calculan en la vista SQL `sgs_v_indicador_global`,
-//   que a su vez deriva de `sgs_v_indicador_propuesta` (migración 36).
-//   Este archivo YA NO contiene patrones de fuzzy-match (ILIKE): solo consume
-//   las vistas. Cambiar un patrón = editar `36-indicadores-fuente-unica.sql`.
+//   que a su vez deriva de `sgs_v_indicador_propuesta` (migración 40).
+//   Esta versión usa `id_accion` (JOIN con sgs_com_accion) + actividad
+//   ESPECÍFICA en lugar de fuzzy-match permisivo. La lista de actividades
+//   aceptadas está en la migración 40.
 //
 //   - Global      → sgs_v_indicador_global
 //   - Drill-down  → sgs_v_indicador_propuesta WHERE indicador_key = ?
 //   - Municipio   → sgs_v_indicador_propuesta JOIN (propuestas del municipio)
 //
-// Targets (spec de Nikoll):
+// Targets (spec de Nikoll + DEEPSEEK-F4):
 //   C1A1: 12 km cercos vivos + 12 km aislamientos (cerco de alambre)
-//   C1A2: 15 km conectividad + 15 ha silvopastoriles + 15 ha agroforestales
+//   C1A2: 15 ha conectividad + 15 ha silvopastoriles + 15 ha agroforestales
 //   C2A1: 79 cosecha de agua + 79 compostaje
-//   C2A2: 7 estaciones limnimétricas + 48 obras de captación
-//   C3:   35 predios en áreas protegidas
+//   C2A2: 7 estaciones limnimétricas + 48 obras de captación (suma TODAS C2A2+C3)
+//   C3:   35 predios en áreas protegidas (count distinct id_predio)
 // =============================================================================
 
 import { sql, pgInt, pgNum, pgText } from "../db";
