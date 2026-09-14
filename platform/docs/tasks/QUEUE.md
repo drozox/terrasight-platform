@@ -12,9 +12,9 @@
 
 ## Tablero
 
-> **Lote paralelo activo:** [`PARALLEL-BATCH-06.md`](./PARALLEL-BATCH-06.md) (4 cards: acotamiento + entregables).
+> **Lote paralelo activo:** [`PARALLEL-BATCH-07.md`](./PARALLEL-BATCH-07.md) (5 cards).
 > Alcance: [`../ALCANCE.md`](../ALCANCE.md) · Plan: [`../PLAN-CIERRE-HOY.md`](../PLAN-CIERRE-HOY.md).
-> Lotes cerrados: 01, 02, 04 (03 no entregado → 04; 05 absorbido por 06).
+> Lotes cerrados: 01, 02, 04, 06 (03 no entregado → 04; 05 absorbido por 06).
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
@@ -51,6 +51,16 @@
 | `DEEPSEEK-40` E2E `/intervenciones` (list + detalle) | T1 | P2 | ⚠️ no entregado | [T1-e2e-intervenciones.md](./T1-e2e-intervenciones.md) |
 | `DEEPSEEK-29` `RUNBOOK` de operación | T1 | P2 | ⚠️ no entregado | [T1-doc-runbook.md](./T1-doc-runbook.md) |
 | `DEEPSEEK-44` `AGENTS.md`: coordinación + fuente única | T1 | P3 | ⚠️ no entregado | [T1-doc-agents-coordination.md](./T1-doc-agents-coordination.md) |
+
+## Lote 07 (activo) — cierre de acotamiento + cobertura
+
+| Card | Tier | Prioridad | Estado | Archivo |
+|------|------|-----------|--------|---------|
+| `DEEPSEEK-66` Dashboard: quitar alertas (fuera de alcance) | T1 | P2 | 🟢 listo | [T1-dashboard-alerts.md](./T1-dashboard-alerts.md) |
+| `DEEPSEEK-67` Component test `MapLayerDataPanel` | T1 | P3 | 🟢 listo | [T1-test-layer-data-panel.md](./T1-test-layer-data-panel.md) |
+| `DEEPSEEK-68` Eliminar componentes muertos de `/analisis` | T1 | P3 | 🟢 listo | [T1-clean-analisis.md](./T1-clean-analisis.md) |
+| `DEEPSEEK-69` Actualizar docs alcance/plan | T1 | P3 | 🟢 listo | [T1-doc-scope-update.md](./T1-doc-scope-update.md) |
+| `DEEPSEEK-70` E2E capas `/api/geo` (puntos/áreas) | T1 | P2 | 🟢 listo | [T1-e2e-geo-layers.md](./T1-e2e-geo-layers.md) |
 
 ## Lote 06 (cerrado) — acotamiento + entregables
 
