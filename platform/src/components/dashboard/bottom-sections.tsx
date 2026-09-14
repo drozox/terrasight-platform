@@ -9,7 +9,6 @@ import type {
   PredioPorMunicipio,
 } from "@/lib/types";
 import { formatInt, formatHa, cn } from "@/lib/utils";
-import Link from "next/link";
 
 /**
  * BottomSections — fila inferior del dashboard.
@@ -89,12 +88,7 @@ export function SummaryBar({ footer }: { footer: FooterKpis }) {
         {items.map((r) => {
           const Icon = r.icon;
           return (
-            <Link
-              key={r.label}
-              href={r.href}
-              aria-label={`Ver ${r.label}`}
-              className="flex items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-primary focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
-            >
+            <div key={r.label} className="flex items-center gap-3 px-2 py-1">
               <Icon className="size-6 shrink-0 opacity-90" />
               <div className="leading-tight">
                 <p className="text-title-lg font-bold">{r.valor}</p>
@@ -105,7 +99,7 @@ export function SummaryBar({ footer }: { footer: FooterKpis }) {
                   {r.label}
                 </p>
               </div>
-            </Link>
+            </div>
           );
         })}
       </div>

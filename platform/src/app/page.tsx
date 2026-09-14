@@ -3,6 +3,7 @@ import { ImportPanel } from "@/components/dashboard/import-panel";
 import { SummaryBar } from "@/components/dashboard/bottom-sections";
 import {
   getDashboardKpis,
+  getDashboardKpisComponente,
   getComponentes,
   getIntervencionesRecientes,
   getFooterKpis,
@@ -71,7 +72,7 @@ export default async function HomePage({
     seriesComponentes,
     dbHealth,
   ] = await Promise.all([
-    getDashboardKpis(),
+    componenteFiltro ? getDashboardKpisComponente(componenteFiltro) : getDashboardKpis(),
     getComponentes(),
     getIntervencionesRecientes(8, componenteFiltro),
     getFooterKpis(),

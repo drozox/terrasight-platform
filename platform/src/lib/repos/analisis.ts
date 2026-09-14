@@ -126,6 +126,77 @@ export const getDashboardKpis = cached(getDashboardKpisImpl, {
 });
 
 // =============================================================================
+// KPIs filtrados por componente (DEEPSEEK-75) — para que el ribbon del dashboard
+// haga reaccionar las métricas, no solo la tabla/mapa.
+// =============================================================================
+export async function getDashboardKpisComponente(componente: string): Promise<DashboardKpis> {
+  const comp = /^C[123]$/.test(componente) ? componente : null;
+  if (!comp) return getDashboardKpis();
+
+  return withFallback(`dashboardKpis:${comp}`, async () => {
+    const [row] = await sql<
+      {
+        predios: number | string;
+        propuestas: number | string;
+        propuestas_ejecucion: number | string;
+        hectareas_predios: number | string;
+        hectareas_propuestas: number | string;
+        hectareas_propuestas_poligono: number | string;
+      }[]
+    >`
+      WITH
+        pr AS (
+          SELECT
+            COUNT(*)::int AS propuestas,
+            COUNT(*) FILTER (
+              WHERE pp.actividad ILIKE '%ejec%' OR pp.actividad ILIKE '%proceso%'
+            )::int AS propuestas_ejecucion
+          FROM sgs_pro_propuesta pp
+          JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+          JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+          WHERE c.nombre = ${comp}
+        ),
+        p AS (
+          SELECT
+            COUNT(*)::int AS predios,
+            COALESCE(SUM(p.area_ha), 0)::numeric AS hectareas_predios
+          FROM sgs_pre_predio p
+          WHERE EXISTS (
+            SELECT 1
+            FROM sgs_pro_propuesta pp
+            JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+            JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+            WHERE pp.id_predio = p.id_predio AND c.nombre = ${comp}
+          )
+        ),
+        ppoly AS (
+          SELECT COALESCE(SUM(pol.area_ha), 0)::numeric AS hectareas_propuestas_poligono
+          FROM sgs_pro_propuesta_poligono pol
+          JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pol.id_propuesta
+          JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
+          JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
+          WHERE c.nombre = ${comp}
+        )
+      SELECT
+        p.predios, pr.propuestas, pr.propuestas_ejecucion,
+        p.hectareas_predios,
+        ppoly.hectareas_propuestas_poligono AS hectareas_propuestas,
+        ppoly.hectareas_propuestas_poligono
+      FROM p, pr, ppoly;
+    `;
+    return {
+      predios: pgInt(row?.predios),
+      propuestas: pgInt(row?.propuestas),
+      propuestasEjecucion: pgInt(row?.propuestas_ejecucion),
+      hectareasPredios: pgNum(row?.hectareas_predios),
+      hectareasPropuestas: pgNum(row?.hectareas_propuestas),
+      hectareasPropuestasEjecucion: 0,
+      hectareasPropuestasPoligono: pgNum(row?.hectareas_propuestas_poligono),
+    };
+  }, DEMO_DASHBOARD_KPIS);
+}
+
+// =============================================================================
 // Distribución por componente (HU-CO-01)
 // =============================================================================
 const getComponentesImpl = async (): Promise<ComponenteTotal[]> => {
