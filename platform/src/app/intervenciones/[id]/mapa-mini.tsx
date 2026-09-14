@@ -25,6 +25,7 @@ import {
 } from "react-leaflet";
 import { MapPin, Loader2 } from "lucide-react";
 import type { IntervencionCompleta, GeoJSONLineString, GeoJSONPolygon } from "@/lib/types";
+import { centerAndZoomFromCoords } from "@/lib/geo/centroid";
 
 // -----------------------------------------------------------------------------
 // Centroid por tipo de geometría
@@ -42,41 +43,22 @@ function computeCentroid(
       zoom: 14,
     };
   }
+  // F1: las geometrías del convenio son Multi* (MultiLineString/MultiPolygon),
+  // con coordinates ANIDADAS. `centerAndZoomFromCoords` aplana cualquier
+  // profundidad y protege contra NaN (evita el crash de Leaflet).
   if (intervencion.tipo === "linea" && intervencion.geom) {
-    return centroidOfCoords(intervencion.geom.geojson.coordinates, 13);
+    return centerAndZoomFromCoords(intervencion.geom.geojson.coordinates, {
+      center: CUNDINAMARCA_CENTER,
+      zoom: 13,
+    });
   }
   if (intervencion.tipo === "poligono" && intervencion.geom) {
-    // Polygon.coordinates: [[ [lon, lat], ... ]] — primer anillo.
-    return centroidOfCoords(intervencion.geom.geojson.coordinates[0] ?? [], 13);
+    return centerAndZoomFromCoords(intervencion.geom.geojson.coordinates, {
+      center: CUNDINAMARCA_CENTER,
+      zoom: 13,
+    });
   }
   return { center: CUNDINAMARCA_CENTER, zoom: 11 };
-}
-
-function centroidOfCoords(
-  coords: [number, number][],
-  fallbackZoom: number,
-): { center: [number, number]; zoom: number } {
-  if (!coords.length) return { center: CUNDINAMARCA_CENTER, zoom: fallbackZoom };
-  let minLon = coords[0]![0];
-  let maxLon = coords[0]![0];
-  let minLat = coords[0]![1];
-  let maxLat = coords[0]![1];
-  for (const [lon, lat] of coords) {
-    if (lon < minLon) minLon = lon;
-    if (lon > maxLon) maxLon = lon;
-    if (lat < minLat) minLat = lat;
-    if (lat > maxLat) maxLat = lat;
-  }
-  const center: [number, number] = [(minLat + maxLat) / 2, (minLon + maxLon) / 2];
-  // Aproximación de zoom según la diagonal del bbox en grados.
-  const diag = Math.hypot(maxLon - minLon, maxLat - minLat);
-  let zoom = fallbackZoom;
-  if (diag > 1) zoom = 9;
-  else if (diag > 0.1) zoom = 11;
-  else if (diag > 0.01) zoom = 13;
-  else if (diag > 0.001) zoom = 15;
-  else zoom = 16;
-  return { center, zoom };
 }
 
 // -----------------------------------------------------------------------------
