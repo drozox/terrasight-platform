@@ -17,7 +17,12 @@
 //   C1A2: 15 ha conectividad + 15 ha silvopastoriles + 15 ha agroforestales
 //   C2A1: 79 cosecha de agua + 79 compostaje
 //   C2A2: 7 estaciones limnimétricas + 48 obras de captación (suma TODAS C2A2+C3)
-//   C3:   35 predios en áreas protegidas (count distinct id_predio)
+//   C3AU: 35 predios en áreas protegidas (count distinct id_predio)
+//
+// Mapeo GDB-id → BD-nombre_accion (DEEPSEEK-F4 feedback):
+//   C1A1 → A1  (GDB 2040201) · C1A2 → A2  (GDB 2040202)
+//   C2A1 → A1  (GDB 2040203) · C2A2 → A2  (GDB 2040204)
+//   C3AU → U   (GDB 2040205) ← acción "U" creada en migración 41
 // =============================================================================
 
 import { sql, pgInt, pgNum, pgText } from "../db";

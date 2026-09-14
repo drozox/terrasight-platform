@@ -152,17 +152,18 @@ WHERE (c.nombre = 'C2' AND a.nombre = 'A2') OR (c.nombre = 'C3')
     OR unaccent(pt.actividad) ILIKE unaccent('%obras%captacion%'))
 
 -- ===========================================================================
--- C3 — Predios intervenidos en áreas protegidas
+-- C3AU — Predios intervenidos en áreas protegidas
+--   Filtro explícito por acción U (requiere migración 41 que crea la fila
+--   "U" en sgs_com_accion para C3). Antes filtrábamos solo por `c.nombre='C3'`
+--   lo que era incorrecto si C3 tuviera más acciones.
 --   Agregación = COUNT(DISTINCT id_predio), no SUM(medida).
---   Spec del user (F4): "intersecar con propuestas (punto, línea, polígono)
---   para ver cuántos predios de esta acción ya tienen propuesta".
 -- ===========================================================================
 UNION ALL
 SELECT 'predios_c3', pp.id_propuesta, pp.id_predio, 1::numeric, 'predios', 'count_distinct_predio', pp.tipo
 FROM sgs_pro_propuesta pp
 JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
 JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-WHERE c.nombre = 'C3' AND pp.id_predio IS NOT NULL;
+WHERE c.nombre = 'C3' AND a.nombre = 'U' AND pp.id_predio IS NOT NULL;
 
 COMMENT ON VIEW sgs_v_indicador_propuesta IS
   'Fuente única de verdad (DEEPSEEK-F4). Mapea cada propuesta/fila al '
