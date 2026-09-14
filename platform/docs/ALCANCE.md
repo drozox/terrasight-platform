@@ -30,14 +30,19 @@ entidad separada.
 | `/predios` (+`/[id]`) | Predios concertados | OE1/OE2/OE3 | entidad central del convenio |
 | `/intervenciones` (+`/[id]`) | Intervenciones | OE3 | seguimiento a las acciones + workflow + avance |
 | `/metas/convenio` (+drill-down) | Metas del convenio | OE3 | seguimiento/evaluación de las 5 metas (10 indicadores) |
-| `/analisis` | Análisis espacial | OE3 | buffer/bbox/matriz/cobertura |
 | `/reportes` | Reportes R1–R10 | OG | insumo para la toma de decisiones + export CSV/PDF |
+
+> **Análisis espacial**: las herramientas de análisis (medir, identificar,
+> buffer, selección por rectángulo, identificar capa) viven DENTRO de
+> `/mapa` (toolbar + panel de datos por capa). El análisis cumple OE3 sin
+> ser una ruta separada.
 
 ## 3. FUERA DE ALCANCE (ocultar del nav; rutas quedan por URL)
 
 | Ruta | Por qué queda fuera |
 |------|---------------------|
 | `/quebradas` | La información de quebradas ya está en el visor (capa) y en las metas; el CRUD no es un objetivo |
+| `/analisis` | El análisis espacial vive dentro de `/mapa` (herramientas del toolbar); la ruta se mantiene como redirect por compatibilidad de links externos |
 | `/monitoreo` | Estaciones/obras ya se cuentan en la meta C2A2 y se ven en el mapa |
 | `/catalogos` (+subpáginas) | Configuración administrativa de catálogos; no es un objetivo |
 | `/alertas` | No contemplado en los objetivos |
@@ -46,10 +51,18 @@ entidad separada.
 | `/dashboard` | Redundante (redirige a `/`) |
 | `/configuracion` | Placeholder |
 
-## 4. Placeholders a ELIMINAR del visor
-- Botón **"3D · pronto"** y su dialogo (`view-3d-dialog.tsx`).
-- Botón **Marcadores** y su dialogo (`bookmarks-dialog.tsx`).
-Ambos son UI de "próxima fase" que no corresponde al entregable.
+## 4. Placeholders y elementos UI fuera de alcance
+- ~~Botón **"3D · pronto"** y su dialogo (`view-3d-dialog.tsx`)~~ — ya eliminado.
+- ~~Botón **Marcadores** y su dialogo (`bookmarks-dialog.tsx`)~~ — ya eliminado.
+- ~~Logos en el header (`partners` strip)~~ — ya eliminado.
+
+El panel de **datos por capa** del mapa (`MapLayerDataPanel`) sí queda: muestra
+los atributos de las features de la capa activa (municipios, predios,
+intervenciones, etc.). Es lectura, no CRUD.
+
+> Histórico: los placeholders de UI eran elementos de "próxima fase" que no
+> corresponden al entregable. El header quedó minimalista (solo topbar +
+> avatar del usuario).
 
 ## 5. Fuera de alcance técnico (no se toca)
 Auth/roles, workflow de estados, auditoría, migraciones, fuente única de

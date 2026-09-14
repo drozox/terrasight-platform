@@ -13,7 +13,7 @@
 | **OG** — SIG para integrar/gestionar la info ambiental del convenio | ✅ ~95% | GDB normalizada en PostGIS (Supabase) + app web | Verificar cobertura 19 municipios + Usme; deploy con esquema nuevo |
 | **OE1** — Identificar variables ambientales/territoriales/prediales | ✅ | 37 migraciones: predios, propietarios, veredas, municipios, microcuencas, quebradas, coberturas, biomas, páramos, POMCA, RFP, vías, drenajes, propuestas (punto/línea/polígono), componentes/acciones, monitoreo | Falta **diccionario de datos** (documento) |
 | **OE2** — Consolidar info + BD geográfica SIG | ✅ ~90% | Import GDB: 1,381 propuestas, 132 predios, 5,959 vías, 560 veredas | **Migraciones 36/37 no aplicadas en producción**; `audit:resultados` sin verificar con datos reales |
-| **OE3** — Visor web (visualización + análisis + seguimiento) | ✅ ~90% | `/mapa` (Leaflet + medir/identificar/buffer/bbox/MVT), `/predios`, `/intervenciones` (workflow+avance), `/metas/convenio` (10 indicadores + drill-down), `/analisis`, `/reportes` | Deploy con esquema nuevo + smoke |
+| **OE3** — Visor web (visualización + análisis + seguimiento) | ✅ ~90% | `/mapa` (Leaflet + medir/identificar/buffer/bbox/MVT + panel de datos por capa + capas de intervenciones), `/predios`, `/intervenciones` (workflow+avance), `/metas/convenio` (10 indicadores + drill-down + strip resumen en home), `/reportes` | Deploy con esquema nuevo + smoke |
 
 **Conclusión:** no faltan funcionalidades. Faltan **3 cosas operativas**: (1) aplicar el esquema nuevo en producción, (2) desplegar, (3) verificar cobertura/reconciliación.
 
@@ -55,11 +55,13 @@ npm run audit:resultados               # 10/10 PASS
 - 2 fails de `prod_smoke`: (a) `drenaje_doble.geom = 0` (preexistente);
   (b) `sgs_ind_predio` cubre 132/140 predios (8 sin indicador).
 
-### Fase 1 — Reducir a lo fundamental (T0) · 30 min · **sin BD**
-- [ ] Sidebar: dejar solo los módulos que sirven a los objetivos; ocultar lo placeholder/ops.
-- [ ] Mantener: Inicio, Mapa, Predios, Intervenciones, Metas del convenio, Quebradas, Monitoreo, Análisis, Reportes.
-- [ ] Ocultar del nav: Dashboard (redirect), Catálogos, Alertas, Admin (calidad/importaciones), Configuración.
-- [ ] (Opcional) quitar botón 3D y bookmarks (placeholders).
+### Fase 1 — Reducir a lo fundamental (T0) · ✅ EJECUTADA
+- [x] Sidebar: dejar solo los módulos que sirven a los objetivos; ocultar lo placeholder/ops.
+- [x] Mantener: Inicio, Mapa, Predios, Intervenciones, Metas del convenio, Reportes.
+- [x] Ocultar del nav: Dashboard (redirect), Catálogos, Alertas, Quebradas, Monitoreo, Análisis, Admin (calidad/importaciones), Configuración.
+- [x] Quitados botones 3D y bookmarks (placeholders) + logos del header.
+- [x] **Dashboard del home (`/`) ahora incluye el strip resumen de Metas del convenio** (10 indicadores con barra de progreso).
+- [x] **/analisis → /mapa** (redirect; el análisis vive en el visor como herramientas del toolbar).
 
 ### Fase 2 — Entregables documentales + tests core · ✅ EJECUTADA
 - [x] `docs/MODELO-DATOS.md` — diccionario de variables (OE1, generado de la BD real).
