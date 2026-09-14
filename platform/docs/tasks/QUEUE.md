@@ -12,9 +12,9 @@
 
 ## Tablero
 
-> **Lote paralelo activo:** [`PARALLEL-BATCH-05.md`](./PARALLEL-BATCH-05.md) (2 cards: entregables OE1/OE3).
-> Plan de cierre: [`../PLAN-CIERRE-HOY.md`](../PLAN-CIERRE-HOY.md).
-> Lotes cerrados: 01, 02, 04 (03 no entregado → reemitido en 04).
+> **Lote paralelo activo:** [`PARALLEL-BATCH-06.md`](./PARALLEL-BATCH-06.md) (4 cards: acotamiento + entregables).
+> Alcance: [`../ALCANCE.md`](../ALCANCE.md) · Plan: [`../PLAN-CIERRE-HOY.md`](../PLAN-CIERRE-HOY.md).
+> Lotes cerrados: 01, 02, 04 (03 no entregado → 04; 05 absorbido por 06).
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
@@ -52,13 +52,15 @@
 | `DEEPSEEK-29` `RUNBOOK` de operación | T1 | P2 | ⚠️ no entregado | [T1-doc-runbook.md](./T1-doc-runbook.md) |
 | `DEEPSEEK-44` `AGENTS.md`: coordinación + fuente única | T1 | P3 | ⚠️ no entregado | [T1-doc-agents-coordination.md](./T1-doc-agents-coordination.md) |
 
-## Lote 05 (activo) — entregables del cierre
+## Lote 06 (activo) — acotamiento + entregables
 
-> Ver [`../PLAN-CIERRE-HOY.md`](../PLAN-CIERRE-HOY.md). El grueso del cierre es
-> T0/owner (esquema + deploy); este lote son los documentos entregables.
+> Deja la app SOLO con lo que cumplen los objetivos. Guía: [`../ALCANCE.md`](../ALCANCE.md).
+> (Absorbe las cards del lote 05.)
 
 | Card | Tier | Prioridad | Estado | Archivo |
 |------|------|-----------|--------|---------|
+| `DEEPSEEK-62` Sidebar al alcance estricto | T1 | P1 | 🟢 listo | [T1-scope-nav.md](./T1-scope-nav.md) |
+| `DEEPSEEK-63` Quitar placeholders 3D/marcadores | T1 | P1 | 🟢 listo | [T1-scope-placeholders.md](./T1-scope-placeholders.md) |
 | `DEEPSEEK-60` Diccionario de datos (OE1) | T1 | P1 | 🟢 listo | [T1-doc-modelo-datos.md](./T1-doc-modelo-datos.md) |
 | `DEEPSEEK-61` Matriz objetivo → evidencia | T1 | P1 | 🟢 listo | [T1-doc-entregable-objetivos.md](./T1-doc-entregable-objetivos.md) |
 

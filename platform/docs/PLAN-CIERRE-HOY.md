@@ -47,9 +47,9 @@ npm run audit:resultados               # 10/10 PASS
 - [x] `chk_pro_estado` = el constraint nuevo (6 valores). La falla de migración 04 al re-aplicar es inocua (la 33 lo restaura).
 - [x] Datos reales: **1,381 propuestas · 140 predios · 20 municipios · 560 veredas**.
 
-> **Pendiente de decisión (owner):** "la localidad de Usme" **no figura** como fila en
-> `bcs_lpa_municipio` (hay 20 municipios de Cundinamarca; ninguno se llama Usme).
-> Definir si Usme debe agregarse como entidad o si "BOGOTÁ" la representa.
+> **Usme:** resuelto — la localidad de Usme (Bogotá) queda **cubierta por el
+> límite municipal de BOGOTÁ** (`bcs_lpa_municipio` id 4). No se agrega como
+> entidad separada.
 
 ### Fase 0b — Datos menores (opcional, no bloquea)
 - 2 fails de `prod_smoke`: (a) `drenaje_doble.geom = 0` (preexistente);
