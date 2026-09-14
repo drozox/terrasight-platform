@@ -15,6 +15,7 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
 import { BottomSections, SummaryBar } from "@/components/dashboard/bottom-sections";
+import { MetasStrip } from "@/components/dashboard/metas-strip";
 import { LeafletMap } from "@/components/map/leaflet-map";
 import { MapSearchBar } from "@/components/map/map-search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -209,6 +210,10 @@ export function DashboardContent({
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         {/* Columna izquierda: mapa (Suspense) + bottom sections (Suspense) */}
         <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
+          <Suspense fallback={<Skeleton className="h-36 w-full rounded-xl" />}>
+            <MetasStrip />
+          </Suspense>
+
           <Suspense
             fallback={
               <div className="relative flex h-[400px] w-full flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[560px] lg:flex-1">
