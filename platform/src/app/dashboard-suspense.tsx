@@ -16,6 +16,7 @@ import dynamic from "next/dynamic";
 import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
 import { BottomSections, SummaryBar } from "@/components/dashboard/bottom-sections";
 import { MetasStrip } from "@/components/dashboard/metas-strip";
+import { ComparativaComponentes } from "@/components/dashboard/comparativa-componentes";
 import { LeafletMap } from "@/components/map/leaflet-map";
 import { MapSearchBar } from "@/components/map/map-search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -218,6 +219,8 @@ export function DashboardContent({
           <Suspense fallback={<Skeleton className="h-36 w-full rounded-xl" />}>
             <MetasStrip componente={componenteFiltro} />
           </Suspense>
+
+          <ComparativaComponentes componentes={componentes} avances={avances} />
 
           <Suspense
             fallback={

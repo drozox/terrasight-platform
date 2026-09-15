@@ -1,15 +1,17 @@
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
 /** DEEPSEEK-F6: logo institucional SIG TERRITORIO (frailejón) — imagen real
- *  servida desde /public/logos/sig-territorio.png. */
+ *  servida desde /public/logos/sig-territorio.png.
+ *  El tamaño lo define el `className` (h-N w-N); `object-contain` evita
+ *  deformar el PNG. NO usar estilos inline de tamaño aquí. */
 export function SigTerritorioLogo({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src="/logos/sig-territorio.png"
       alt="SIG TERRITORIO"
-      className={className}
-      style={{ height: "auto", width: "auto" }}
+      className={cn("shrink-0 object-contain", className)}
     />
   );
 }
@@ -33,15 +35,14 @@ export function PartnerLogo({
   };
   const p = palette[name];
 
-  // Si hay imagen real, usarla; conservar el alto del className y dejar ancho auto.
+  // Si hay imagen real, usarla; el tamaño lo define el className.
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={p.label}
-        className={className}
-        style={{ height: "auto", maxHeight: "2rem", width: "auto" }}
+        className={cn("object-contain", className)}
       />
     );
   }
