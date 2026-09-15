@@ -97,6 +97,13 @@ export default function MapClient({
     propuestas_punto: false,
     propuestas_poligono: false,
   });
+
+  // DEEPSEEK-77: al elegir un componente, encender sus capas de propuestas
+  // (el MapComponenteFocusLayer además resalta + hace fitBounds).
+  React.useEffect(() => {
+    if (!activeComponente) return;
+    setLayers((prev) => ({ ...prev, propuestas_punto: true, propuestas_poligono: true }));
+  }, [activeComponente]);
   const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
   // Capa cuyos DATOS (atributos) se muestran en el panel de datos.
   const [dataLayer, setDataLayer] = React.useState<MapLayerKey | null>(null);

@@ -8,6 +8,8 @@ import {
   getIntervencionesRecientes,
   getFooterKpis,
   getPropuestasPorComponente,
+  getAvancePorComponente,
+  getResumenComponente,
   pingDb,
 } from "@/lib/repos";
 import { DashboardContent } from "./dashboard-suspense";
@@ -71,6 +73,8 @@ export default async function HomePage({
     footerInicial,
     seriesComponentes,
     dbHealth,
+    avances,
+    resumen,
   ] = await Promise.all([
     componenteFiltro ? getDashboardKpisComponente(componenteFiltro) : getDashboardKpis(),
     getComponentes(),
@@ -78,6 +82,8 @@ export default async function HomePage({
     getFooterKpis(),
     getPropuestasPorComponente(),
     pingDb(),
+    getAvancePorComponente(),
+    getResumenComponente(componenteFiltro),
   ]);
 
   return (
@@ -90,6 +96,8 @@ export default async function HomePage({
       intervenciones={intervenciones}
       seriesComponentes={seriesComponentes}
       dbHealth={dbHealth}
+      avances={avances}
+      resumen={resumen}
     />
   );
 }

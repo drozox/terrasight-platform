@@ -13,6 +13,7 @@ export * from "./auth";
 export * from "./auditoria";
 export * from "./reportes";
 export * from "./analisis";
+export * from "./resumen-componente";
 export * from "./monitoreo";
 export * from "./metas-convenio";
 export * from "./fase6";

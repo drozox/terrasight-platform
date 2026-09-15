@@ -3,11 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Layers } from "lucide-react";
 import { IconLeaf, IconDrop, IconForest, IconUpload } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import type { AvanceComponente, ComponenteKey } from "@/lib/repos";
 
-type Key = "C1" | "C2" | "C3" | "IMPORT";
+type Key = ComponenteKey | "TODOS" | "IMPORT";
 
 const CONFIG: Record<Key, {
   label: string;
@@ -19,6 +20,16 @@ const CONFIG: Record<Key, {
   borderClass: string;
   pillClass: string;
 }> = {
+  TODOS: {
+    label: "TODOS",
+    desc: "Vista consolidada de los tres componentes del convenio",
+    Icon: Layers,
+    bgClass:     "bg-on-surface/10",
+    textClass:   "text-on-surface",
+    ringClass:   "ring-on-surface",
+    borderClass: "bg-on-surface",
+    pillClass:   "bg-on-surface text-surface",
+  },
   C1: {
     label: "COMPONENTE 1",
     desc: "Conservación del recurso hídrico y adaptación al cambio climático",
@@ -61,15 +72,21 @@ const CONFIG: Record<Key, {
   },
 };
 
-const ORDER: Key[] = ["C1", "C2", "C3", "IMPORT"];
+const ORDER: Key[] = ["TODOS", "C1", "C2", "C3", "IMPORT"];
 
-export function ComponentRibbon({ active }: { active?: string | null }) {
+export function ComponentRibbon({
+  active,
+  avances,
+}: {
+  active?: string | null;
+  avances?: Record<ComponenteKey, AvanceComponente>;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const onSelect = (key: string) => {
+  const onSelect = (key: Key) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (active === key) {
+    if (key === "TODOS" || active === key) {
       params.delete("componente");
     } else {
       params.set("componente", key);
@@ -79,10 +96,11 @@ export function ComponentRibbon({ active }: { active?: string | null }) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-5">
       {ORDER.map((k) => {
         const c = CONFIG[k];
-        const isActive = active === k;
+        const isActive = k === "TODOS" ? !active || active === "TODOS" : active === k;
+        const av = k !== "TODOS" && k !== "IMPORT" ? avances?.[k] : undefined;
         return (
           <button
             key={k}
@@ -104,12 +122,6 @@ export function ComponentRibbon({ active }: { active?: string | null }) {
               aria-hidden
             />
             <div className="flex items-center gap-4">
-              {/* UX-69 (audit 2026-07-24): `group-hover:scale-110` sin
-                 `transform-gpu` causaba re-paint de la sombra. La skill
-                 ui-ux-pro-max recomienda `will-change-transform` o un
-                 baseline `transform: translateZ(0)` para que el browser
-                 promueva el layer. Ademas `transform` se computa en GPU
-                 y el cambio de sombra no lo afecta. */}
               <div
                 className={cn(
                   "flex h-12 w-12 items-center justify-center rounded-lg transition-transform",
@@ -128,8 +140,27 @@ export function ComponentRibbon({ active }: { active?: string | null }) {
                 <p className="line-clamp-2 text-body-sm text-on-surface-variant">
                   {c.desc}
                 </p>
-                {/* DEEPSEEK-72 — drill-through a /intervenciones?componente=Cx */}
-                {k !== "IMPORT" && (
+
+                {av && (
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-variant/50">
+                      <div
+                        className={cn("h-full", c.borderClass)}
+                        style={{ width: `${av.pct}%` }}
+                      />
+                    </div>
+                    <span className={cn("text-[10px] font-bold", c.textClass)}>
+                      {av.pct}%
+                    </span>
+                  </div>
+                )}
+                {av && (
+                  <p className="mt-0.5 text-[10px] text-on-surface-variant">
+                    {av.cumplidas}/{av.total} metas cumplidas
+                  </p>
+                )}
+
+                {k !== "TODOS" && k !== "IMPORT" && (
                   <Link
                     href={`/intervenciones?componente=${k}`}
                     aria-label={`Ver intervenciones de ${c.label}`}
