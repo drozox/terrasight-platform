@@ -20,6 +20,7 @@ import {
 import { signOut } from "next-auth/react";
 import { HelpDialog } from "@/components/layout/help-dialog";
 import { TopbarSearch } from "@/components/layout/topbar-search";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import type { Alerta } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth-guard";
 import { cn } from "@/lib/utils";
@@ -101,16 +102,17 @@ export function TopBar({
         border-b border-outline-variant bg-surface px-margin-edge
       "
     >
-      <div className="flex items-center gap-4">
-        <div>
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+        {/* UX-36: drawer de navegación en < lg (el sidebar es hidden lg:flex). */}
+        <MobileNav rol={usuario?.rol ?? null} />
+        <div className="min-w-0">
           {/* UX-78: el brand de la app NO es un heading. Cada page provee su
-             <h1> propio. Antes era <h2>, pero "Plataforma SIG Integrada"
-             es un brand repetido en TODAS las pages — no es el título de
-             ninguna. Era ruido para screen readers + violaba la jerarquía
-             de headings. */}
-          <p className="text-xl font-bold text-primary">Plataforma SIG Integrada</p>
-          <p className="text-label-lg text-on-surface-variant">
-            Monitoreo Ambiental y Gestión Territorial
+             <h1> propio. */}
+          <p className="truncate text-base font-bold text-primary sm:text-xl">
+            SIG TERRITORIO
+          </p>
+          <p className="hidden truncate text-label-lg text-on-surface-variant sm:block">
+            Plataforma SIG Integrada · Monitoreo Ambiental
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { IntervencionesTable } from "./intervenciones-table";
 import { CoberturaChart } from "./cobertura-chart";
-import { Building2, Sprout, Droplets } from "lucide-react";
+import { Building2, Sprout, Droplets, Target } from "lucide-react";
 import type {
   IntervencionReciente,
   CoberturaTotal,
@@ -86,12 +86,17 @@ export function SummaryBar({
   resumen?: ResumenComponente;
 }) {
   const c = resumen?.conteos;
+  // KPIs deliberadamente distintos a los del panel derecho (que muestra
+  // Predios / Intervenciones / Hectáreas / Km) para no duplicar información.
+  const metasTxt = resumen ? `${resumen.cumplidas}/${resumen.totalIndicadores}` : null;
   const items = [
     { valor: formatInt(c?.municipios ?? footer.municipios), label: "Municipios", icon: Building2 },
     { valor: formatInt(c?.veredas ?? footer.veredas), label: "Veredas", icon: Sprout },
-    { valor: formatInt(c?.predios ?? footer.predios), label: "Predios Concertados", icon: Building2 },
-    { valor: formatHa(c?.hectareas ?? footer.hectareasIntervenidas), label: "Hectáreas Intervenidas", icon: Sprout },
-    { valor: `${(c?.kilometros ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 1 })} km`, label: "Trazados", icon: Droplets },
+    { valor: formatInt(c?.puntos ?? 0), label: "Obras puntuales", icon: Droplets },
+    { valor: formatInt(c?.poligonos ?? 0), label: "Áreas poligonales", icon: Sprout },
+    metasTxt
+      ? { valor: metasTxt, label: "Metas cumplidas", icon: Target }
+      : { valor: formatInt(footer.quebradas), label: "Fuentes hídricas", icon: Droplets },
   ];
 
   return (

@@ -20,48 +20,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  HomeIcon,
-  MapIcon,
-  Building2,
-  Wrench,
-  FileText,
-  Target,
-  Info,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SigTerritorioLogo } from "@/components/icons";
+import { itemsParaRol, esActivo } from "./nav-items";
 import type { RolSistema } from "@/lib/auth";
-
-type Item = {
-  href: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  // null = visible para cualquier rol logueado.
-  roles: readonly RolSistema[] | null;
-};
-
-// Navegación reducida al ALCANCE del entregable del Convenio 3038-2024
-// (ver docs/ALCANCE.md). Los módulos fuera de alcance (Quebradas, Monitoreo,
-// Catálogos, Alertas, Admin, Configuración, Dashboard) siguen accesibles por
-// URL pero no se muestran en el nav. Reactivar = re-agregar la fila acá.
-const ALL_ITEMS: Item[] = [
-  { href: "/",               label: "Inicio",             icon: HomeIcon,    roles: null },
-  { href: "/mapa",           label: "Mapa",               icon: MapIcon,     roles: null },
-  { href: "/predios",        label: "Predios",            icon: Building2,   roles: null },
-  { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,      roles: null },
-  { href: "/metas/convenio", label: "Metas del convenio", icon: Target,      roles: null },
-  { href: "/reportes",       label: "Reportes",           icon: FileText,    roles: ["ADMIN", "ANALISTA"] },
-  { href: "/informate",      label: "Infórmate",          icon: Info,        roles: null },
-];
 
 export function Sidebar({ rol }: { rol?: RolSistema | null }) {
   const pathname = usePathname();
-
-  const navItems = React.useMemo(
-    () => (rol ? ALL_ITEMS.filter((it) => it.roles === null || it.roles.includes(rol)) : ALL_ITEMS),
-    [rol],
-  );
+  const navItems = React.useMemo(() => itemsParaRol(rol), [rol]);
 
   return (
     // UX-34/UX-36 (audit 2026-07-24): en mobile (< lg) el sidebar se esconde.
@@ -92,10 +58,7 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
       <nav className="flex-1 space-y-1 px-2" aria-label="Navegación principal">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+          const isActive = esActivo(pathname, item.href);
           return (
             <Link
               key={item.href}
