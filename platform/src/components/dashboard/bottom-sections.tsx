@@ -8,6 +8,7 @@ import type {
   FooterKpis,
   PredioPorMunicipio,
 } from "@/lib/types";
+import type { ResumenComponente } from "@/lib/repos";
 import { formatInt, formatHa, cn } from "@/lib/utils";
 
 /**
@@ -26,15 +27,22 @@ export function BottomSections({
   cobertura,
   topMunicipios,
   footer,
+  resumen,
 }: {
   intervenciones: IntervencionReciente[];
   cobertura: CoberturaTotal[];
   topMunicipios: PredioPorMunicipio[];
   footer: FooterKpis;
+  resumen?: ResumenComponente;
 }) {
-  // Adaptar PredioPorMunicipio a CoberturaTotal para reutilizar CoberturaChart
-  const totalMunicipios = topMunicipios.reduce((a, m) => a + m.predios, 0) || 1;
-  const topMunicipiosChart: CoberturaTotal[] = topMunicipios.map((m, i) => ({
+  // Si hay componente activo, usamos su top de municipios; si no, el global.
+  const muniSource: { nombre_municipio: string; predios: number }[] =
+    resumen?.topMunicipios?.length
+      ? resumen.topMunicipios.map((m) => ({ nombre_municipio: m.nombre, predios: m.propuestas }))
+      : topMunicipios;
+
+  const totalMunicipios = muniSource.reduce((a, m) => a + m.predios, 0) || 1;
+  const topMunicipiosChart: CoberturaTotal[] = muniSource.map((m, i) => ({
     nombre: m.nombre_municipio,
     area: m.predios,
     porcentaje: Math.round((m.predios / totalMunicipios) * 100),
@@ -70,13 +78,20 @@ export function BottomSections({
  * SummaryBar — barra horizontal con KPIs clave (DEEPSEEK-72: drill-through).
  * Cada item ahora es un Link a su vista.
  */
-export function SummaryBar({ footer }: { footer: FooterKpis }) {
+export function SummaryBar({
+  footer,
+  resumen,
+}: {
+  footer: FooterKpis;
+  resumen?: ResumenComponente;
+}) {
+  const c = resumen?.conteos;
   const items = [
-    { valor: formatInt(footer.municipios),    label: "Municipios",            icon: Building2, href: "/predios" },
-    { valor: formatInt(footer.veredas),       label: "Veredas",               icon: Sprout,    href: "/predios" },
-    { valor: formatInt(footer.predios),       label: "Predios Concertados",   icon: Building2, href: "/predios" },
-    { valor: formatHa(footer.hectareasIntervenidas), label: "Hectáreas Intervenidas", icon: Sprout, href: "/intervenciones" },
-    { valor: formatInt(footer.quebradas),     label: "Fuentes Hídricas",      icon: Droplets,  href: "/mapa" },
+    { valor: formatInt(c?.municipios ?? footer.municipios), label: "Municipios", icon: Building2 },
+    { valor: formatInt(c?.veredas ?? footer.veredas), label: "Veredas", icon: Sprout },
+    { valor: formatInt(c?.predios ?? footer.predios), label: "Predios Concertados", icon: Building2 },
+    { valor: formatHa(c?.hectareas ?? footer.hectareasIntervenidas), label: "Hectáreas Intervenidas", icon: Sprout },
+    { valor: `${(c?.kilometros ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 1 })} km`, label: "Trazados", icon: Droplets },
   ];
 
   return (

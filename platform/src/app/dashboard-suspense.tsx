@@ -29,6 +29,7 @@ import {
   getPrediosPorMunicipio,
   getPropuestasPorComponente,
 } from "@/lib/repos";
+import type { AvanceComponente, ComponenteKey, ResumenComponente } from "@/lib/repos";
 import type {
   DashboardKpis,
   ComponenteTotal,
@@ -117,9 +118,11 @@ async function MapSection({
 async function BottomSection({
   intervenciones,
   queryTexto,
+  resumen,
 }: {
   intervenciones: IntervencionReciente[];
   queryTexto: string;
+  resumen?: ResumenComponente;
 }) {
   const [cobertura, topMunicipios, footer] = await Promise.all([
     getCoberturaVegetal(),
@@ -144,6 +147,7 @@ async function BottomSection({
       cobertura={cobertura}
       topMunicipios={topMunicipios}
       footer={footer}
+      resumen={resumen}
     />
   );
 }
@@ -154,11 +158,13 @@ async function RightPanelSection({
   componentes,
   footer,
   seriesComponentes,
+  resumen,
 }: {
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
   footer: FooterKpis;
   seriesComponentes: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
+  resumen?: ResumenComponente;
 }) {
   return (
     <RightPanel
@@ -166,6 +172,7 @@ async function RightPanelSection({
       componentes={componentes}
       footer={footer}
       seriesComponentes={seriesComponentes}
+      resumen={resumen}
     />
   );
 }
@@ -183,6 +190,8 @@ export function DashboardContent({
   intervenciones,
   seriesComponentes,
   dbHealth,
+  avances,
+  resumen,
 }: {
   componenteFiltro: string | null;
   queryTexto: string;
@@ -192,12 +201,14 @@ export function DashboardContent({
   intervenciones: IntervencionReciente[];
   seriesComponentes: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
   dbHealth: { ok: boolean; latencyMs: number; server?: string };
+  avances: Record<ComponenteKey, AvanceComponente>;
+  resumen: ResumenComponente;
 }) {
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">
       {/* ComponentRibbon — siempre visible, no hace queries */}
       <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-2">
-        <ComponentRibbon active={componenteFiltro} />
+        <ComponentRibbon active={componenteFiltro} avances={avances} />
       </div>
 
       {/* Contenido principal */}
@@ -205,7 +216,7 @@ export function DashboardContent({
         {/* Columna izquierda: mapa (Suspense) + bottom sections (Suspense) */}
         <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
           <Suspense fallback={<Skeleton className="h-36 w-full rounded-xl" />}>
-            <MetasStrip />
+            <MetasStrip componente={componenteFiltro} />
           </Suspense>
 
           <Suspense
@@ -236,6 +247,7 @@ export function DashboardContent({
             <BottomSection
               intervenciones={intervenciones}
               queryTexto={queryTexto}
+              resumen={resumen}
             />
           </Suspense>
         </div>
@@ -256,12 +268,13 @@ export function DashboardContent({
             componentes={componentes}
             footer={footerInicial}
             seriesComponentes={seriesComponentes}
+            resumen={resumen}
           />
         </Suspense>
       </div>
 
-      {/* Footer Summary Bar — usa los datos iniciales del footer */}
-      <SummaryBar footer={footerInicial} />
+      {/* Footer Summary Bar */}
+      <SummaryBar footer={footerInicial} resumen={resumen} />
     </div>
   );
 }
