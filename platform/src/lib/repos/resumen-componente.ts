@@ -21,10 +21,11 @@ import {
   type IndicadorKey,
   type IndicadorMeta,
 } from "./metas-convenio";
+import { estadoDePct, type EstadoIndicador } from "../estado-indicador";
+
+export type { EstadoIndicador };
 
 export type ComponenteKey = "C1" | "C2" | "C3";
-
-export type EstadoIndicador = "cumplida" | "en_curso" | "atrasada";
 
 export interface IndicadorResumen {
   key: IndicadorKey;
@@ -90,12 +91,6 @@ function keysDeComponente(comp: ComponenteKey | null): IndicadorKey[] {
   const keys = Object.keys(INDICADORES_META) as IndicadorKey[];
   if (!comp) return keys;
   return keys.filter((k) => CA_COMPONENTE[INDICADORES_META[k].ca] === comp);
-}
-
-function estadoDe(pct: number): EstadoIndicador {
-  if (pct >= 100) return "cumplida";
-  if (pct >= 50) return "en_curso";
-  return "atrasada";
 }
 
 // -----------------------------------------------------------------------------
@@ -321,7 +316,7 @@ const getResumenComponenteImpl = async (
         unidad: m.unidad,
         pct: f.pct,
         cumplida: f.cumplida,
-        estado: estadoDe(f.pct),
+        estado: estadoDePct(f.pct),
         accion: m.ca === "C3" ? "*" : m.ca.slice(2),
       };
     });

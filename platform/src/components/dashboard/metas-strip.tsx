@@ -6,17 +6,13 @@
 
 import Link from "next/link";
 import { Target, ArrowRight } from "lucide-react";
+import { getResumenComponente, normalizarComponente } from "@/lib/repos";
 import {
-  getResumenComponente,
-  normalizarComponente,
-  type EstadoIndicador,
-} from "@/lib/repos";
-
-const ESTADO: Record<EstadoIndicador, { bar: string; text: string; label: string }> = {
-  cumplida: { bar: "bg-success", text: "text-success", label: "Cumplida" },
-  en_curso: { bar: "bg-info", text: "text-info", label: "En curso" },
-  atrasada: { bar: "bg-warning", text: "text-warning", label: "Atrasada" },
-};
+  ESTADO_BAR,
+  ESTADO_TEXT,
+  ESTADO_LABEL,
+  METODOLOGIA_SEMAFORO,
+} from "@/lib/estado-indicador";
 
 export async function MetasStrip({ componente = null }: { componente?: string | null }) {
   const comp = normalizarComponente(componente);
@@ -35,6 +31,11 @@ export async function MetasStrip({ componente = null }: { componente?: string | 
             <p className="text-[11px] text-on-surface-variant">
               {cumplidas} de {totalIndicadores} metas cumplidas · avance del {pctGlobal}%
             </p>
+            {indicadores.length > 0 && (
+              <p className="mt-0.5 text-[10px] text-on-surface-variant/70">
+                {METODOLOGIA_SEMAFORO}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -60,7 +61,9 @@ export async function MetasStrip({ componente = null }: { componente?: string | 
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {indicadores.map((ind) => {
-            const st = ESTADO[ind.estado];
+            const bar = ESTADO_BAR[ind.estado];
+            const text = ESTADO_TEXT[ind.estado];
+            const label = ESTADO_LABEL[ind.estado];
             return (
               <div
                 key={ind.key}
@@ -85,12 +88,12 @@ export async function MetasStrip({ componente = null }: { componente?: string | 
                 </p>
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-variant/40">
                   <div
-                    className={`h-full ${st.bar}`}
+                    className={`h-full ${bar}`}
                     style={{ width: `${Math.min(100, ind.pct)}%` }}
                   />
                 </div>
-                <p className={`mt-1 text-[10px] font-bold ${st.text}`}>
-                  {ind.pct}% · {st.label}
+                <p className={`mt-1 text-[10px] font-bold ${text}`}>
+                  {ind.pct}% · {label}
                 </p>
               </div>
             );

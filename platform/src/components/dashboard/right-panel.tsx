@@ -12,13 +12,8 @@ import type {
   FooterKpis,
   SerieTemporal,
 } from "@/lib/types";
-import type { ResumenComponente, EstadoIndicador } from "@/lib/repos";
-
-const ESTADO_BAR: Record<EstadoIndicador, string> = {
-  cumplida: "bg-success",
-  en_curso: "bg-info",
-  atrasada: "bg-warning",
-};
+import type { ResumenComponente } from "@/lib/repos";
+import { ESTADO_BAR } from "@/lib/estado-indicador";
 
 /**
  * RightPanel — columna derecha del dashboard, componente-céntrica.
