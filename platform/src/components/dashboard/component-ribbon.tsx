@@ -7,6 +7,10 @@ import { ArrowRight, Layers } from "lucide-react";
 import { IconLeaf, IconDrop, IconForest, IconUpload } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { AvanceComponente, ComponenteKey } from "@/lib/repos";
+import {
+  type AccionCode,
+  accionesDeComponente,
+} from "@/lib/acciones";
 
 type Key = ComponenteKey | "TODOS" | "IMPORT";
 
@@ -76,9 +80,11 @@ const ORDER: Key[] = ["TODOS", "C1", "C2", "C3", "IMPORT"];
 
 export function ComponentRibbon({
   active,
+  activeAccion,
   avances,
 }: {
   active?: string | null;
+  activeAccion?: AccionCode | null;
   avances?: Record<ComponenteKey, AvanceComponente>;
 }) {
   const router = useRouter();
@@ -88,11 +94,29 @@ export function ComponentRibbon({
     const params = new URLSearchParams(searchParams.toString());
     if (key === "TODOS" || active === key) {
       params.delete("componente");
+      params.delete("accion");
     } else {
       params.set("componente", key);
+      params.delete("accion"); // limpiar sub-filtro al cambiar de componente
     }
     const qs = params.toString();
     router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+  };
+
+  // Construir href preservando todos los params actuales (excepto accion que se sobreescribe).
+  const hrefForAccion = (code: AccionCode): string => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (active) params.set("componente", active);
+    params.set("accion", code);
+    const qs = params.toString();
+    return qs ? `/?${qs}` : "/";
+  };
+  const hrefForQuitarAccion = (): string => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (active) params.set("componente", active);
+    params.delete("accion");
+    const qs = params.toString();
+    return qs ? `/?${qs}` : "/";
   };
 
   return (
@@ -173,6 +197,47 @@ export function ComponentRibbon({
                     Ver intervenciones
                     <ArrowRight className="size-3" />
                   </Link>
+                )}
+
+                {/* T1 filtro-accion: sub-chips de acciones (solo cuando el componente está activo) */}
+                {isActive && k !== "TODOS" && k !== "IMPORT" && (
+                  <div
+                    role="group"
+                    aria-label={`Acciones de ${c.label}`}
+                    className="mt-2 flex flex-wrap gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Link
+                      href={hrefForQuitarAccion()}
+                      aria-pressed={!activeAccion}
+                      className={cn(
+                        "rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-colors",
+                        !activeAccion
+                          ? `${c.borderClass} ${c.pillClass}`
+                          : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low",
+                      )}
+                    >
+                      Todas
+                    </Link>
+                    {accionesDeComponente(k).map((code) => {
+                      const isActiveAccion = activeAccion === code;
+                      return (
+                        <Link
+                          key={code}
+                          href={hrefForAccion(code)}
+                          aria-pressed={isActiveAccion}
+                          className={cn(
+                            "rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-colors",
+                            isActiveAccion
+                              ? `${c.borderClass} ${c.pillClass}`
+                              : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low",
+                          )}
+                        >
+                          {code}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
               {isActive && (
