@@ -33,6 +33,7 @@ import L from "leaflet";
 import { MapLayersPanel, type MapLayerKey } from "./map-layers-panel";
 import { MapTools, type MapToolKey } from "./map-tools";
 import { MapCompass } from "./map-compass";
+import { MapPrintPanel } from "./map-print-panel";
 import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
@@ -324,6 +325,7 @@ export default function MapClient({
         zoomControl={false}
         attributionControl={false}
         className="h-full w-full rounded-xl"
+        id="mapa-captura"
         style={{ background: "#cee5d8", height }}
         ref={(m) => {
           if (m) mapRef.current = m;
@@ -334,6 +336,7 @@ export default function MapClient({
           url={BASEMAPS[basemap].url}
           maxZoom={BASEMAPS[basemap].maxZoom}
           attribution={BASEMAPS[basemap].attribution}
+          crossOrigin
         />
 
         <ZoomControl position="topright" />
@@ -524,6 +527,14 @@ export default function MapClient({
 
       {/* Brújula flotante */}
       <MapCompass />
+
+      {/* Ajuste 9: layout de impresión (captura el mapa + leyenda + medidas). */}
+      <MapPrintPanel
+        layers={layers}
+        basemap={basemap}
+        componente={activeComponente}
+        accion={activeAccion}
+      />
     </div>
   );
 }

@@ -324,5 +324,13 @@ html, body {
   /* Las URLs (enlaces) muestran el destino para que el reporte sea navegable
      si lo abre otra persona impresa. */
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 90%; }
+
+  /* Ajuste 9 — "Imprimir layout": imprime SOLO el área del layout. */
+  @page { size: A4 landscape; margin: 10mm; }
+  body.printing * { visibility: hidden !important; }
+  body.printing .print-area,
+  body.printing .print-area * { visibility: visible !important; }
+  body.printing .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  body.printing .no-print { display: none !important; }
 }
 
