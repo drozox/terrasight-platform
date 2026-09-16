@@ -7,7 +7,7 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -34,6 +34,7 @@ export function LoginForm({
   const search = useSearchParams();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(() => {
     if (!initialError) return null;
@@ -84,41 +85,68 @@ export function LoginForm({
       <div>
         <label
           htmlFor="email"
-          className="mb-1 block text-label-lg font-medium text-on-surface"
+          className="mb-1.5 block text-label-lg font-semibold text-on-surface"
         >
           Correo electrónico
         </label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="nombre@entidad.gov.co"
-          disabled={submitting}
-        />
+        <div className="relative">
+          <Mail
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant"
+            aria-hidden="true"
+          />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="admin@sig-territorio.local"
+            disabled={submitting}
+            className="pl-10"
+          />
+        </div>
       </div>
 
       <div>
         <label
           htmlFor="password"
-          className="mb-1 block text-label-lg font-medium text-on-surface"
+          className="mb-1.5 block text-label-lg font-semibold text-on-surface"
         >
           Contraseña
         </label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          disabled={submitting}
-        />
+        <div className="relative">
+          <Lock
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant"
+            aria-hidden="true"
+          />
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            disabled={submitting}
+            className="pl-10 pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {showPassword ? (
+              <EyeOff className="size-4" aria-hidden="true" />
+            ) : (
+              <Eye className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        </div>
       </div>
 
       {errorMsg && (
@@ -142,7 +170,10 @@ export function LoginForm({
             Ingresando…
           </>
         ) : (
-          "Ingresar"
+          <>
+            Ingresar
+            <ArrowRight className="ml-2 size-4" aria-hidden="true" />
+          </>
         )}
       </Button>
 

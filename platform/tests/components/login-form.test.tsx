@@ -55,7 +55,7 @@ describe("LoginForm — render inicial", () => {
   it("renderiza los inputs de email y password", () => {
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     expect(screen.getByLabelText(/correo/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
   });
 
   it("el boton Ingresar arranca disabled si email y password están vacios", () => {
@@ -75,7 +75,7 @@ describe("LoginForm — input controlado", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "secret123");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "secret123");
     const submit = screen.getByRole("button", { name: /ingresar/i }) as HTMLButtonElement;
     expect(submit).not.toBeDisabled();
   });
@@ -89,7 +89,7 @@ describe("LoginForm — input controlado", () => {
 
   it("el input de password tiene type=password", () => {
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
-    const pwdInput = screen.getByLabelText(/contraseña/i) as HTMLInputElement;
+    const pwdInput = screen.getByLabelText(/^contraseña$/i) as HTMLInputElement;
     expect(pwdInput.type).toBe("password");
   });
 });
@@ -99,7 +99,7 @@ describe("LoginForm — submit y loading state", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "secret123");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "secret123");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -122,7 +122,7 @@ describe("LoginForm — submit y loading state", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "secret123");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "secret123");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     // Durante el loading: el botón muestra "Ingresando…" y está disabled
@@ -140,7 +140,7 @@ describe("LoginForm — submit y loading state", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "  user@example.com  ");
-    await user.type(screen.getByLabelText(/contraseña/i), "secret123");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "secret123");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -164,7 +164,7 @@ describe("LoginForm — error display", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "wrong");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "wrong");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -182,7 +182,7 @@ describe("LoginForm — error display", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "secret");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "secret");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -195,7 +195,7 @@ describe("LoginForm — error display", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "secret");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "secret");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -229,7 +229,7 @@ describe("LoginForm — error display", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "wrong");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "wrong");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -248,7 +248,7 @@ describe("LoginForm — error display", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "any");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "any");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -273,7 +273,7 @@ describe("LoginForm — exito y redirect", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/dashboard" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "secret123");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "secret123");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -292,7 +292,7 @@ describe("LoginForm — exito y redirect", () => {
     const user = userEvent.setup();
     render(<LoginForm callbackUrl="/fallback" initialError={null} />);
     await user.type(screen.getByLabelText(/correo/i), "user@example.com");
-    await user.type(screen.getByLabelText(/contraseña/i), "secret123");
+    await user.type(screen.getByLabelText(/^contraseña$/i), "secret123");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
