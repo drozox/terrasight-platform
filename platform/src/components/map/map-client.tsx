@@ -96,6 +96,7 @@ export default function MapClient({
     biomas: false,
     parques: false,
     reservas: false,
+    propuestas: false,
     propuestas_punto: false,
     propuestas_poligono: false,
   });
@@ -372,6 +373,15 @@ export default function MapClient({
             weight={2}
             fillColor="#006d37"
             fillOpacity={0.35}
+            onClick={setSelectedFeature}
+          />
+        )}
+        {layers.propuestas && (
+          <GeoJsonLayer
+            url="/api/geo?layer=propuestas"
+            color="#b26a00"
+            weight={3}
+            fillOpacity={0}
             onClick={setSelectedFeature}
           />
         )}

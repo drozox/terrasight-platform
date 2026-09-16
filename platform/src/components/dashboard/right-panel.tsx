@@ -14,6 +14,7 @@ import type {
 } from "@/lib/types";
 import type { ResumenComponente } from "@/lib/repos";
 import { ESTADO_BAR } from "@/lib/estado-indicador";
+import type { ReactNode } from "react";
 
 /**
  * RightPanel — columna derecha del dashboard, componente-céntrica.
@@ -28,12 +29,14 @@ export function RightPanel({
   footer,
   seriesComponentes,
   resumen,
+  metasSlot,
 }: {
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
   footer: FooterKpis;
   seriesComponentes?: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
   resumen?: ResumenComponente;
+  metasSlot?: ReactNode;
 }) {
   const totalPropuestas = componentes.reduce((acc, c) => acc + c.total, 0) || 1;
 
@@ -67,6 +70,9 @@ export function RightPanel({
 
   return (
     <aside className="flex h-full w-[360px] flex-shrink-0 flex-col gap-3 overflow-y-auto border-l border-outline-variant bg-surface p-3">
+      {/* Ajuste 6: Metas del convenio vive en la columna derecha (slot). */}
+      {metasSlot}
+
       {/* SECCIÓN 1 — Avance del componente */}
       {resumen && (
         <Card className="p-3">

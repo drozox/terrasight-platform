@@ -27,6 +27,7 @@ export type MapLayerKey =
   | "parques"
   | "reservas"
   | "predios"
+  | "propuestas"
   | "propuestas_punto"
   | "propuestas_poligono";
 
@@ -109,6 +110,7 @@ const LAYER_GROUPS: Array<{
     title: "Intervenciones",
     Icon: Wrench,
     items: [
+      { key: "propuestas",          label: "Intervenciones (líneas)" },
       { key: "propuestas_punto",    label: "Intervenciones (puntos)" },
       { key: "propuestas_poligono", label: "Intervenciones (áreas)" },
     ],

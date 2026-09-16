@@ -164,12 +164,14 @@ async function RightPanelSection({
   footer,
   seriesComponentes,
   resumen,
+  componenteFiltro,
 }: {
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
   footer: FooterKpis;
   seriesComponentes: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
   resumen?: ResumenComponente;
+  componenteFiltro: string | null;
 }) {
   return (
     <RightPanel
@@ -178,6 +180,7 @@ async function RightPanelSection({
       footer={footer}
       seriesComponentes={seriesComponentes}
       resumen={resumen}
+      metasSlot={<MetasStrip componente={componenteFiltro} />}
     />
   );
 }
@@ -226,10 +229,6 @@ export function DashboardContent({
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         {/* Columna izquierda: mapa (Suspense) + bottom sections (Suspense) */}
         <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
-          <Suspense fallback={<Skeleton className="h-36 w-full rounded-xl" />}>
-            <MetasStrip componente={componenteFiltro} />
-          </Suspense>
-
           <AlertasMetas indicadores={resumen.indicadores} />
 
           <ComparativaComponentes componentes={componentes} avances={avances} />
@@ -285,6 +284,7 @@ export function DashboardContent({
             footer={footerInicial}
             seriesComponentes={seriesComponentes}
             resumen={resumen}
+            componenteFiltro={componenteFiltro}
           />
         </Suspense>
       </div>

@@ -267,7 +267,7 @@ export function MapPrintPanel({ layers, componente, accion }: Props) {
                 </p>
               )}
 
-              <div className="my-3 overflow-hidden rounded-lg border border-outline-variant bg-white">
+              <div className="relative my-3 overflow-hidden rounded-lg border border-outline-variant bg-white">
                 {snapshot ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={snapshot} alt="Mapa del layout" className="w-full" />
@@ -276,6 +276,11 @@ export function MapPrintPanel({ layers, componente, accion }: Props) {
                     Generá la vista previa para incluir el mapa.
                   </div>
                 )}
+                {/* Norte */}
+                <div className="absolute right-2 top-2 flex flex-col items-center rounded-md bg-white/90 px-1.5 py-1 text-[10px] font-bold text-on-surface shadow">
+                  <span className="text-base leading-none" aria-hidden="true">↑</span>
+                  N
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
