@@ -5,7 +5,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { Wrench, ArrowRight, Inbox, Plus } from "lucide-react";
 import Link from "next/link";
-import { getIntervencionesRecientes, getComponentes } from "@/lib/repos";
+import {
+  getIntervencionesRecientes,
+  getComponentes,
+  getConteoIntervenciones,
+  getConteosIntervenciones,
+} from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
 import { formatDecimal, formatInt } from "@/lib/utils";
 import { normalizarAccion } from "@/lib/acciones";
@@ -43,6 +48,14 @@ const ACCIONES_POR_COMPONENTE: Record<string, readonly string[]> = {
   C3: ["C3AU"],
 };
 
+// AJUSTE 2: etiqueta humana del filtro activo (sin contar aún — eso va aparte).
+function etiquetaFiltro(componente: string | null, accion: string | null): string {
+  if (!componente && !accion) return "Todas las intervenciones";
+  if (componente && !accion) return `Componente ${componente}`;
+  if (componente && accion) return `${componente}${accion}`;
+  return accion ?? "";
+}
+
 // UX-65: helper para construir el URL de paginacion preservando el filtro.
 function buildPageUrl(componente: string | null, accion: string | null, page: number): string {
   const params = new URLSearchParams();
@@ -51,16 +64,6 @@ function buildPageUrl(componente: string | null, accion: string | null, page: nu
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
   return qs ? `/intervenciones?${qs}` : "/intervenciones";
-}
-
-// T1 filtro-accion: helper que arma el título descriptivo del filtro activo.
-function describeFilter(componente: string | null, accion: string | null): string {
-  if (!componente && !accion) return "Todas las intervenciones del convenio";
-  if (componente && !accion) return `Componente ${componente}`;
-  if (componente && accion) {
-    return `Componente ${componente} — Acción ${accion}`;
-  }
-  return accion ? `Acción ${accion}` : "Todas";
 }
 
 export default async function IntervencionesPage({
@@ -85,15 +88,18 @@ export default async function IntervencionesPage({
   const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
   // Pedimos 1 fila extra para saber si hay mas paginas sin un COUNT extra.
-  const [intervenciones, componentes] = await Promise.all([
-    getIntervencionesRecientes(PAGE_SIZE + 1, componente, accion),
-    getComponentes(),
-  ]);
+  // AJUSTE 2: agregar `conteoTotal` (COUNT real por filtro) y `conteosGlobales`
+  // para mostrar los numeros reales en los chips.
+  const [intervenciones, componentes, conteoTotal, conteosGlobales] =
+    await Promise.all([
+      getIntervencionesRecientes(PAGE_SIZE + 1, componente, accion),
+      getComponentes(),
+      getConteoIntervenciones(componente, accion),
+      getConteosIntervenciones(),
+    ]);
 
-  const totalPorComponente = componentes.reduce<Record<string, number>>(
-    (acc, c) => ({ ...acc, [c.nombre]: c.total }),
-    {},
-  );
+  const totalPorComponente = conteosGlobales.porComponente;
+  const conteoPorAccion = conteosGlobales.porAccion;
 
   // UX-65: aplicamos paginacion client-side sobre la lista que ya vino
   // del server. Cortamos a PAGE_SIZE (la fila +1 era para detectar "hay mas").
@@ -136,11 +142,16 @@ export default async function IntervencionesPage({
                 Intervenciones
               </h1>
               <p className="text-body-sm text-on-surface-variant">
-                {describeFilter(componente, accion)} ·{" "}
+                {etiquetaFiltro(componente, accion)}
+                {" · "}
+                <span className="font-bold text-on-surface">
+                  {formatInt(conteoTotal)} {conteoTotal === 1 ? "propuesta" : "propuestas"}
+                </span>
+                {" · "}
                 {formatInt(
                   intervencionesPage.reduce((acc, i) => acc + (i.hectareas ?? 0), 0),
                 )}{" "}
-                ha totales · página {pageNum}
+                ha en página · pág {pageNum}
               </p>
             </div>
           </div>
@@ -163,7 +174,7 @@ export default async function IntervencionesPage({
                 : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
             }`}
           >
-            Todas ({componentes.reduce((a, c) => a + c.total, 0)})
+            Todas ({formatInt(conteosGlobales.total)})
           </Link>
           {componentes.map((c) => {
             const color = COMPONENT_COLOR[c.nombre];
@@ -177,7 +188,7 @@ export default async function IntervencionesPage({
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
                 }`}
               >
-                {c.nombre} ({totalPorComponente[c.nombre]})
+                {c.nombre} ({formatInt(totalPorComponente[c.nombre] ?? 0)})
               </Link>
             );
           })}
@@ -197,7 +208,7 @@ export default async function IntervencionesPage({
                   : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
               }`}
             >
-              Todas
+              Todas ({formatInt(totalPorComponente[componente] ?? 0)})
             </Link>
             {(ACCIONES_POR_COMPONENTE[componente] ?? []).map((a) => (
               <Link
@@ -209,7 +220,7 @@ export default async function IntervencionesPage({
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
                 }`}
               >
-                {a}
+                {a} ({formatInt(conteoPorAccion[a] ?? 0)})
               </Link>
             ))}
           </div>
@@ -382,7 +393,10 @@ export default async function IntervencionesPage({
         </Card>
 
         <p className="text-center text-[11px] text-on-surface-variant">
-          Mostrando las primeras {intervenciones.length} intervenciones.
+          {formatInt(conteoTotal)}{" "}
+          {conteoTotal === 1 ? "propuesta" : "propuestas"} totales en el filtro
+          activo. Listando {intervencionesPage.length} en esta página
+          (de {hasNextPage ? "más de " : ""}{formatInt(PAGE_SIZE)} por página).
         </p>
       </div>
     </div>

@@ -428,6 +428,80 @@ export const getIntervencionesRecientes = cached(getIntervencionesRecientesImpl,
 });
 
 // =============================================================================
+// Conteo total de intervenciones filtradas (T1 filtro-accion - AJUSTE 2)
+// Usado en /intervenciones para mostrar "X propuestas" reales (no el PAGE_SIZE).
+// =============================================================================
+const getConteoIntervencionesImpl = async (
+  componente: string | null = null,
+  accion: AccionCode | null = null,
+): Promise<number> => {
+  let comp: string | null = componente;
+  let nombresAccion: string[] | null = null;
+  if (accion) {
+    const def = accionDef(accion);
+    if (!comp) comp = def.componente;
+    nombresAccion = def.nombres;
+  }
+  const compFilter = comp ? sql`AND c.nombre = ${comp}` : sql``;
+  const accionFilter = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
+
+  const [row] = await sql<{ n: number | string }[]>`
+    SELECT COUNT(DISTINCT pp.id_propuesta)::int AS n
+    FROM sgs_pro_propuesta pp
+    JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+    WHERE TRUE ${compFilter} ${accionFilter}
+  `;
+  return pgInt(row?.n);
+};
+
+export const getConteoIntervenciones = cached(getConteoIntervencionesImpl, {
+  tags: ["dashboard", "intervenciones"],
+  ttl: 60,
+});
+
+/**
+ * Conteo por componente/accion (sin filtros aplicados) — usado en los chips
+ * de /intervenciones (ej: "C1A1 (284)"). Una sola query para todos los grupos.
+ */
+export interface ConteosPorAccion {
+  total: number;
+  porComponente: Record<string, number>;       // "C1" -> 139, ...
+  porAccion: Record<string, number>;          // "C1A1" -> 139, ...
+}
+
+export async function getConteosIntervenciones(): Promise<ConteosPorAccion> {
+  const rows = await sql<{ comp: string; accion: string; ca: string; n: number | string }[]>`
+    SELECT c.nombre AS comp, a.nombre AS accion,
+           (c.nombre || a.nombre) AS ca,
+           COUNT(DISTINCT pp.id_propuesta)::int AS n
+    FROM sgs_pro_propuesta pp
+    JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+    GROUP BY c.nombre, a.nombre
+  `;
+  const porComponente: Record<string, number> = {};
+  const porAccion: Record<string, number> = {};
+  let total = 0;
+  for (const r of rows) {
+    const n = pgInt(r.n);
+    total += n;
+    porComponente[r.comp] = (porComponente[r.comp] ?? 0) + n;
+    // Mapear "C1A1" esperado: usar (c+a) salvo C3AU (que mapea U+A1 a "C3AU")
+    if (r.comp === "C3" && (r.accion === "U" || r.accion === "A1")) {
+      porAccion["C3AU"] = (porAccion["C3AU"] ?? 0) + n;
+    } else if (r.accion === "A1" || r.accion === "A2") {
+      porAccion[`${r.comp}${r.accion}`] = (porAccion[`${r.comp}${r.accion}`] ?? 0) + n;
+    }
+  }
+  return { total, porComponente, porAccion };
+}
+
+// =============================================================================
 // Predios para el mapa (HU-CO-03, HU-AA-01) — acepta componente y/o acción.
 // =============================================================================
 const getPrediosGeoJSONImpl = async (
