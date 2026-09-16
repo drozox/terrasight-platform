@@ -349,7 +349,7 @@ function MetasConvenioView({
         <BloqueComponente
           ca="C1A2"
           titulo={COMPONENT_LABELS.c1a2}
-          descripcion="Franjas de conectividad se miden en km (líneas). Silvopastoriles y agroforestales en ha (polígonos). Meta: 15 (km o ha) por cada categoría."
+          descripcion="Polígonos clasificados por tipo de arreglo (Actividad): Conectividad, Silvopastoriles y Agroforestales. Meta: 15 ha por cada uno."
           indicadores={data.c1a2.indicadores}
           indicadoresKeys={["conectividad", "silvopastoril", "agroforestal"]}
         />

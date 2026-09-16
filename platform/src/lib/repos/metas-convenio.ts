@@ -12,9 +12,10 @@
 //   - Drill-down  → sgs_v_indicador_propuesta WHERE indicador_key = ?
 //   - Municipio   → sgs_v_indicador_propuesta JOIN (propuestas del municipio)
 //
-// Targets (spec de Nikoll + DEEPSEEK-F4):
+// Targets (spec de Nikoll + DEEPSEEK-F4 + migración 44):
 //   C1A1: 12 km cercos vivos + 12 km aislamientos (cerco de alambre)
 //   C1A2: 15 ha conectividad + 15 ha silvopastoriles + 15 ha agroforestales
+//         (POLÍGONOS, clasificados por Actividad — migración 44)
 //   C2A1: 79 cosecha de agua + 79 compostaje
 //   C2A2: 7 estaciones limnimétricas + 48 obras de captación (suma TODAS C2A2+C3)
 //   C3AU: 35 predios en áreas protegidas (count distinct id_predio)
@@ -92,9 +93,9 @@ export interface IndicadorMeta {
 export const INDICADORES_META: Record<IndicadorKey, IndicadorMeta> = {
   cercos_vivos: { key: "cercos_vivos", label: "Cercos vivos", ca: "C1A1", kind: "lineas", meta: 12, unidad: "km" },
   alambre: { key: "alambre", label: "Aislamientos (cerco de alambre)", ca: "C1A1", kind: "lineas", meta: 12, unidad: "km" },
-  conectividad: { key: "conectividad", label: "Franjas de conectividad", ca: "C1A2", kind: "lineas", meta: 15, unidad: "km" },
-  silvopastoril: { key: "silvopastoril", label: "Sistemas silvopastoriles", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
-  agroforestal: { key: "agroforestal", label: "Sistemas agroforestales", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
+  conectividad: { key: "conectividad", label: "Conectividad", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
+  silvopastoril: { key: "silvopastoril", label: "Silvopastoriles", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
+  agroforestal: { key: "agroforestal", label: "Agroforestales", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
   cosecha: { key: "cosecha", label: "Cosecha de agua", ca: "C2A1", kind: "puntos", meta: 79, unidad: "obras" },
   compostaje: { key: "compostaje", label: "Kit de compostaje", ca: "C2A1", kind: "puntos", meta: 79, unidad: "kits" },
   estaciones: { key: "estaciones", label: "Estaciones limnimétricas", ca: "C2A2", kind: "puntos", meta: 7, unidad: "estaciones" },
