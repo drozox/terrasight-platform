@@ -62,7 +62,10 @@ test.describe("UX-AUDIT sprint — features nuevos", () => {
     // Primer pagina.
     const r1 = await request.get("/intervenciones?page=1");
     expect(r1.status()).toBe(200);
-    const body1 = await r1.text();
+    // React SSR inserta comentarios (`<!-- -->`) entre texto e interpolación:
+    // "pág <!-- -->1". Los quitamos antes de comparar.
+    const stripComments = (s: string) => s.replace(/<!--[\s\S]*?-->/g, "");
+    const body1 = stripComments(await r1.text());
     expect(body1).toContain("pág 1");
 
     // Segunda pagina — solo si hay suficientes propuestas en la BD.
@@ -71,7 +74,7 @@ test.describe("UX-AUDIT sprint — features nuevos", () => {
     // respeta el param.
     const r2 = await request.get("/intervenciones?page=2");
     expect(r2.status()).toBe(200);
-    const body2 = await r2.text();
+    const body2 = stripComments(await r2.text());
     // El indicador 'pág N' cambia entre page=1 y page=2.
     if (body2.includes("pág 2")) {
       expect(body2).toContain("pág 2");
@@ -86,7 +89,7 @@ test.describe("UX-AUDIT sprint — features nuevos", () => {
     await loginAsAdmin(request);
     const r = await request.get("/intervenciones?componente=C1&page=1");
     expect(r.status()).toBe(200);
-    const body = await r.text();
+    const body = (await r.text()).replace(/<!--[\s\S]*?-->/g, "");
     expect(body).toContain("pág 1");
     // El chip de filtro C1 debe traer su conteo: "C1 (N)".
     expect(body).toMatch(/C1\s*\(/);
@@ -98,10 +101,9 @@ test.describe("UX-AUDIT sprint — features nuevos", () => {
   test("/predios renderiza EmptyState cuando filtro no matchea", async ({ page }) => {
     await loginPage(page);
     await page.goto("/predios?q=zzznonexistent");
-    // EmptyState tiene role=status.
-    const region = page.getByRole("status").first();
-    await expect(region).toBeVisible();
-    await expect(region).toContainText(/Sin coincidencias|Limpiar filtro/);
+    // EmptyState muestra el título "Sin coincidencias" + acción "Limpiar filtros".
+    await expect(page.getByText(/Sin coincidencias/i).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /Limpiar filtros/i })).toBeVisible();
   });
 
   // --------------------------------------------------------------------
