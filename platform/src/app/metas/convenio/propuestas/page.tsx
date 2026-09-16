@@ -9,9 +9,15 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Building2, MapPin, ExternalLink } from "lucide-react";
+import { MapPin, ExternalLink } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { INDICADORES_META, getPropuestasPorIndicador, type IndicadorKey } from "@/lib/repos/metas-convenio";
+import {
+  INDICADORES_META,
+  getPropuestasPorIndicador,
+  getIndicadorGeoJSON,
+  type IndicadorKey,
+} from "@/lib/repos/metas-convenio";
+import { IndicadorMapLoader } from "./indicador-map-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +49,11 @@ export default async function PropuestasIndicadorPage({
   if (!key || !VALID_KEYS.has(key)) notFound();
 
   const meta = INDICADORES_META[key as IndicadorKey];
-  const propuestas = await getPropuestasPorIndicador(key as IndicadorKey, 100);
+  const [propuestas, geo] = await Promise.all([
+    getPropuestasPorIndicador(key as IndicadorKey, 100),
+    getIndicadorGeoJSON(key as IndicadorKey),
+  ]);
+  const caLabel = meta.ca === "C3" ? "C3AU" : meta.ca;
 
   // Calcular suma para el resumen
   const totalMedida =
@@ -67,13 +77,22 @@ export default async function PropuestasIndicadorPage({
 
         <header>
           <div className="text-xs uppercase tracking-wide text-on-surface-variant mb-1">
-            {meta.ca} · {meta.kind === "lineas" ? "Líneas" : meta.kind === "poligonos" ? "Polígonos" : meta.kind === "puntos" ? "Puntos" : "Propuestas (super)"}
+            {caLabel} · {meta.kind === "lineas" ? "Líneas" : meta.kind === "poligonos" ? "Polígonos" : meta.kind === "puntos" ? "Puntos" : "Predios (áreas protegidas)"}
           </div>
           <h1 className="text-3xl font-bold text-on-surface">{meta.label}</h1>
           <p className="mt-2 text-on-surface-variant">
             Meta: {meta.meta} {meta.unidad} · Avance mostrado: {totalMedida.toFixed(2)} {medidaLabel} ({propuestas.length} propuestas)
           </p>
         </header>
+
+        {geo.features.length > 0 && (
+          <section className="rounded-xl border border-outline-variant bg-surface-container p-4">
+            <h2 className="text-lg font-bold text-on-surface mb-3">
+              Mapa de propuestas
+            </h2>
+            <IndicadorMapLoader data={geo} kind={meta.kind} />
+          </section>
+        )}
 
         {propuestas.length === 0 ? (
           <div className="rounded-xl border border-outline-variant bg-surface-container p-8 text-center text-on-surface-variant">

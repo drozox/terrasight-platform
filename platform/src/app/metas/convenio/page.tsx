@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Metas del convenio — SIG TERRITORIO",
-  description: "Avance operativo de las 5 metas del convenio CAR-WWF-Fundación Natura",
+  description: "Avance operativo de los 10 indicadores del convenio CAR-WWF-Fundación Natura, agrupados por componente y acción.",
 };
 
 function pct(indicador: { actual: number; meta: number }): { pct: number; className: string; label: string } {
@@ -243,7 +243,7 @@ function MetasConvenioView({
       key: ["estaciones", "obras_captacion"][idx] as IndicadorKey,
     })),
     ...data.c3.indicadores.map((i) => ({
-      ca: "C3", componente: "C3", accion: "*", label: i.label,
+      ca: "C3AU", componente: "C3", accion: "AU", label: i.label,
       actual: i.actual, meta: i.meta, unidad: i.unidad, pct: i.pct,
       key: "predios_c3" as IndicadorKey,
     })),
@@ -277,9 +277,10 @@ function MetasConvenioView({
         <section className="rounded-xl border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex gap-3">
           <AlertTriangle className="size-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-amber-900 dark:text-amber-200">
-            <strong>Calidad de datos:</strong> 692 propuestas de tipo punto (Cosecha de agua, Compostaje, Estaciones, Obras) no tienen geometría,
-            por lo que no se cuentan en la cobertura territorial por intersección espacial. Se asignan al municipio del predio cuando existe.
-            La meta de estaciones limnimétricas y obras de captación suma todas las instancias en cualquier componente-acción (no solo C2A2).
+            <strong>Nota metodológica:</strong> las propuestas de tipo punto (Cosecha de agua, Compostaje, Estaciones, Obras)
+            se cuentan por número de registros y se mapean por su geometría (existente para las 692). La cobertura territorial
+            por municipio/vereda se calcula con predios, líneas y polígonos. La meta de estaciones limnimétricas y obras de
+            captación suma instancias de C2A2 y C3.
             Datos al {new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" })}.
           </div>
         </section>
@@ -370,7 +371,7 @@ function MetasConvenioView({
         />
 
         <BloqueComponente
-          ca="C3"
+          ca="C3AU"
           titulo={COMPONENT_LABELS.c3}
           descripcion="Predios intervenidos en áreas protegidas. Meta: 35 predios. Identifica predios con propuestas C3 (un predio = suma de 1+ polígonos con mismo Nompredio)."
           indicadores={data.c3.indicadores}

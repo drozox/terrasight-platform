@@ -27,6 +27,7 @@
 
 import { sql, pgInt, pgNum, pgText } from "../db";
 import { cached } from "./_cache";
+import type { FeatureCollection, Geometry } from "geojson";
 
 export interface MetaIndicador {
   label: string;
@@ -185,6 +186,79 @@ export const getPropuestasPorIndicador = cached(getPropuestasPorIndicadorImpl, {
 });
 
 // =============================================================================
+// getIndicadorGeoJSON — geometría de las propuestas que contribuyen a un
+// indicador, reproyectada a 4326, para el mapa del drill-down.
+//   - lineas:      sgs_pro_propuesta_linea
+//   - poligonos:   sgs_pro_propuesta_poligono
+//   - puntos:      sgs_pro_propuesta_punto
+//   - super (C3):  polígonos de los PREDIOS distintos (no las 405 propuestas)
+// Las geometrías están en SRID 4686; se transforman a 4326 (CASE por si vinieran
+// ya en 4326).
+// =============================================================================
+type GeoRow = { id: number | string; nombre: string | null; actividad: string | null; medida: number | string | null; geom: string };
+
+async function getIndicadorGeoJSONImpl(key: IndicadorKey): Promise<FeatureCollection> {
+  const meta: IndicadorMeta | undefined = INDICADORES_META[key];
+  if (!meta) return { type: "FeatureCollection", features: [] };
+
+  let rows: GeoRow[];
+  if (meta.kind === "super") {
+    rows = await sql<GeoRow[]>`
+      SELECT DISTINCT vp.id_predio AS id, pr.nombre_predio AS nombre, NULL::text AS actividad,
+             NULL::numeric AS medida,
+             ST_AsGeoJSON(CASE WHEN ST_SRID(pr.geom) = 4326 THEN pr.geom ELSE ST_Transform(pr.geom, 4326) END) AS geom
+      FROM   sgs_v_indicador_propuesta vp
+      JOIN   sgs_pre_predio pr ON pr.id_predio = vp.id_predio
+      WHERE  vp.indicador_key = ${key} AND vp.id_predio IS NOT NULL AND pr.geom IS NOT NULL;
+    `;
+  } else if (meta.kind === "lineas") {
+    rows = await sql<GeoRow[]>`
+      SELECT DISTINCT vp.id_propuesta AS id, NULL::text AS nombre, ch.actividad, vp.medida,
+             ST_AsGeoJSON(CASE WHEN ST_SRID(ch.geom) = 4326 THEN ch.geom ELSE ST_Transform(ch.geom, 4326) END) AS geom
+      FROM   sgs_v_indicador_propuesta vp
+      JOIN   sgs_pro_propuesta_linea ch ON ch.id_propuesta = vp.id_propuesta
+      WHERE  vp.indicador_key = ${key} AND ch.geom IS NOT NULL;
+    `;
+  } else if (meta.kind === "poligonos") {
+    rows = await sql<GeoRow[]>`
+      SELECT DISTINCT vp.id_propuesta AS id, NULL::text AS nombre, ch.actividad, vp.medida,
+             ST_AsGeoJSON(CASE WHEN ST_SRID(ch.geom) = 4326 THEN ch.geom ELSE ST_Transform(ch.geom, 4326) END) AS geom
+      FROM   sgs_v_indicador_propuesta vp
+      JOIN   sgs_pro_propuesta_poligono ch ON ch.id_propuesta = vp.id_propuesta
+      WHERE  vp.indicador_key = ${key} AND ch.geom IS NOT NULL;
+    `;
+  } else {
+    rows = await sql<GeoRow[]>`
+      SELECT DISTINCT vp.id_propuesta AS id, NULL::text AS nombre, ch.actividad, vp.medida,
+             ST_AsGeoJSON(CASE WHEN ST_SRID(ch.geom) = 4326 THEN ch.geom ELSE ST_Transform(ch.geom, 4326) END) AS geom
+      FROM   sgs_v_indicador_propuesta vp
+      JOIN   sgs_pro_propuesta_punto ch ON ch.id_propuesta = vp.id_propuesta
+      WHERE  vp.indicador_key = ${key} AND ch.geom IS NOT NULL;
+    `;
+  }
+
+  return {
+    type: "FeatureCollection",
+    features: rows.map((r) => ({
+      type: "Feature",
+      properties: {
+        id: pgInt(r.id),
+        nombre: r.nombre == null ? null : pgText(r.nombre),
+        actividad: r.actividad == null ? null : pgText(r.actividad),
+        medida: r.medida == null ? null : pgNum(r.medida),
+        unidad: meta.unidad,
+        layer: key,
+      },
+      geometry: JSON.parse(r.geom) as Geometry,
+    })),
+  };
+}
+export const getIndicadorGeoJSON = cached(getIndicadorGeoJSONImpl, {
+  tags: ["metas", "convenio", "propuestas", "mapa"],
+  ttl: 60,
+});
+
+// =============================================================================
 // Builders de MetaComponente a partir del mapa global.
 // =============================================================================
 function mk(label: string, actual: number, meta: number, unidad: string): MetaIndicador {
@@ -194,7 +268,6 @@ function mk(label: string, actual: number, meta: number, unidad: string): MetaIn
 function getC1A1(g: GlobalIndicadores): MetaComponente {
   const cerVivos = g.cercos_vivos ?? 0;
   const alambre = g.alambre ?? 0;
-  const multiestrat = g.multiestrat ?? 0;
   return {
     componente: "C1",
     accion: "A1",
@@ -202,7 +275,6 @@ function getC1A1(g: GlobalIndicadores): MetaComponente {
     indicadores: [
       mk("Cercos vivos", cerVivos, 12, "km"),
       mk("Aislamientos (cerco de alambre)", alambre, 12, "km"),
-      { label: "Cercas multiestratificadas (extra)", actual: multiestrat, meta: 0, unidad: "km", pct: 0 },
     ],
   };
 }
@@ -247,7 +319,7 @@ function getC2A2(g: GlobalIndicadores): MetaComponente {
 function getC3(g: GlobalIndicadores): MetaComponente {
   return {
     componente: "C3",
-    accion: "*",
+    accion: "AU",
     descripcion: "Reconversión Productiva en Áreas Protegidas y Páramos",
     indicadores: [
       mk("Predios intervenidos en áreas protegidas", g.predios_c3 ?? 0, 35, "predios"),

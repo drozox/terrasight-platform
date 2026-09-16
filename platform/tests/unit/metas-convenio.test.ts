@@ -5,7 +5,7 @@
 // vistas sgs_v_indicador_global / sgs_v_indicador_propuesta.
 //
 // Cubre:
-//   1. getMetasConvenio mapea el global (incluye multiestrat y pct).
+//   1. getMetasConvenio mapea el global (10 indicadores oficiales y pct).
 //   2. getPropuestasPorIndicador consulta la vista y mapea medida→km/ha.
 //   3. key desconocida → [] sin consultar.
 // =============================================================================
@@ -52,7 +52,6 @@ beforeEach(() => {
 const GLOBAL_ROWS: Row[] = [
   { indicador_key: "cercos_vivos", actual: 6, unidad: "km" },
   { indicador_key: "alambre", actual: 12, unidad: "km" },
-  { indicador_key: "multiestrat", actual: 1.5, unidad: "km" },
   { indicador_key: "conectividad", actual: 15, unidad: "km" },
   { indicador_key: "silvopastoril", actual: 7.5, unidad: "ha" },
   { indicador_key: "agroforestal", actual: 3, unidad: "ha" },
@@ -64,7 +63,7 @@ const GLOBAL_ROWS: Row[] = [
 ];
 
 describe("getMetasConvenio — consume la vista global (fuente única)", () => {
-  it("mapea los 11 valores (10 oficiales + multiestrat) y calcula pct", async () => {
+  it("mapea los 10 valores oficiales y calcula pct", async () => {
     dispatch((query) => {
       if (query.includes("sgs_v_indicador_global")) return GLOBAL_ROWS;
       if (query.includes("nombre_vereda AS nombre")) {
@@ -78,10 +77,9 @@ describe("getMetasConvenio — consume la vista global (fuente única)", () => {
 
     const out = await getMetasConvenio();
 
-    expect(out.c1a1.indicadores).toHaveLength(3);
+    expect(out.c1a1.indicadores).toHaveLength(2);
     expect(out.c1a1.indicadores[0]).toMatchObject({ label: "Cercos vivos", actual: 6, meta: 12, pct: 50 });
     expect(out.c1a1.indicadores[1]).toMatchObject({ actual: 12, pct: 100 });
-    expect(out.c1a1.indicadores[2].actual).toBe(1.5); // multiestrat (extra)
 
     expect(out.c1a2.indicadores[0].pct).toBe(100); // 15/15
     expect(out.c1a2.indicadores[1].pct).toBe(50);  // 7.5/15
