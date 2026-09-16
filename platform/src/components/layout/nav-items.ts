@@ -4,7 +4,7 @@
 // =============================================================================
 
 import type { ComponentType } from "react";
-import { HomeIcon, MapIcon, Building2, Wrench, FileText, Target, Info } from "lucide-react";
+import { HomeIcon, Building2, Wrench, FileText, Target, Info } from "lucide-react";
 import type { RolSistema } from "@/lib/auth";
 
 export type NavItem = {
@@ -19,7 +19,6 @@ export type NavItem = {
 // (ver docs/ALCANCE.md).
 export const ALL_ITEMS: NavItem[] = [
   { href: "/",               label: "Inicio",             icon: HomeIcon,  roles: null },
-  { href: "/mapa",           label: "Mapa",               icon: MapIcon,   roles: null },
   { href: "/predios",        label: "Predios",            icon: Building2, roles: null },
   { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,    roles: null },
   { href: "/metas/convenio", label: "Metas del convenio", icon: Target,    roles: null },

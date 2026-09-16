@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { HelpDialog } from "@/components/layout/help-dialog";
-import { TopbarSearch } from "@/components/layout/topbar-search";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import type { Alerta } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth-guard";
@@ -117,12 +116,8 @@ export function TopBar({
         </div>
       </div>
 
-      {/* Sprint 19 — UX-61: búsqueda global con pg_trgm + unaccent. */}
-      {usuario && (
-        <div className="hidden flex-1 justify-center px-6 md:flex">
-          <TopbarSearch />
-        </div>
-      )}
+      {/* Ajuste 1: se eliminó la búsqueda del header (redundante con la del
+         mapa; redirigía a otra pestaña). La búsqueda vive en el mapa. */}
 
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-1 border-l border-outline-variant pl-4">

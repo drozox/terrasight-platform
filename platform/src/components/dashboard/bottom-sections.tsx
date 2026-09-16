@@ -9,7 +9,7 @@ import type {
   PredioPorMunicipio,
 } from "@/lib/types";
 import type { ResumenComponente } from "@/lib/repos";
-import { formatInt, formatHa, cn } from "@/lib/utils";
+import { formatInt, cn } from "@/lib/utils";
 
 /**
  * BottomSections — fila inferior del dashboard.
@@ -24,13 +24,11 @@ import { formatInt, formatHa, cn } from "@/lib/utils";
  */
 export function BottomSections({
   intervenciones,
-  cobertura,
   topMunicipios,
   footer,
   resumen,
 }: {
   intervenciones: IntervencionReciente[];
-  cobertura: CoberturaTotal[];
   topMunicipios: PredioPorMunicipio[];
   footer: FooterKpis;
   resumen?: ResumenComponente;
@@ -56,13 +54,6 @@ export function BottomSections({
   return (
     <div className="grid grid-cols-1 gap-gutter xl:grid-cols-12">
       <IntervencionesTable rows={intervenciones} limit={6} />
-
-      <CoberturaChart
-        title="Cobertura Vegetal"
-        items={cobertura}
-        totalValue={`${formatHa(footer.hectareasIntervenidas)}`}
-        totalLabel="ha total"
-      />
 
       <CoberturaChart
         title="Top Municipios por Predios"

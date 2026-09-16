@@ -46,10 +46,10 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
           <SigTerritorioLogo className="h-10 w-10 rounded-lg" />
           <div className="min-w-0">
             <p className="truncate text-lg font-bold leading-tight text-secondary">
-              SIG TERRITORIO
+              SIG Territorio
             </p>
             <p className="truncate text-body-sm text-on-surface-variant">
-              CAR · WWF · Fundación Natura
+              Gestión Territorial
             </p>
           </div>
         </Link>

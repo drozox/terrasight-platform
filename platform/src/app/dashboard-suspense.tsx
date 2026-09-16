@@ -22,7 +22,6 @@ import { LeafletMap } from "@/components/map/leaflet-map";
 import { MapSearchBar } from "@/components/map/map-search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  getCoberturaVegetal,
   getIntervencionesRecientes,
   getPrediosMini,
   getQuebradasMini,
@@ -113,7 +112,9 @@ async function MapSection({
           : `Postgres sin conexión (${dbHealth.latencyMs} ms)`}
       </div>
 
-      <div className="absolute bottom-3 right-3 z-[500] rounded-md bg-surface-container-lowest/80 px-2 py-1 text-[10px] text-on-surface-variant shadow-sm backdrop-blur">
+      {/* Ajuste 3: hint reubicado al centro-abajo para NO tapar la escala
+         (ScaleControl) que vive abajo a la derecha. */}
+      <div className="absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 rounded-md bg-surface-container-lowest/80 px-2 py-1 text-[10px] text-on-surface-variant shadow-sm backdrop-blur">
         Zoom 3–22 · wheel / double-click / +/–
       </div>
     </div>
@@ -130,8 +131,7 @@ async function BottomSection({
   queryTexto: string;
   resumen?: ResumenComponente;
 }) {
-  const [cobertura, topMunicipios, footer] = await Promise.all([
-    getCoberturaVegetal(),
+  const [topMunicipios, footer] = await Promise.all([
     getPrediosPorMunicipio(6),
     getFooterKpis(),
   ]);
@@ -150,7 +150,6 @@ async function BottomSection({
   return (
     <BottomSections
       intervenciones={filtradas}
-      cobertura={cobertura}
       topMunicipios={topMunicipios}
       footer={footer}
       resumen={resumen}
