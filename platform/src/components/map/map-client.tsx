@@ -61,6 +61,7 @@ interface Props {
   quebradas?: { id: number; nombre: string; lon: number; lat: number }[];
   geojson?: unknown;
   activeComponente?: string | null;
+  activeAccion?: string | null;
   height?: string;
   showLayersPanel?: boolean;
 }
@@ -73,6 +74,7 @@ const BASEMAPS: Record<BasemapKey, { url: string; maxZoom?: number; attribution:
 
 export default function MapClient({
   activeComponente = null,
+  activeAccion = null,
   height = "100%",
   showLayersPanel = true,
 }: Props) {
@@ -443,6 +445,7 @@ export default function MapClient({
            activo y hace fitBounds para que se vea completa. */}
         <MapComponenteFocusLayer
           componente={activeComponente}
+          accion={activeAccion}
           onClick={setSelectedFeature}
         />
 

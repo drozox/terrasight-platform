@@ -71,10 +71,12 @@ const RightPanel = dynamic(
 /** Map + search overlay + health pill. Carga predios, quebradas y geojson. */
 async function MapSection({
   componenteFiltro,
+  accion,
   queryTexto,
   dbHealth,
 }: {
   componenteFiltro: string | null;
+  accion: AccionCode | null;
   queryTexto: string;
   dbHealth: { ok: boolean; latencyMs: number; server?: string };
 }) {
@@ -91,6 +93,7 @@ async function MapSection({
         quebradas={quebradas}
         geojson={geojson as unknown as GeoJSONFeatureCollection}
         activeComponente={componenteFiltro}
+        activeAccion={accion}
         height="100%"
       />
 
@@ -244,6 +247,7 @@ export function DashboardContent({
           >
             <MapSection
               componenteFiltro={componenteFiltro}
+              accion={accionFiltro}
               queryTexto={queryTexto}
               dbHealth={dbHealth}
             />

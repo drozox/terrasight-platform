@@ -1,5 +1,6 @@
 import { sql } from "../db";
 import { unstable_cache } from "next/cache";
+import { normalizarAccion, accionDef } from "../acciones";
 
 // =============================================================================
 // GeoJSON helpers — convierte cada tabla geografía a FeatureCollection
@@ -241,16 +242,20 @@ export const getPropuestasPoligonoGeoJSON = unstable_cache(
 // =============================================================================
 export async function getComponenteFootprintGeoJSON(
   componente: string,
+  accion?: string | null,
 ): Promise<FeatureCollection> {
-  const comp = /^C[123]$/.test(componente) ? componente : null;
+  const code = accion ? normalizarAccion(accion) : null;
+  const def = code ? accionDef(code) : null;
+  const comp = def ? def.componente : /^C[123]$/.test(componente) ? componente : null;
   if (!comp) return { type: "FeatureCollection", features: [] };
+  const accionSql = def ? sql`AND a.nombre IN ${sql(def.acciones)}` : sql``;
 
   const rows = await sql<{ tipo: string; id: number; nombre: string | null; geom: string }[]>`
     WITH comp AS (
       SELECT a.id_accion
       FROM sgs_com_accion a
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-      WHERE c.nombre = ${comp}
+      WHERE c.nombre = ${comp} ${accionSql}
     )
     SELECT 'punto' AS tipo, pt.id_prop_punto AS id, pt.actividad AS nombre, ST_AsGeoJSON(pt.geom) AS geom
     FROM sgs_pro_propuesta_punto pt

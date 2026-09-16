@@ -19,13 +19,14 @@ import L from "leaflet";
 
 interface Props {
   componente: string | null;
+  accion?: string | null;
   onClick?: (feature: GeoJSON.Feature) => void;
 }
 
 const FOCUS_COLOR = "#d9480f";
 const FOCUS_FILL = "#ff922b";
 
-export function MapComponenteFocusLayer({ componente, onClick }: Props) {
+export function MapComponenteFocusLayer({ componente, accion = null, onClick }: Props) {
   const map = useMap();
   const layerRef = React.useRef<L.GeoJSON | null>(null);
 
@@ -38,7 +39,9 @@ export function MapComponenteFocusLayer({ componente, onClick }: Props) {
     (async () => {
       try {
         const res = await fetch(
-          `/api/geo?layer=componente&componente=${encodeURIComponent(componente)}`,
+          `/api/geo?layer=componente&componente=${encodeURIComponent(componente)}${
+            accion ? `&accion=${encodeURIComponent(accion)}` : ""
+          }`,
           { signal: ctrl.signal },
         );
         if (!res.ok) return;
@@ -91,7 +94,7 @@ export function MapComponenteFocusLayer({ componente, onClick }: Props) {
         layerRef.current = null;
       }
     };
-  }, [componente, map, onClick]);
+  }, [componente, accion, map, onClick]);
 
   return null;
 }

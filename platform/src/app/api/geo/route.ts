@@ -68,7 +68,7 @@ export async function GET(req: Request) {
       );
     }
     try {
-      const data = await getComponenteFootprintGeoJSON(componente);
+      const data = await getComponenteFootprintGeoJSON(componente, sp.get("accion"));
       return NextResponse.json(data, {
         headers: { "Cache-Control": "public, max-age=120" },
       });
