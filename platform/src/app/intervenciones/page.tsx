@@ -8,6 +8,7 @@ import Link from "next/link";
 import { getIntervencionesRecientes, getComponentes } from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
 import { formatDecimal, formatInt } from "@/lib/utils";
+import { normalizarAccion } from "@/lib/acciones";
 import { EstadoIntervencionDropdown } from "./estado-dropdown";
 
 export const dynamic = "force-dynamic";
@@ -72,8 +73,10 @@ export default async function IntervencionesPage({
     getCurrentUser(),
   ]);
   const componente = params.componente ?? null;
-  // DEEPSEEK-F2: la acción se filtra por nombre (A1/A2/U).
-  const accion = params.accion ?? null;
+  // T1 filtro-accion: el URL ahora lleva el código CxAy (no el nombre).
+  // `normalizarAccion` valida: si el valor no es un código válido (legacy
+  // "A1"/"A2" o vacío), devuelve null y NO se filtra.
+  const accion = normalizarAccion(params.accion);
   // UX-65 (audit 2026-07-24): paginacion. page=1 default. Cap a 9999
   // (mas alla es claramente input malicioso).
   const pageNum = Math.max(1, Math.min(9999, Number(params.page ?? "1") || 1));

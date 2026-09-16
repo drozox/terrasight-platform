@@ -1,5 +1,6 @@
 import { sql } from "../db";
 import { unstable_cache } from "next/cache";
+import { type AccionCode, accionDef } from "../acciones";
 
 // =============================================================================
 // GeoJSON helpers — convierte cada tabla geografía a FeatureCollection
@@ -237,20 +238,38 @@ export const getPropuestasPoligonoGeoJSON = unstable_cache(
 // Huella de un componente (DEEPSEEK-76) — punto + polígono + línea de TODAS las
 // propuestas del componente. Se usa para el "zoom a componente" del mapa: el
 // visor hace fitBounds sobre esta capa y la resalta encima de las capas base.
+// T1 filtro-accion: acepta también `accion` (código CxAy) para filtrar la huella
+// a una acción concreta (C3AU mapea a IN ('U','A1')).
 // No se cachea: es una consulta acotada (subconjunto) y cambia con cada filtro.
 // =============================================================================
 export async function getComponenteFootprintGeoJSON(
-  componente: string,
+  componente: string | null,
+  accion: AccionCode | null = null,
 ): Promise<FeatureCollection> {
-  const comp = /^C[123]$/.test(componente) ? componente : null;
+  // Derivar componente desde la acción si hace falta.
+  let comp: string | null = componente;
+  let nombresAccion: string[] | null = null;
+  if (accion) {
+    const def = accionDef(accion);
+    if (!comp) comp = def.componente;
+    nombresAccion = def.nombres;
+  }
+  comp = comp && /^C[123]$/.test(comp) ? comp : null;
   if (!comp) return { type: "FeatureCollection", features: [] };
+
+  const compCond = sql`c.nombre = ${comp}`;
+  const accionCond = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
 
   const rows = await sql<{ tipo: string; id: number; nombre: string | null; geom: string }[]>`
     WITH comp AS (
       SELECT a.id_accion
       FROM sgs_com_accion a
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-      WHERE c.nombre = ${comp}
+      WHERE ${compCond} ${accionCond}
     )
     SELECT 'punto' AS tipo, pt.id_prop_punto AS id, pt.actividad AS nombre, ST_AsGeoJSON(pt.geom) AS geom
     FROM sgs_pro_propuesta_punto pt

@@ -29,6 +29,7 @@ import {
   DEMO_TOP_MUNICIPIOS,
   DEMO_SERIES_COMPONENTES,
 } from "../demo-data";
+import { type AccionCode, accionDef } from "../acciones";
 import type {
   DashboardKpis,
   ComponenteTotal,
@@ -126,14 +127,34 @@ export const getDashboardKpis = cached(getDashboardKpisImpl, {
 });
 
 // =============================================================================
-// KPIs filtrados por componente (DEEPSEEK-75) — para que el ribbon del dashboard
-// haga reaccionar las métricas, no solo la tabla/mapa.
+// KPIs filtrados por componente (DEEPSEEK-75) y/o acción (T1 filtro-accion).
+// `componente` y/o `accion` son opcionales; si se pasa `accion` y no
+// `componente`, el componente se deriva del código CxAy.
 // =============================================================================
-export async function getDashboardKpisComponente(componente: string): Promise<DashboardKpis> {
-  const comp = /^C[123]$/.test(componente) ? componente : null;
+export async function getDashboardKpisComponente(
+  componente: string | null,
+  accion: AccionCode | null = null,
+): Promise<DashboardKpis> {
+  // Derivar componente si solo viene accion
+  let comp: string | null = componente;
+  let nombresAccion: string[] | null = null;
+  if (accion) {
+    const def = accionDef(accion);
+    if (!comp) comp = def.componente;
+    nombresAccion = def.nombres;
+  }
+  comp = comp && /^C[123]$/.test(comp) ? comp : null;
   if (!comp) return getDashboardKpis();
 
-  return withFallback(`dashboardKpis:${comp}`, async () => {
+  // Filtros condicionales para reusar en los 3 CTEs.
+  const compFilter = sql`AND c.nombre = ${comp}`;
+  const accionFilter = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
+
+  return withFallback(`dashboardKpis:${comp}:${accion ?? "ALL"}`, async () => {
     const [row] = await sql<
       {
         predios: number | string;
@@ -154,7 +175,7 @@ export async function getDashboardKpisComponente(componente: string): Promise<Da
           FROM sgs_pro_propuesta pp
           JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
           JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-          WHERE c.nombre = ${comp}
+          WHERE TRUE ${compFilter} ${accionFilter}
         ),
         p AS (
           SELECT
@@ -166,7 +187,7 @@ export async function getDashboardKpisComponente(componente: string): Promise<Da
             FROM sgs_pro_propuesta pp
             JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
             JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-            WHERE pp.id_predio = p.id_predio AND c.nombre = ${comp}
+            WHERE pp.id_predio = p.id_predio ${compFilter} ${accionFilter}
           )
         ),
         ppoly AS (
@@ -175,7 +196,7 @@ export async function getDashboardKpisComponente(componente: string): Promise<Da
           JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pol.id_propuesta
           JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
           JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
-          WHERE c.nombre = ${comp}
+          WHERE TRUE ${compFilter} ${accionFilter}
         )
       SELECT
         p.predios, pr.propuestas, pr.propuestas_ejecucion,
@@ -281,13 +302,22 @@ export const getCoberturaVegetal = cached(getCoberturaVegetalImpl, {
 const getIntervencionesRecientesImpl = async (
   limit = 6,
   componente: string | null = null,
-  accion: string | null = null,
+  accion: AccionCode | null = null,
 ): Promise<IntervencionReciente[]> => {
-  // Filtros WHERE encadenados (componente y/o accion). DEEPSEEK-F2: el user
-  // pidió filtrar también por acción (A1/A2/U) además del componente.
+  // Filtros WHERE encadenados (componente y/o acción).
+  // T1 (filtro-accion): `accion` es un código CxAy; para C3AU equivale a
+  // IN ('U','A1') en BD; el resto son = a un único nombre de acción.
   const conditions: ReturnType<typeof sql>[] = [];
   if (componente) conditions.push(sql`c.nombre = ${componente}`);
-  if (accion) conditions.push(sql`a.nombre = ${accion}`);
+  if (accion) {
+    const nombres = accionDef(accion).nombres;
+    if (nombres.length === 1) {
+      conditions.push(sql`a.nombre = ${nombres[0]}`);
+    } else {
+      // C3AU → IN ('U','A1')
+      conditions.push(sql`a.nombre IN ${sql(nombres)}`);
+    }
+  }
   const whereClause =
     conditions.length === 0
       ? sql``
@@ -382,7 +412,10 @@ const getIntervencionesRecientesImpl = async (
   }, (() => {
     let demo = DEMO_INTERVENCIONES;
     if (componente) demo = demo.filter((i) => i.componente === componente);
-    if (accion) demo = demo.filter((i) => i.accion === accion);
+    if (accion) {
+      const nombres = accionDef(accion).nombres;
+      demo = demo.filter((i) => nombres.includes(i.accion));
+    }
     return demo.slice(0, limit);
   })());
 };
@@ -392,11 +425,27 @@ export const getIntervencionesRecientes = cached(getIntervencionesRecientesImpl,
 });
 
 // =============================================================================
-// Predios para el mapa (HU-CO-03, HU-AA-01)
+// Predios para el mapa (HU-CO-03, HU-AA-01) — acepta componente y/o acción.
 // =============================================================================
 const getPrediosGeoJSONImpl = async (
   componente: string | null = null,
+  accion: AccionCode | null = null,
 ): Promise<MapFeatureCollection> => {
+  // Derivar componente desde la accion si hace falta.
+  let comp: string | null = componente;
+  let nombresAccion: string[] | null = null;
+  if (accion) {
+    const def = accionDef(accion);
+    if (!comp) comp = def.componente;
+    nombresAccion = def.nombres;
+  }
+  const compCond = comp ? sql`AND c.nombre = ${comp}` : sql``;
+  const accionCond = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
+
   return withFallback("prediosGeoJSON", async () => {
     const rows = await sql<
       {
@@ -419,18 +468,18 @@ const getPrediosGeoJSONImpl = async (
           FROM sgs_pro_propuesta pp
           JOIN sgs_com_accion a      ON a.id_accion  = pp.id_accion
           JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
-          WHERE pp.id_predio = p.id_predio
+          WHERE pp.id_predio = p.id_predio ${compCond} ${accionCond}
           LIMIT 1
         )                                                                AS comp,
         p.longitud_centroide                                             AS lon,
         p.latitud_centroide                                              AS lat
       FROM sgs_pre_predio p
       WHERE
-        ${componente ? sql`EXISTS (
+        ${comp || accion ? sql`EXISTS (
           SELECT 1 FROM sgs_pro_propuesta pp
           JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
           JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-          WHERE pp.id_predio = p.id_predio AND c.nombre = ${componente}
+          WHERE pp.id_predio = p.id_predio ${compCond} ${accionCond}
         )` : sql`TRUE`};
     `;
 
@@ -446,9 +495,13 @@ const getPrediosGeoJSONImpl = async (
       },
     }));
     return { type: "FeatureCollection", features };
-  }, componente ? {
+  }, (comp || accion) ? {
     type: "FeatureCollection" as const,
-    features: DEMO_PREDIOS_GEOJSON.features.filter(f => f.properties.componente === componente),
+    features: DEMO_PREDIOS_GEOJSON.features.filter(f => {
+      if (comp && f.properties.componente !== comp) return false;
+      // Demo data does not carry action -> best-effort, return all matching comp rows.
+      return true;
+    }),
   } : DEMO_PREDIOS_GEOJSON);
 };
 export const getPrediosGeoJSON = cached(getPrediosGeoJSONImpl, {
@@ -458,27 +511,49 @@ export const getPrediosGeoJSON = cached(getPrediosGeoJSONImpl, {
 
 const getPrediosMiniImpl = async (
   componente: string | null = null,
+  accion: AccionCode | null = null,
 ): Promise<PredioMini[]> => {
+  let comp: string | null = componente;
+  let nombresAccion: string[] | null = null;
+  if (accion) {
+    const def = accionDef(accion);
+    if (!comp) comp = def.componente;
+    nombresAccion = def.nombres;
+  }
+  const compCond = comp ? sql`AND c.nombre = ${comp}` : sql``;
+  const accionCond = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
+
   return withFallback("prediosMini", async () => {
-    const rows = componente
-      ? await sql<
-          { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
-        >`
-          SELECT p.id_predio AS id, p.nombre_predio AS nombre,
-                 p.longitud_centroide AS lon, p.latitud_centroide AS lat
-          FROM sgs_pre_predio p
-          WHERE EXISTS (
-            SELECT 1 FROM sgs_pro_propuesta pp
-            JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
-            JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-            WHERE pp.id_predio = p.id_predio AND c.nombre = ${componente}
-          );
-        `
-      : await sql<
-          { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
-        >`SELECT id_predio AS id, nombre_predio AS nombre,
-                   longitud_centroide AS lon, latitud_centroide AS lat
-            FROM sgs_pre_predio;`;
+    if (!comp && !accion) {
+      const rows = await sql<
+        { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
+      >`SELECT id_predio AS id, nombre_predio AS nombre,
+                 longitud_centroide AS lon, latitud_centroide AS lat
+          FROM sgs_pre_predio;`;
+      return rows.map((r) => ({
+        id: pgInt(r.id),
+        nombre: pgText(r.nombre),
+        lon: pgNum(r.lon),
+        lat: pgNum(r.lat),
+      }));
+    }
+    const rows = await sql<
+      { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
+    >`
+      SELECT p.id_predio AS id, p.nombre_predio AS nombre,
+             p.longitud_centroide AS lon, p.latitud_centroide AS lat
+      FROM sgs_pre_predio p
+      WHERE EXISTS (
+        SELECT 1 FROM sgs_pro_propuesta pp
+        JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
+        JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+        WHERE pp.id_predio = p.id_predio ${compCond} ${accionCond}
+      );
+    `;
     return rows.map((r) => ({
       id: pgInt(r.id),
       nombre: pgText(r.nombre),
