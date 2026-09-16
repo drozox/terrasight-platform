@@ -397,9 +397,9 @@ export const DEMO_METAS_CONVENIO = {
     componente: "C1", accion: "A2",
     descripcion: "Conectividad y reconversión agroforestal",
     indicadores: [
-      { label: "Franjas de conectividad", actual: 5.2, meta: 15, unidad: "km", pct: 35 },
-      { label: "Sistemas silvopastoriles", actual: 6.46, meta: 15, unidad: "ha", pct: 43 },
-      { label: "Sistemas agroforestales", actual: 4.44, meta: 15, unidad: "ha", pct: 30 },
+      { label: "Conectividad de Relictos Boscosos", actual: 8.15, meta: 15, unidad: "ha", pct: 54 },
+      { label: "Silvopastoriles", actual: 1.48, meta: 15, unidad: "ha", pct: 10 },
+      { label: "Agroforestales", actual: 1.27, meta: 15, unidad: "ha", pct: 8 },
     ],
   },
   c2a1: {
@@ -443,9 +443,9 @@ export const DEMO_DETALLE_MUNICIPIO = {
   indicadores: [
     { label: "Cercos vivos", actual: 1.4, meta: 12, unidad: "km", pct: 12 },
     { label: "Aislamientos (alambre)", actual: 0.65, meta: 12, unidad: "km", pct: 5 },
-    { label: "Franjas de conectividad", actual: 0, meta: 15, unidad: "km", pct: 0 },
-    { label: "Sistemas silvopastoriles", actual: 0, meta: 15, unidad: "ha", pct: 0 },
-    { label: "Sistemas agroforestales", actual: 0, meta: 15, unidad: "ha", pct: 0 },
+    { label: "Conectividad de Relictos Boscosos", actual: 0, meta: 15, unidad: "ha", pct: 0 },
+    { label: "Silvopastoriles", actual: 0, meta: 15, unidad: "ha", pct: 0 },
+    { label: "Agroforestales", actual: 0, meta: 15, unidad: "ha", pct: 0 },
     { label: "Cosecha de agua", actual: 0, meta: 79, unidad: "obras", pct: 0 },
     { label: "Kit de compostaje", actual: 0, meta: 79, unidad: "kits", pct: 0 },
     { label: "Estaciones limnimétricas", actual: 0, meta: 7, unidad: "estaciones", pct: 0 },

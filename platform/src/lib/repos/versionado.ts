@@ -135,7 +135,7 @@ export async function compararSnapshots(
   const INDICADORES: { key: IndicadorKey; label: string }[] = [
     { key: "cercos_vivos",       label: "C1A1 · Cercos vivos" },
     { key: "alambre",            label: "C1A1 · Alambre" },
-    { key: "conectividad",       label: "C1A2 · Conectividad" },
+    { key: "conectividad",       label: "C1A2 · Conectividad de Relictos Boscosos" },
     { key: "silvopastoril",      label: "C1A2 · Silvopastoril" },
     { key: "agroforestal",       label: "C1A2 · Agroforestal" },
     { key: "cosecha",            label: "C2A1 · Cosecha de agua" },

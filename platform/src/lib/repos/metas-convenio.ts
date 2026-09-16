@@ -93,7 +93,7 @@ export interface IndicadorMeta {
 export const INDICADORES_META: Record<IndicadorKey, IndicadorMeta> = {
   cercos_vivos: { key: "cercos_vivos", label: "Cercos vivos", ca: "C1A1", kind: "lineas", meta: 12, unidad: "km" },
   alambre: { key: "alambre", label: "Aislamientos (cerco de alambre)", ca: "C1A1", kind: "lineas", meta: 12, unidad: "km" },
-  conectividad: { key: "conectividad", label: "Conectividad", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
+  conectividad: { key: "conectividad", label: "Conectividad de Relictos Boscosos", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
   silvopastoril: { key: "silvopastoril", label: "Silvopastoriles", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
   agroforestal: { key: "agroforestal", label: "Agroforestales", ca: "C1A2", kind: "poligonos", meta: 15, unidad: "ha" },
   cosecha: { key: "cosecha", label: "Cosecha de agua", ca: "C2A1", kind: "puntos", meta: 79, unidad: "obras" },
@@ -266,17 +266,24 @@ function mk(label: string, actual: number, meta: number, unidad: string): MetaIn
   return { label, actual, meta, unidad, pct: pct(actual, meta) };
 }
 
+/**
+ * Construye los indicadores de un componente/acción desde `INDICADORES_META`
+ * (label/unidad/meta) y el agregado global. Así la presentación no se
+ * desincroniza de la definición única.
+ */
+function indicadoresDe(ca: IndicadorMeta["ca"], g: GlobalIndicadores): MetaIndicador[] {
+  return (Object.keys(INDICADORES_META) as IndicadorKey[])
+    .map((k) => INDICADORES_META[k])
+    .filter((m) => m.ca === ca)
+    .map((m) => mk(m.label, g[m.key] ?? 0, m.meta, m.unidad));
+}
+
 function getC1A1(g: GlobalIndicadores): MetaComponente {
-  const cerVivos = g.cercos_vivos ?? 0;
-  const alambre = g.alambre ?? 0;
   return {
     componente: "C1",
     accion: "A1",
     descripcion: "Conservación del Recurso Hídrico a través de Medidas de Adaptación al Cambio Climático",
-    indicadores: [
-      mk("Cercos vivos", cerVivos, 12, "km"),
-      mk("Aislamientos (cerco de alambre)", alambre, 12, "km"),
-    ],
+    indicadores: indicadoresDe("C1A1", g),
   };
 }
 
@@ -285,11 +292,7 @@ function getC1A2(g: GlobalIndicadores): MetaComponente {
     componente: "C1",
     accion: "A2",
     descripcion: "Conectividad y reconversión agroforestal",
-    indicadores: [
-      mk("Franjas de conectividad", g.conectividad ?? 0, 15, "km"),
-      mk("Sistemas silvopastoriles", g.silvopastoril ?? 0, 15, "ha"),
-      mk("Sistemas agroforestales", g.agroforestal ?? 0, 15, "ha"),
-    ],
+    indicadores: indicadoresDe("C1A2", g),
   };
 }
 
@@ -298,10 +301,7 @@ function getC2A1(g: GlobalIndicadores): MetaComponente {
     componente: "C2",
     accion: "A1",
     descripcion: "Manejo del Ciclo del Agua y Restauración de Suelos",
-    indicadores: [
-      mk("Cosecha de agua", g.cosecha ?? 0, 79, "obras"),
-      mk("Kit de compostaje", g.compostaje ?? 0, 79, "kits"),
-    ],
+    indicadores: indicadoresDe("C2A1", g),
   };
 }
 
@@ -310,10 +310,7 @@ function getC2A2(g: GlobalIndicadores): MetaComponente {
     componente: "C2",
     accion: "A2",
     descripcion: "Estaciones limnimétricas y obras de captación",
-    indicadores: [
-      mk("Estaciones limnimétricas", g.estaciones ?? 0, 7, "estaciones"),
-      mk("Obras de captación", g.obras_captacion ?? 0, 48, "obras"),
-    ],
+    indicadores: indicadoresDe("C2A2", g),
   };
 }
 
@@ -322,9 +319,7 @@ function getC3(g: GlobalIndicadores): MetaComponente {
     componente: "C3",
     accion: "AU",
     descripcion: "Reconversión Productiva en Áreas Protegidas y Páramos",
-    indicadores: [
-      mk("Predios intervenidos en áreas protegidas", g.predios_c3 ?? 0, 35, "predios"),
-    ],
+    indicadores: indicadoresDe("C3", g),
   };
 }
 

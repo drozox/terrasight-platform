@@ -6,7 +6,7 @@
 // =============================================================================
 
 import Link from "next/link";
-import { ArrowRight, AlertTriangle, MapPin, Building2, Target } from "lucide-react";
+import { ArrowRight, Target } from "lucide-react";
 import { Printer } from "lucide-react";
 import { getMetasConvenio, INDICADORES_META, type IndicadorKey } from "@/lib/repos/metas-convenio";
 import { withFallback } from "@/lib/repos/_helpers";
@@ -249,9 +249,6 @@ function MetasConvenioView({
     })),
   ];
 
-  // Indicadores con alerta (atrasados < 50%)
-  const alertas = filasTabla.filter((f) => f.pct < 50 && f.meta > 0);
-
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -263,6 +260,10 @@ function MetasConvenioView({
             <p className="mt-2 text-on-surface-variant">
               Convenio CAR Cundinamarca – WWF – Fundación Natura. Avance operativo por componente y acción.
             </p>
+            <p className="mt-1 text-[11px] text-on-surface-variant">
+              Datos actualizados al{" "}
+              {new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" })}.
+            </p>
           </div>
           <Link
             href="/metas/convenio/imprimir"
@@ -272,34 +273,6 @@ function MetasConvenioView({
             Imprimir / PDF
           </Link>
         </header>
-
-        {/* Banner de calidad de datos */}
-        <section className="rounded-xl border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex gap-3">
-          <AlertTriangle className="size-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-900 dark:text-amber-200">
-            <strong>Nota metodológica:</strong> las propuestas de tipo punto (Cosecha de agua, Compostaje, Estaciones, Obras)
-            se cuentan por número de registros y se mapean por su geometría (existente para las 692). La cobertura territorial
-            por municipio/vereda se calcula con predios, líneas y polígonos. La meta de estaciones limnimétricas y obras de
-            captación suma instancias de C2A2 y C3.
-            Datos al {new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" })}.
-          </div>
-        </section>
-
-        {/* Banner de alertas automáticas */}
-        {alertas.length > 0 && (
-          <section className="rounded-xl border border-red-500/30 bg-red-50/50 dark:bg-red-950/20 p-4">
-            <div className="flex items-center gap-2 text-red-700 dark:text-red-300 font-semibold mb-1">
-              <AlertTriangle className="size-4" /> {alertas.length} meta{alertas.length === 1 ? "" : "s"} atrasada{alertas.length === 1 ? "" : "s"} (&lt;50% de avance)
-            </div>
-            <ul className="text-sm text-red-900 dark:text-red-200 list-disc list-inside">
-              {alertas.map((a) => (
-                <li key={a.key}>
-                  <strong>{a.ca}</strong> · {a.label} — {a.actual.toFixed(2)} / {a.meta} {a.unidad} ({a.pct}%)
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         {/* Resumen global + gráfico */}
         <section className="rounded-xl border border-outline-variant bg-surface-container p-6">
