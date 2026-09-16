@@ -566,6 +566,92 @@ export async function crearPropuesta(args: {
 }
 
 // -----------------------------------------------------------------------------
+// crearPropuestaConGeometria — AJUSTE 4 (nueva intervención con dibujo)
+//
+// Crea una propuesta + su geometría. SRID 4686 (geografico Colombia).
+// geomGeoJSON:
+//   - tipo=punto   -> { type: "Point", coordinates: [lon, lat] }
+//   - tipo=linea   -> { type: "LineString" | "MultiLineString", coordinates: [[lon,lat],...] }
+//   - tipo=poligono-> { type: "Polygon" | "MultiPolygon", coordinates: [...] }
+//
+// Notas:
+//   - No usamos transacción explícita (postgres-js ejecuta INSERTs secuenciales
+//     en una sola conexión); si falla el segundo insert queda una propuesta
+//     sin hija, lo cual es aceptable en este MVP. T0 puede envolver en
+//     BEGIN/COMMIT después si quiere atomicidad estricta.
+//   - Métricas (longitud/area) se calculan en PostGIS con ::geography para
+//    metros/ha exactos sobre el elipsoide.
+// -----------------------------------------------------------------------------
+export async function crearPropuestaConGeometria(args: {
+  tipo: "punto" | "linea" | "poligono";
+  idAccion: number;
+  idPredio: number | null;
+  idMunicipio: number | null;
+  idVereda: number | null;
+  idPropietario: number | null;
+  actividad: string;
+  descripcion?: string;
+  estado?: "BORRADOR" | "EN_REVISION" | "APROBADA" | "EN_EJECUCION" | "FINALIZADA";
+  fecha?: string;
+  geomGeoJSON: GeoJSON.Geometry;
+}): Promise<{ idPropuesta: number }> {
+  if (!args.geomGeoJSON) throw new Error("Falta la geometría");
+  const geomText = JSON.stringify(args.geomGeoJSON);
+
+  const prop = await sql<{ id_propuesta: number | string }[]>`
+    INSERT INTO sgs_pro_propuesta (
+      tipo, id_accion, id_predio, actividad, observaciones, estado
+    ) VALUES (
+      ${args.tipo}, ${args.idAccion}, ${args.idPredio},
+      ${args.actividad}, ${args.descripcion ?? ""},
+      ${args.estado ?? "BORRADOR"}
+    )
+    RETURNING id_propuesta;
+  `;
+  const idPropuestaRow = prop[0];
+  if (!idPropuestaRow) throw new Error("No devolvió id_propuesta");
+  const idPropuesta = pgInt(idPropuestaRow.id_propuesta);
+
+  if (args.tipo === "punto") {
+    const c = args.geomGeoJSON as GeoJSON.Point;
+    const lon = Number(c.coordinates[0]);
+    const lat = Number(c.coordinates[1]);
+    await sql`
+      INSERT INTO sgs_pro_propuesta_punto (
+        id_propuesta, actividad, este, norte, geom
+      ) VALUES (
+        ${idPropuesta}, ${args.actividad}, ${lon}, ${lat},
+        ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4686)
+      )
+    `;
+  } else if (args.tipo === "linea") {
+    await sql`
+      INSERT INTO sgs_pro_propuesta_linea (
+        id_propuesta, actividad, longitud_m, longitud_km, geom
+      ) VALUES (
+        ${idPropuesta}, ${args.actividad},
+        ST_Length(ST_GeomFromGeoJSON(${geomText})::geography),
+        ST_Length(ST_GeomFromGeoJSON(${geomText})::geography) / 1000.0,
+        ST_SetSRID(ST_GeomFromGeoJSON(${geomText}), 4686)
+      )
+    `;
+  } else if (args.tipo === "poligono") {
+    await sql`
+      INSERT INTO sgs_pro_propuesta_poligono (
+        id_propuesta, actividad, area_ha, area_m2, geom
+      ) VALUES (
+        ${idPropuesta}, ${args.actividad},
+        ST_Area(ST_GeomFromGeoJSON(${geomText})::geography) / 10000.0,
+        ST_Area(ST_GeomFromGeoJSON(${geomText})::geography),
+        ST_SetSRID(ST_GeomFromGeoJSON(${geomText}), 4686)
+      )
+    `;
+  }
+
+  return { idPropuesta };
+}
+
+// -----------------------------------------------------------------------------
 // Alarmas de propuesta — DEEPSEEK-F2.3
 // Reportar problemas/necesidades sobre una intervención (firma pendiente,
 // no autorizada por la comunidad, etc.) y resolverlos.
