@@ -1,18 +1,48 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** DEEPSEEK-F6: logo institucional SIG TERRITORIO (frailejón) — imagen real
- *  servida desde /public/logos/sig-territorio.png.
- *  El tamaño lo define el `className` (h-N w-N); `object-contain` evita
- *  deformar el PNG. NO usar estilos inline de tamaño aquí. */
+/** SIG Territorio — frailejón oficial, recreado en SVG inline.
+ *  Roseta de hojas oliva + 3 flores amarillas. Nítido a cualquier tamaño,
+ *  sin depender de un PNG pesado. */
 export function SigTerritorioLogo({ className }: { className?: string }) {
+  const leaf = "#5E6F2E";
+  const flower = "#F5C400";
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/logos/sig-territorio.png"
-      alt="SIG TERRITORIO"
-      className={cn("shrink-0 object-contain", className)}
-    />
+    <svg
+      viewBox="0 0 100 100"
+      className={cn("shrink-0", className)}
+      role="img"
+      aria-label="SIG Territorio"
+    >
+      {/* Hojas (roseta) */}
+      <g fill={leaf}>
+        {/* centro */}
+        <path d="M50 85 Q43 64 50 42 Q57 64 50 85 Z" />
+        {/* internas */}
+        <path d="M50 85 Q40 70 36 52 Q46 70 50 85 Z" />
+        <path d="M50 85 Q60 70 64 52 Q54 70 50 85 Z" />
+        {/* medias */}
+        <path d="M50 85 Q34 76 22 60 Q36 72 50 85 Z" />
+        <path d="M50 85 Q66 76 78 60 Q64 72 50 85 Z" />
+        {/* bajas */}
+        <path d="M50 85 Q32 84 12 78 Q30 76 50 85 Z" />
+        <path d="M50 85 Q68 84 88 78 Q70 76 50 85 Z" />
+        {/* tronco */}
+        <path d="M46.5 84 L53.5 84 L52.5 98 L47.5 98 Z" />
+      </g>
+      {/* Tallos */}
+      <g stroke={leaf} strokeWidth="3" strokeLinecap="round" fill="none">
+        <path d="M50 43 L50 31" />
+        <path d="M45 45 Q42 38 40 31" />
+        <path d="M55 45 Q58 38 60 31" />
+      </g>
+      {/* Flores */}
+      <g fill={flower}>
+        <circle cx="50" cy="24" r="6.6" />
+        <circle cx="38.5" cy="27" r="6" />
+        <circle cx="61.5" cy="25.5" r="6" />
+      </g>
+    </svg>
   );
 }
 
