@@ -17,9 +17,19 @@ import {
   listVeredas,
   listPropietarios,
 } from "@/lib/repos";
+import { ACCIONES, type AccionCode } from "@/lib/acciones";
 import { NuevaIntervencionForm } from "./nueva-intervencion-form";
 
 export const metadata = { title: "Nueva intervención — SIG TERRITORIO" };
+
+// Label pedido por el cliente para el dropdown COMPONENTE / ACCIÓN.
+const CA_LABEL: Record<AccionCode, string> = {
+  C1A1: "Componente 1 - Acción 1",
+  C1A2: "Componente 1 - Acción 2",
+  C2A1: "Componente 2 - Acción 1",
+  C2A2: "Componente 2 - Acción 2",
+  C3AU: "Componente 3 - Única Acción",
+};
 
 export default async function NuevaIntervencionPage({
   searchParams,
@@ -27,7 +37,7 @@ export default async function NuevaIntervencionPage({
   searchParams: Promise<{ tipo?: string; error?: string }>;
 }) {
   await requireRole(["ADMIN", "GESTOR"] as const);
-  const [acciones, predios, municipios, veredas, propietarios, sp] =
+  const [accionesFull, predios, municipios, veredas, propietarios, sp] =
     await Promise.all([
       listAccionesFull(),
       listPredios(),
@@ -36,6 +46,22 @@ export default async function NuevaIntervencionPage({
       listPropietarios(),
       searchParams,
     ]);
+
+  // ERROR 1: el dropdown muestra SOLO las 5 acciones canónicas (C1A1..C3AU),
+  // no las 7 filas de sgs_com_accion. Mapeamos cada código a la fila real de la
+  // BD por (componente, nombre) — así el id_accion enviado es el correcto.
+  const acciones = ACCIONES.map((def) => {
+    const row = accionesFull.find(
+      (a) => a.nombreComponente === def.componente && def.nombres.includes(a.nombre),
+    );
+    if (!row) return null;
+    return {
+      idAccion: row.idAccion,
+      code: def.code,
+      label: `${def.code} — ${CA_LABEL[def.code]}`,
+    };
+  }).filter((o): o is { idAccion: number; code: AccionCode; label: string } => o !== null);
+
   const initialTipo =
     sp?.tipo === "punto" || sp?.tipo === "linea" || sp?.tipo === "poligono"
       ? sp.tipo
@@ -63,7 +89,7 @@ export default async function NuevaIntervencionPage({
                 Nueva intervención
               </h1>
               <p className="text-body-sm text-on-surface-variant">
-                Selecciona el tipo, dibuja la geometría en el mapa y completa
+                Selecciona el tipo, dibuja o importá la geometría y completa
                 los datos. El cálculo de área (polígonos), longitud (líneas) y
                 coordenadas (puntos) se calcula automáticamente.
               </p>
@@ -71,11 +97,7 @@ export default async function NuevaIntervencionPage({
           </div>
 
           <NuevaIntervencionForm
-            acciones={acciones.map((a) => ({
-              idAccion: a.idAccion,
-              nombre: a.nombre,
-              nombreComponente: a.nombreComponente,
-            }))}
+            acciones={acciones}
             predios={predios.map((p) => ({
               idPredio: p.idPredio,
               nombrePredio: p.nombrePredio,

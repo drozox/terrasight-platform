@@ -15,7 +15,7 @@
 // SRID: 4686 (geografico, lon/lat). El mapa usa el mismo CRS.
 // =============================================================================
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import L from "leaflet";
@@ -38,15 +38,15 @@ import {
   Save,
   Trash2,
   MapPin,
+  Upload,
 } from "lucide-react";
 import {
   type AccionCode,
-  codigoAccionPara,
 } from "@/lib/acciones";
 
 type DrawType = "punto" | "linea" | "poligono";
 
-type AccionMini = { idAccion: number; nombre: string; nombreComponente: string };
+type AccionMini = { idAccion: number; code: AccionCode; label: string };
 type PredioMini = { idPredio: number; nombrePredio: string };
 type MunicipioMini = { idMunicipio: number; nombre: string };
 type VeredaMini = { idVereda: number; nombre: string; idMunicipio: number };
@@ -201,6 +201,35 @@ export function NuevaIntervencionForm({
 
   const [geom, setGeom] = useState<GeoJSON.Geometry | null>(null);
 
+  // ERROR 2: carga de geometría desde archivo (GPS/KML/SHP/GeoJSON).
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
+  async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    setImportMsg(null);
+    setError(null);
+    try {
+      const { parseUpload } = await import("@/lib/geo/parse-upload");
+      const res = await parseUpload(file);
+      setTipo(res.tipo);
+      setGeom(res.geometry);
+      setImportMsg(
+        `Archivo cargado (${res.total} geometría${res.total === 1 ? "" : "s"}). ` +
+          `Se editó la primera: ${res.tipo}.` +
+          (res.note ? ` ${res.note}` : ""),
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   const veredasFiltradas = useMemo(
     () =>
       idMunicipio
@@ -211,9 +240,7 @@ export function NuevaIntervencionForm({
 
   const accionSeleccionada =
     acciones.find((a) => String(a.idAccion) === idAccion) ?? null;
-  const codigoVisible: AccionCode | null = accionSeleccionada
-    ? codigoAccionPara(accionSeleccionada.nombreComponente, accionSeleccionada.nombre)
-    : null;
+  const codigoVisible: AccionCode | null = accionSeleccionada?.code ?? null;
 
   // Snapshot de la geografia actual (para mostrar metricas).
   const resumenMetricas = useMemo(() => {
@@ -279,6 +306,7 @@ export function NuevaIntervencionForm({
     setDescripcion("");
     setObservaciones("");
     setGeom(null);
+    setImportMsg(null);
     setError(null);
   }
 
@@ -363,6 +391,45 @@ export function NuevaIntervencionForm({
         </div>
       </fieldset>
 
+      {/* ERROR 2: importar geometría desde archivo (GPS/KML/Shapefile/GeoJSON). */}
+      <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-label-lg font-bold text-on-surface">
+              Importar geometría (GPS / KML / Shapefile)
+            </p>
+            <p className="text-[11px] text-on-surface-variant">
+              Acepta shapefile (.zip), .kml, .kmz o GeoJSON. WGS84 o CTM12 (EPSG:9377).
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+          >
+            {importing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Upload className="size-4" />
+            )}
+            Importar archivo
+          </Button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".zip,.shp,.kml,.kmz,.geojson,.json"
+          className="hidden"
+          onChange={onImportFile}
+        />
+        {importMsg && (
+          <p className="mt-2 rounded-md bg-primary/5 px-2 py-1 text-[11px] text-primary">
+            {importMsg}
+          </p>
+        )}
+      </div>
+
       {tipo && (
         <MapEditor tipo={tipo} geom={geom} onGeomChange={setGeom} />
       )}
@@ -388,22 +455,19 @@ export function NuevaIntervencionForm({
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="Acción (CxAy)" required>
+        <Field label="Componente / Acción" required>
           <select
             value={idAccion}
             onChange={(e) => setIdAccion(e.target.value)}
             required
             className="w-full rounded-md border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm"
           >
-            <option value="">— Selecciona acción —</option>
-            {acciones.map((a) => {
-              const codigo = codigoAccionPara(a.nombreComponente, a.nombre);
-              return (
-                <option key={a.idAccion} value={a.idAccion}>
-                  {a.nombreComponente}{a.nombre} {codigo ? `(${codigo})` : ""} — {a.nombre}
-                </option>
-              );
-            })}
+            <option value="">— Selecciona componente / acción —</option>
+            {acciones.map((a) => (
+              <option key={a.idAccion} value={a.idAccion}>
+                {a.label}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Estado" required>
@@ -522,8 +586,7 @@ export function NuevaIntervencionForm({
       {codigoVisible && accionSeleccionada && (
         <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-body-sm text-primary">
           Esta intervención se registrará como{" "}
-          <span className="font-bold">{codigoVisible}</span> (
-          {accionSeleccionada.nombreComponente} — Acción {accionSeleccionada.nombre}).
+          <span className="font-bold">{accionSeleccionada.label}</span>.
         </div>
       )}
 

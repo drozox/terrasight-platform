@@ -279,7 +279,7 @@ export async function getIntervencionCompleta(
     geomPromise = sql<LineaRow[]>`
       SELECT longitud_m,
              0::numeric       AS area_ha,
-             ST_AsGeoJSON(geom) AS geojson
+             ST_AsGeoJSON(CASE WHEN ST_SRID(geom) = 4326 THEN geom ELSE ST_Transform(geom, 4326) END) AS geojson
       FROM   sgs_pro_propuesta_linea
       WHERE  id_propuesta = ${id}
       LIMIT  1;
@@ -287,7 +287,7 @@ export async function getIntervencionCompleta(
   } else if (tipo === "poligono") {
     geomPromise = sql<PoligonoRow[]>`
       SELECT area_ha,
-             ST_AsGeoJSON(geom) AS geojson
+             ST_AsGeoJSON(CASE WHEN ST_SRID(geom) = 4326 THEN geom ELSE ST_Transform(geom, 4326) END) AS geojson
       FROM   sgs_pro_propuesta_poligono
       WHERE  id_propuesta = ${id}
       LIMIT  1;

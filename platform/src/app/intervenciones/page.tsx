@@ -235,6 +235,37 @@ export default async function IntervencionesPage({
           </div>
         )}
 
+        {/* ERROR 3: reporte de intervenciones por cada una de las 5 acciones */}
+        <section className="rounded-xl border border-outline-variant bg-surface-container p-4">
+          <h2 className="mb-3 text-label-lg font-bold text-on-surface">
+            Intervenciones por acción
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {(["C1A1", "C1A2", "C2A1", "C2A2", "C3AU"] as const).map((code) => {
+              const n = conteoPorAccion[code] ?? 0;
+              const activo = accion === code;
+              return (
+                <Link
+                  key={code}
+                  href={`/intervenciones?componente=${code.slice(0, 2)}&accion=${code}`}
+                  className={`rounded-lg border p-3 transition-colors ${
+                    activo
+                      ? "border-primary bg-primary/5"
+                      : "border-outline-variant bg-surface-container-lowest hover:border-primary/40"
+                  }`}
+                >
+                  <p className="text-[10px] font-bold uppercase text-on-surface-variant">
+                    {code}
+                  </p>
+                  <p className="mt-0.5 text-xl font-bold text-on-surface">
+                    {formatInt(n)}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
         {/* UX-65: indicador de rango + paginador. Server-rendered,
            la paginación se hace via searchParams. */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-body-sm text-on-surface-variant">
