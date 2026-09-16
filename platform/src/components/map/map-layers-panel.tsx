@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LAYER_DATA_META } from "./map-layer-data-panel";
+import { Swatch, LAYER_SYMBOLOGY } from "./map-legend";
 
 export type MapLayerKey =
   | "municipios"
@@ -145,7 +146,7 @@ export function MapLayersPanel({
       >
         <span className="flex items-center gap-2 text-label-lg font-bold uppercase text-on-surface-variant">
           <Layers className="size-4" />
-          Capas Activas
+          Capas y simbología
         </span>
         <ChevronRight
           className={cn(
@@ -210,6 +211,9 @@ export function MapLayersPanel({
                         disabled={!!badge}
                         className="size-3.5 cursor-pointer rounded border-outline-variant accent-primary"
                       />
+                      {/* M1: la simbología va inline en cada capa (una sola caja,
+                          sin leyenda flotante separada). */}
+                      <Swatch style={LAYER_SYMBOLOGY[key]} />
                       <span className="flex-1 font-medium text-on-surface">
                         {label}
                       </span>

@@ -31,7 +31,6 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { MapLayersPanel, type MapLayerKey } from "./map-layers-panel";
-import { MapLegend } from "./map-legend";
 import { MapTools, type MapToolKey } from "./map-tools";
 import { MapCompass } from "./map-compass";
 import { MapRegionLabels } from "./map-region-labels";
@@ -476,9 +475,6 @@ export default function MapClient({
       {showLayersPanel && (
         <MapLayerDataPanel layer={dataLayer} onClose={() => setDataLayer(null)} />
       )}
-
-      {/* F2: leyenda con la simbología real de las capas activas */}
-      {showLayersPanel && <MapLegend layers={layers} />}
 
       <MapFeaturePanel feature={selectedFeature} onClose={() => setSelectedFeature(null)} />
 

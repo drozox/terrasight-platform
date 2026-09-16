@@ -34,7 +34,7 @@ export const LAYER_SYMBOLOGY: Record<MapLayerKey, LayerStyle> = {
   reservas:            { label: "Reservas forestales",    color: "#558b2f", kind: "polygon" },
 };
 
-function Swatch({ style }: { style: LayerStyle }) {
+export function Swatch({ style }: { style: LayerStyle }) {
   if (style.kind === "point") {
     return (
       <span
