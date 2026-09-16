@@ -282,7 +282,7 @@ export default async function PrediosPage({
                 </tr>
               </thead>
               <tbody>
-                {sorted.length === 0 && all.length > 0 && (
+                {sorted.length === 0 && kpis.total > 0 && (
                   <tr>
                     <td colSpan={7} className="p-0">
                       <EmptyState
@@ -295,7 +295,7 @@ export default async function PrediosPage({
                     </td>
                   </tr>
                 )}
-                {sorted.length === 0 && all.length === 0 && (
+                {sorted.length === 0 && kpis.total === 0 && (
                   <tr>
                     <td colSpan={7} className="p-0">
                       <EmptyState
