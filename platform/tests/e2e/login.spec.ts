@@ -33,8 +33,10 @@ test.describe("Login público (HU-CA-02)", () => {
     ).toBeAttached();
 
     // Inputs principales: sí o sí tienen que ser visibles e interactuables.
+    // `exact: true` evita el choque con el botón "Mostrar contraseña" (su
+    // accessible name contiene "Contraseña").
     await expect(page.getByLabel("Correo electrónico")).toBeVisible();
-    await expect(page.getByLabel("Contraseña")).toBeVisible();
+    await expect(page.getByLabel("Contraseña", { exact: true })).toBeVisible();
 
     // Botón submit: visible y arrancando deshabilitado (email+password vacíos).
     const submit = page.getByRole("button", { name: /Ingresar/ });
@@ -49,7 +51,7 @@ test.describe("Login público (HU-CA-02)", () => {
     await page.waitForLoadState("networkidle");
 
     const emailInput = page.getByLabel("Correo electrónico");
-    const passwordInput = page.getByLabel("Contraseña");
+    const passwordInput = page.getByLabel("Contraseña", { exact: true });
     await emailInput.fill("test@ejemplo.com");
     await passwordInput.fill("unaPasswordCualquiera");
 
