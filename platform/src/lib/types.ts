@@ -46,6 +46,8 @@ export type IntervencionReciente = {
   municipio: string;
   componente: string;
   accion: string;
+  /** Código canónico completo del componente+acción (C1A1 … C3AU). */
+  componenteAccion?: string | null;
   idAccion?: number | null;
   hectareas: number | null;
   longitud: number | null;

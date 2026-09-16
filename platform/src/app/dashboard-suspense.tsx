@@ -32,6 +32,7 @@ import {
   getPropuestasPorComponente,
 } from "@/lib/repos";
 import type { AvanceComponente, ComponenteKey, ResumenComponente } from "@/lib/repos";
+import type { AccionCode } from "@/lib/acciones";
 import type {
   DashboardKpis,
   ComponenteTotal,
@@ -185,6 +186,7 @@ async function RightPanelSection({
 
 export function DashboardContent({
   componenteFiltro,
+  accionFiltro,
   queryTexto,
   kpis,
   componentes,
@@ -196,6 +198,7 @@ export function DashboardContent({
   resumen,
 }: {
   componenteFiltro: string | null;
+  accionFiltro: AccionCode | null;
   queryTexto: string;
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
@@ -210,7 +213,11 @@ export function DashboardContent({
     <div className="flex h-full flex-1 flex-col overflow-hidden">
       {/* ComponentRibbon — siempre visible, no hace queries */}
       <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-2">
-        <ComponentRibbon active={componenteFiltro} avances={avances} />
+        <ComponentRibbon
+          active={componenteFiltro}
+          avances={avances}
+          activeAccion={accionFiltro}
+        />
       </div>
 
       {/* Contenido principal */}

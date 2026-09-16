@@ -10,6 +10,12 @@ import type { IntervencionReciente } from "@/lib/types";
 import { IconLeaf, IconDrop } from "@/components/icons";
 import { ArrowRight } from "lucide-react";
 
+const COMP_TINT: Record<string, string> = {
+  C1: "bg-primary/10 text-primary",
+  C2: "bg-secondary/10 text-secondary",
+  C3: "bg-tertiary/10 text-tertiary",
+};
+
 export function IntervencionesTable({
   rows,
   title = "Monitoreo de Intervenciones",
@@ -39,6 +45,7 @@ export function IntervencionesTable({
           <thead>
             <tr className="bg-surface-container-low text-[11px] font-bold uppercase text-on-surface-variant">
               <th className="px-4 py-3">Intervención</th>
+              <th className="px-4 py-3">Componente</th>
               <th className="px-4 py-3">Predio</th>
               <th className="px-4 py-3">Municipio</th>
               <th className="px-4 py-3">Estado</th>
@@ -49,7 +56,7 @@ export function IntervencionesTable({
             {data.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-8 text-center text-on-surface-variant"
                 >
                   Sin intervenciones registradas aún.
@@ -69,6 +76,15 @@ export function IntervencionesTable({
                     <IconLeaf className="size-4 text-primary" />
                   )}
                   <span className="capitalize">{r.actividad || r.tipo}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                      COMP_TINT[(r.componenteAccion ?? r.componente)?.slice(0, 2)] ?? ""
+                    }`}
+                  >
+                    {r.componenteAccion ?? r.componente}
+                  </span>
                 </td>
                 <td className="px-4 py-3 font-mono text-on-surface">
                   {r.codigoPredio}

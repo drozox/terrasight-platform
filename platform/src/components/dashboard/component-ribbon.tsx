@@ -7,6 +7,7 @@ import { ArrowRight, Layers } from "lucide-react";
 import { IconLeaf, IconDrop, IconForest, IconUpload } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { AvanceComponente, ComponenteKey } from "@/lib/repos";
+import { accionesDeComponente, normalizarAccion, type AccionCode } from "@/lib/acciones";
 
 type Key = ComponenteKey | "TODOS" | "IMPORT";
 
@@ -77,9 +78,11 @@ const ORDER: Key[] = ["TODOS", "C1", "C2", "C3", "IMPORT"];
 export function ComponentRibbon({
   active,
   avances,
+  activeAccion,
 }: {
   active?: string | null;
   avances?: Record<ComponenteKey, AvanceComponente>;
+  activeAccion?: string | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,8 +98,23 @@ export function ComponentRibbon({
     router.replace(qs ? `/?${qs}` : "/", { scroll: false });
   };
 
+  const acciones =
+    active && active !== "TODOS" && active !== "IMPORT"
+      ? accionesDeComponente(active)
+      : [];
+  const activaCode = normalizarAccion(activeAccion ?? null);
+
+  const onSelectAccion = (code: AccionCode | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!code || activaCode === code) params.delete("accion");
+    else params.set("accion", code);
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+  };
+
   return (
-    <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-5">
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-5">
       {ORDER.map((k) => {
         const c = CONFIG[k];
         const isActive = k === "TODOS" ? !active || active === "TODOS" : active === k;
@@ -190,6 +208,44 @@ export function ComponentRibbon({
           </button>
         );
       })}
+      </div>
+
+      {acciones.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 pl-1">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
+            Acción:
+          </span>
+          <button
+            type="button"
+            onClick={() => onSelectAccion(null)}
+            aria-pressed={!activaCode}
+            className={cn(
+              "rounded-full border px-3 py-0.5 text-[11px] font-bold transition-colors",
+              !activaCode
+                ? "border-primary bg-primary text-on-primary"
+                : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant",
+            )}
+          >
+            Todas
+          </button>
+          {acciones.map((a) => (
+            <button
+              key={a.code}
+              type="button"
+              onClick={() => onSelectAccion(a.code)}
+              aria-pressed={activaCode === a.code}
+              className={cn(
+                "rounded-full border px-3 py-0.5 text-[11px] font-bold transition-colors",
+                activaCode === a.code
+                  ? "border-primary bg-primary text-on-primary"
+                  : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant",
+              )}
+            >
+              {a.code}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

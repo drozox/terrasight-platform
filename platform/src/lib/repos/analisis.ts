@@ -16,6 +16,7 @@
 import { sql, pgInt, pgNum, pgText, pgDate } from "../db";
 import { withFallback } from "./_helpers";
 import { cached } from "./_cache";
+import { normalizarAccion, accionDef, codigoDePropuesta } from "../acciones";
 import {
   DEMO_DASHBOARD_KPIS,
   DEMO_COMPONENTES,
@@ -129,11 +130,17 @@ export const getDashboardKpis = cached(getDashboardKpisImpl, {
 // KPIs filtrados por componente (DEEPSEEK-75) — para que el ribbon del dashboard
 // haga reaccionar las métricas, no solo la tabla/mapa.
 // =============================================================================
-export async function getDashboardKpisComponente(componente: string): Promise<DashboardKpis> {
-  const comp = /^C[123]$/.test(componente) ? componente : null;
+export async function getDashboardKpisComponente(
+  componente: string,
+  accion?: string | null,
+): Promise<DashboardKpis> {
+  const code = accion ? normalizarAccion(accion) : null;
+  const def = code ? accionDef(code) : null;
+  const comp = def ? def.componente : /^C[123]$/.test(componente) ? componente : null;
   if (!comp) return getDashboardKpis();
+  const accionSql = def ? sql`AND a.nombre IN ${sql(def.acciones)}` : sql``;
 
-  return withFallback(`dashboardKpis:${comp}`, async () => {
+  return withFallback(`dashboardKpis:${comp}:${accion ?? "ALL"}`, async () => {
     const [row] = await sql<
       {
         predios: number | string;
@@ -154,7 +161,7 @@ export async function getDashboardKpisComponente(componente: string): Promise<Da
           FROM sgs_pro_propuesta pp
           JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
           JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-          WHERE c.nombre = ${comp}
+          WHERE c.nombre = ${comp} ${accionSql}
         ),
         p AS (
           SELECT
@@ -166,7 +173,7 @@ export async function getDashboardKpisComponente(componente: string): Promise<Da
             FROM sgs_pro_propuesta pp
             JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
             JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-            WHERE pp.id_predio = p.id_predio AND c.nombre = ${comp}
+            WHERE pp.id_predio = p.id_predio AND c.nombre = ${comp} ${accionSql}
           )
         ),
         ppoly AS (
@@ -175,7 +182,7 @@ export async function getDashboardKpisComponente(componente: string): Promise<Da
           JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pol.id_propuesta
           JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
           JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
-          WHERE c.nombre = ${comp}
+          WHERE c.nombre = ${comp} ${accionSql}
         )
       SELECT
         p.predios, pr.propuestas, pr.propuestas_ejecucion,
@@ -285,9 +292,14 @@ const getIntervencionesRecientesImpl = async (
 ): Promise<IntervencionReciente[]> => {
   // Filtros WHERE encadenados (componente y/o accion). DEEPSEEK-F2: el user
   // pidió filtrar también por acción (A1/A2/U) además del componente.
+  // Ahora `accion` puede ser un CÓDIGO canónico (C1A1..C3AU) o un nombre (A1/A2/U).
   const conditions: ReturnType<typeof sql>[] = [];
-  if (componente) conditions.push(sql`c.nombre = ${componente}`);
-  if (accion) conditions.push(sql`a.nombre = ${accion}`);
+  const code = accion ? normalizarAccion(accion) : null;
+  const def = code ? accionDef(code) : null;
+  const compEf = def ? def.componente : componente;
+  if (compEf) conditions.push(sql`c.nombre = ${compEf}`);
+  if (def) conditions.push(sql`a.nombre IN ${sql(def.acciones)}`);
+  else if (accion) conditions.push(sql`a.nombre = ${accion}`);
   const whereClause =
     conditions.length === 0
       ? sql``
@@ -372,6 +384,7 @@ const getIntervencionesRecientesImpl = async (
         municipio: pgText(r.nombre_municipio),
         componente: pgText(r.nombre_componente),
         accion: pgText(r.nombre_accion),
+        componenteAccion: codigoDePropuesta(pgText(r.nombre_componente), pgText(r.nombre_accion)),
         idAccion: pgInt(r.id_accion),
         hectareas: r.hectareas !== null ? pgNum(r.hectareas) : null,
         longitud: r.longitud !== null ? pgNum(r.longitud) : null,
