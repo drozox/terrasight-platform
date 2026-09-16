@@ -100,6 +100,19 @@ jobs:
         run: bash scripts/ci-migrate.sh
 
       # -----------------------------------------------------------------------------
+      # Admin de E2E. Los specs autenticados (api-data, geo-layers, intervenciones,
+      # metas, predio-detalle, predios, reportes, smoke-routes, ux-audit) hacen
+      # login real con admin@car.gov.co y password E2E_ADMIN_PASSWORD ?? "Admin123!".
+      # Sin usuario sembrado, el login falla. Se crea DESPUES de las migraciones
+      # (necesita sgs_adm_rol de 03-auth-schema.sql).
+      # -----------------------------------------------------------------------------
+      - name: Seed E2E admin
+        working-directory: platform
+        env:
+          E2E_ADMIN_PASSWORD: "Admin123!"
+        run: node scripts/create-admin.mjs --email admin@car.gov.co --nombre "CI Admin" --password "$E2E_ADMIN_PASSWORD" --rol ADMIN
+
+      # -----------------------------------------------------------------------------
       # Calidad de código
       # -----------------------------------------------------------------------------
       - name: Typecheck
@@ -139,6 +152,9 @@ jobs:
 
       - name: Run Playwright e2e
         working-directory: platform
+        env:
+          AUTH_SECRET: ci-build-only-dummy-secret-not-for-prod-do-not-use
+          E2E_ADMIN_PASSWORD: "Admin123!"
         run: npm run test:e2e
 
       - name: Upload Playwright report on failure
