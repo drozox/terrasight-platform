@@ -1,14 +1,14 @@
 "use client";
 
 // =============================================================================
-// MapComponenteFocusLayer (DEEPSEEK-76)
+// MapComponenteFocusLayer (DEEPSEEK-76) + T1 filtro-accion
 //
-// Cuando el usuario elige un componente (C1/C2/C3) en el ribbon del dashboard,
-// este layer:
-//   1. pide la "huella" del componente (punto + polígono + línea) a
-//      /api/geo?layer=componente&componente=Cx
+// Cuando el usuario elige un componente (C1/C2/C3) — y opcionalmente una
+// acción (C1A1..C3AU) — en el ribbon del dashboard, este layer:
+//   1. pide la "huella" del componente/acción (punto + polígono + línea) a
+//      /api/geo?layer=componente&componente=Cx[&accion=CxAy]
 //   2. la pinta resaltada por encima de las capas base
-//   3. hace map.fitBounds → pan & zoom automático a la extensión del componente
+//   3. hace map.fitBounds → pan & zoom automático a la extensión seleccionada
 //
 // Sin componente activo no renderiza nada.
 // =============================================================================
@@ -16,16 +16,18 @@
 import * as React from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
+import type { AccionCode } from "@/lib/acciones";
 
 interface Props {
   componente: string | null;
+  accion?: AccionCode | null;
   onClick?: (feature: GeoJSON.Feature) => void;
 }
 
 const FOCUS_COLOR = "#d9480f";
 const FOCUS_FILL = "#ff922b";
 
-export function MapComponenteFocusLayer({ componente, onClick }: Props) {
+export function MapComponenteFocusLayer({ componente, accion, onClick }: Props) {
   const map = useMap();
   const layerRef = React.useRef<L.GeoJSON | null>(null);
 
@@ -37,10 +39,10 @@ export function MapComponenteFocusLayer({ componente, onClick }: Props) {
 
     (async () => {
       try {
-        const res = await fetch(
-          `/api/geo?layer=componente&componente=${encodeURIComponent(componente)}`,
-          { signal: ctrl.signal },
-        );
+        const url =
+          `/api/geo?layer=componente&componente=${encodeURIComponent(componente)}` +
+          (accion ? `&accion=${encodeURIComponent(accion)}` : "");
+        const res = await fetch(url, { signal: ctrl.signal });
         if (!res.ok) return;
         const data = (await res.json()) as GeoJSON.FeatureCollection;
         if (cancelled) return;
@@ -91,7 +93,7 @@ export function MapComponenteFocusLayer({ componente, onClick }: Props) {
         layerRef.current = null;
       }
     };
-  }, [componente, map, onClick]);
+  }, [componente, accion, map, onClick]);
 
   return null;
 }

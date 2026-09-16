@@ -56,19 +56,28 @@ export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams;
   const layer = sp.get("layer");
 
-  // Capa dinámica: huella de un componente (?layer=componente&componente=C1).
-  // Devuelve punto + polígono + línea de todas las propuestas del componente
-  // para que el visor haga fitBounds y lo resalte.
+  // Capa dinámica: huella de un componente (?layer=componente&componente=C1
+  // [&accion=CxAy]). Devuelve punto + polígono + línea de las propuestas del
+  // componente (o de la acción concreta si llega `accion`) para que el visor
+  // haga fitBounds y lo resalte.
   if (layer === "componente") {
     const componente = sp.get("componente");
+    const accionRaw = sp.get("accion");
     if (!componente) {
       return NextResponse.json(
         { error: "Falta el parámetro 'componente' (C1, C2 o C3)." },
         { status: 400 },
       );
     }
+    // T1 filtro-accion: accion es opcional; si llega, validar contra el
+    // catalogo canonico (C1A1..C3AU). Si no encaja, se ignora silenciosa-
+    // mente para no romper el visor con URLs mal formadas.
+    const accionValida: import("@/lib/acciones").AccionCode | null =
+      accionRaw && /^(C1A1|C1A2|C2A1|C2A2|C3AU)$/i.test(accionRaw)
+        ? (accionRaw.toUpperCase() as import("@/lib/acciones").AccionCode)
+        : null;
     try {
-      const data = await getComponenteFootprintGeoJSON(componente);
+      const data = await getComponenteFootprintGeoJSON(componente, accionValida);
       return NextResponse.json(data, {
         headers: { "Cache-Control": "public, max-age=120" },
       });
