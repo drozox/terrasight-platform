@@ -343,6 +343,8 @@ const getIntervencionesRecientesImpl = async (
         avance: number | string | null;
         estado: string;
         fecha: Date | string | null;
+        alarma_prioridad: string | null;
+        alarma_count: number | string | null;
       }[]
     >`
       SELECT
@@ -360,7 +362,10 @@ const getIntervencionesRecientesImpl = async (
         pol.area_ha                                                  AS hectareas,
         pl.longitud_m                                                AS longitud,
         av.avance_pct                                                AS avance,
-        pp.estado                                                    AS estado
+        pp.estado                                                    AS estado,
+        -- AJUSTE 5: prioridad maxima + count de alarmas activas.
+        al.alarma_prioridad                                          AS alarma_prioridad,
+        al.alarma_count                                              AS alarma_count
       FROM sgs_pro_propuesta pp
       JOIN sgs_com_accion a    ON a.id_accion  = pp.id_accion
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
@@ -381,6 +386,18 @@ const getIntervencionesRecientesImpl = async (
         ORDER  BY av2.created_at DESC, av2.id_avance DESC
         LIMIT  1
       ) av ON true
+      LEFT JOIN LATERAL (
+        -- AJUSTE 5: prioriza ALTA > MEDIA > BAJA entre alarmas activas.
+        SELECT CASE
+                 WHEN COUNT(*) FILTER (WHERE prioridad = 'ALTA')  > 0 THEN 'ALTA'
+                 WHEN COUNT(*) FILTER (WHERE prioridad = 'MEDIA') > 0 THEN 'MEDIA'
+                 WHEN COUNT(*) > 0 THEN 'BAJA'
+               END AS alarma_prioridad,
+               COUNT(*)::int AS alarma_count
+        FROM   sgs_pro_propuesta_alarma
+        WHERE  id_propuesta = pp.id_propuesta
+          AND  resuelta = FALSE
+      ) al ON true
       ${whereClause}
       ORDER BY pp.id_propuesta ASC
       LIMIT ${limit};
@@ -395,6 +412,14 @@ const getIntervencionesRecientesImpl = async (
         dbEstado === "BORRADOR" || dbEstado === "FINALIZADA" ? dbEstado : "EN_EJECUCION";
       // T1 filtro-accion: codigo visible (C1A1..C3AU). Para C3 + U|A1 -> C3AU.
       const codigo = codigoAccionPara(r.nombre_componente, r.nombre_accion);
+      // AJUSTE 5: alarmaPrioridad/alarmaCount. Si count=0, prioridad=null.
+      const alarmaPrioridad =
+        r.alarma_prioridad === "ALTA" ||
+        r.alarma_prioridad === "MEDIA" ||
+        r.alarma_prioridad === "BAJA"
+          ? r.alarma_prioridad
+          : null;
+      const alarmaCount = r.alarma_count == null ? 0 : pgInt(r.alarma_count);
       return {
         id: pgInt(r.id_propuesta),
         tipo: pgText(r.tipo),
@@ -410,6 +435,8 @@ const getIntervencionesRecientesImpl = async (
         longitud: r.longitud !== null ? pgNum(r.longitud) : null,
         avance,
         estado,
+        alarmaPrioridad,
+        alarmaCount,
       };
     });
   }, (() => {

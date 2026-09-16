@@ -66,6 +66,14 @@ export type IntervencionReciente = {
   avance: number | null;
   /** Estado de la propuesta — usa el vocabulario del workflow (6 valores). */
   estado: EstadoIntervencion;
+  /**
+   * AJUSTE 5: prioridad maxima de alarmas activas ("ALTA" | "MEDIA" | "BAJA"
+   * | null). `null` significa que la propuesta no tiene alarmas activas. La
+   * UI muestra un icono de alerta segun el valor.
+   */
+  alarmaPrioridad?: "ALTA" | "MEDIA" | "BAJA" | null;
+  /** AJUSTE 5: cantidad de alarmas activas (badge). */
+  alarmaCount?: number;
 }
 
 export type Alerta = {

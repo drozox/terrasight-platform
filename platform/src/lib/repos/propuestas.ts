@@ -13,6 +13,7 @@
 
 import { sql, pgInt, pgNum, pgText } from "../db";
 import { withFallback } from "./_helpers";
+import { cached } from "./_cache";
 import type {
   PropuestaSimple,
   EstadoIntervencion,
@@ -660,7 +661,7 @@ export async function crearPropuestaConGeometria(args: {
 export type AlarmaPropuesta = {
   idAlarma: number;
   idPropuesta: number;
-  tipo: "firma_pendiente" | "no_autorizada_comunidad" | "problema_tecnico" | "requiere_visita" | "otro";
+  tipo: "firma_pendiente" | "no_autorizada_comunidad" | "problema_tecnico" | "requiere_visita" | "otro" | "permiso_ambiental" | "conflicto_linderos" | "acceso_bloqueado" | "materiales_insuficientes" | "problema_climatico";
   descripcion: string;
   creadoPor: number | null;
   creadoPorEmail: string | null;
@@ -670,6 +671,18 @@ export type AlarmaPropuesta = {
   resueltaPorEmail: string | null;
   resueltaEn: Date | null;
   notaResolucion: string;
+  /** AJUSTE 5: prioridad y datos de asignacion / seguimiento. */
+  prioridad: "ALTA" | "MEDIA" | "BAJA";
+  responsableId: number | null;
+  responsableEmail: string | null;
+  fechaEstimada: string | null; // YYYY-MM-DD o null
+  evidenciaUrl: string;
+};
+
+/** Tipo auxiliar para dropdowns de responsable (sgs_adm_usuario). */
+export type UsuarioMini = {
+  idUsuario: number;
+  email: string;
 };
 
 export async function listAlarmasByPropuesta(
@@ -688,6 +701,11 @@ export async function listAlarmasByPropuesta(
     resuelta_por_email: string | null;
     resuelta_en: Date | string | null;
     nota_resolucion: string;
+    prioridad: string;
+    responsable_id: number | string | null;
+    responsable_email: string | null;
+    fecha_estimada: string | null;
+    evidencia_url: string;
   }[]>`
     SELECT a.id_alarma,
            a.id_propuesta,
@@ -700,12 +718,20 @@ export async function listAlarmasByPropuesta(
            a.resuelta_por,
            ur.email AS resuelta_por_email,
            a.resuelta_en,
-           a.nota_resolucion
+           a.nota_resolucion,
+           a.prioridad,
+           a.responsable_id,
+           resp.email AS responsable_email,
+           to_char(a.fecha_estimada, 'YYYY-MM-DD') AS fecha_estimada,
+           a.evidencia_url
     FROM   sgs_pro_propuesta_alarma a
-    LEFT JOIN sgs_adm_usuario uc ON uc.id_usuario = a.creado_por
-    LEFT JOIN sgs_adm_usuario ur ON ur.id_usuario = a.resuelta_por
+    LEFT JOIN sgs_adm_usuario uc   ON uc.id_usuario   = a.creado_por
+    LEFT JOIN sgs_adm_usuario ur   ON ur.id_usuario   = a.resuelta_por
+    LEFT JOIN sgs_adm_usuario resp ON resp.id_usuario = a.responsable_id
     WHERE  a.id_propuesta = ${idPropuesta}
-    ORDER  BY a.resuelta ASC, a.creado_en DESC, a.id_alarma DESC;
+    ORDER  BY a.resuelta ASC,
+             CASE a.prioridad WHEN 'ALTA' THEN 0 WHEN 'MEDIA' THEN 1 ELSE 2 END,
+             a.creado_en DESC, a.id_alarma DESC;
   `;
   return rows.map((r) => ({
     idAlarma: pgInt(r.id_alarma),
@@ -720,6 +746,11 @@ export async function listAlarmasByPropuesta(
     resueltaPorEmail: r.resuelta_por_email,
     resueltaEn: r.resuelta_en == null ? null : new Date(pgText(r.resuelta_en)),
     notaResolucion: pgText(r.nota_resolucion),
+    prioridad: pgText(r.prioridad) as AlarmaPropuesta["prioridad"],
+    responsableId: r.responsable_id == null ? null : pgInt(r.responsable_id),
+    responsableEmail: r.responsable_email,
+    fechaEstimada: r.fecha_estimada,
+    evidenciaUrl: pgText(r.evidencia_url),
   }));
 }
 
@@ -728,10 +759,25 @@ export async function crearAlarma(args: {
   tipo: AlarmaPropuesta["tipo"];
   descripcion: string;
   creadoPor: number | null;
+  prioridad?: "ALTA" | "MEDIA" | "BAJA";
+  responsableId?: number | null;
+  fechaEstimada?: string | null;
+  evidenciaUrl?: string;
 }): Promise<{ idAlarma: number }> {
   const rows = await sql<{ id_alarma: number | string }[]>`
-    INSERT INTO sgs_pro_propuesta_alarma (id_propuesta, tipo, descripcion, creado_por)
-    VALUES (${args.idPropuesta}, ${args.tipo}, ${args.descripcion}, ${args.creadoPor})
+    INSERT INTO sgs_pro_propuesta_alarma (
+      id_propuesta, tipo, descripcion, creado_por,
+      prioridad, responsable_id, fecha_estimada, evidencia_url
+    ) VALUES (
+      ${args.idPropuesta},
+      ${args.tipo},
+      ${args.descripcion},
+      ${args.creadoPor},
+      ${args.prioridad ?? "MEDIA"},
+      ${args.responsableId ?? null},
+      ${args.fechaEstimada ?? null},
+      ${args.evidenciaUrl ?? ""}
+    )
     RETURNING id_alarma;
   `;
   const r = rows[0];
@@ -753,6 +799,27 @@ export async function resolverAlarma(args: {
     WHERE  id_alarma = ${args.idAlarma};
   `;
 }
+
+/**
+ * Lista de usuarios activos para el dropdown de responsable de una alarma.
+ * Cacheado con TTL corto (5 min) — son pocos usuarios y los cambios son raros.
+ */
+const listUsuariosMiniImpl = async (): Promise<UsuarioMini[]> => {
+  const rows = await sql<{ id_usuario: number | string; email: string }[]>`
+    SELECT id_usuario, email
+    FROM   sgs_adm_usuario
+    WHERE  activo = TRUE
+    ORDER  BY email;
+  `;
+  return rows.map((r) => ({
+    idUsuario: pgInt(r.id_usuario),
+    email: pgText(r.email),
+  }));
+};
+export const listUsuariosMini = cached(listUsuariosMiniImpl, {
+  tags: ["usuarios:lookup"],
+  ttl: 300,
+});
 
 // =============================================================================
 // getIntervencionContexto — AJUSTE 3

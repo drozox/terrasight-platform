@@ -3,7 +3,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SortableHeader } from "@/components/ui/sortable-header";
-import { Wrench, ArrowRight, Inbox, Plus } from "lucide-react";
+import {
+  Wrench,
+  ArrowRight,
+  Inbox,
+  Plus,
+  AlertOctagon,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import Link from "next/link";
 import {
   getIntervencionesRecientes,
@@ -282,6 +291,9 @@ export default async function IntervencionesPage({
                   <th className="px-4 py-3">
                     <SortableHeader field="componente" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Componente</SortableHeader>
                   </th>
+                  <th className="px-4 py-3" title="AJUSTE 5: alarmas activas">
+                    Alarmas
+                  </th>
                   <th className="px-4 py-3">
                     <SortableHeader field="estado" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Estado</SortableHeader>
                   </th>
@@ -296,7 +308,7 @@ export default async function IntervencionesPage({
                    Antes <td colSpan> con texto plano. */}
                 {intervenciones.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-0">
+                    <td colSpan={9} className="p-0">
                       <EmptyState
                         icon={Inbox}
                         eyebrow={componente ?? "Convenio CAR · WWF · Natura"}
@@ -334,6 +346,35 @@ export default async function IntervencionesPage({
                         </Badge>
                       ) : (
                         "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {/* AJUSTE 5: icono de prioridad + count badge */}
+                      {i.alarmaPrioridad === "ALTA" ? (
+                        <span className="inline-flex items-center gap-1 text-error" title="Alarma de prioridad ALTA">
+                          <AlertOctagon className="size-4" />
+                          {i.alarmaCount && i.alarmaCount > 1 ? (
+                            <span className="rounded-full bg-error px-1.5 text-[10px] font-bold text-on-error">{i.alarmaCount}</span>
+                          ) : null}
+                        </span>
+                      ) : i.alarmaPrioridad === "MEDIA" ? (
+                        <span className="inline-flex items-center gap-1 text-warning" title="Alarma de prioridad MEDIA">
+                          <AlertTriangle className="size-4" />
+                          {i.alarmaCount && i.alarmaCount > 1 ? (
+                            <span className="rounded-full bg-warning px-1.5 text-[10px] font-bold text-on-warning">{i.alarmaCount}</span>
+                          ) : null}
+                        </span>
+                      ) : i.alarmaPrioridad === "BAJA" ? (
+                        <span className="inline-flex items-center gap-1 text-primary" title="Alarma de prioridad BAJA">
+                          <AlertCircle className="size-4" />
+                          {i.alarmaCount && i.alarmaCount > 1 ? (
+                            <span className="rounded-full bg-primary px-1.5 text-[10px] font-bold text-on-primary">{i.alarmaCount}</span>
+                          ) : null}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-on-surface-variant/40" title="Sin alarmas activas">
+                          <CheckCircle2 className="size-4" />
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3">

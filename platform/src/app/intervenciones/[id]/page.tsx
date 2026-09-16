@@ -15,6 +15,7 @@ import { getHistorial, type EstadoPropuesta } from "@/lib/repos/workflow";
 import {
   listAlarmasByPropuesta,
   getIntervencionContexto,
+  listUsuariosMini,
 } from "@/lib/repos/propuestas";
 import { WorkflowPanel } from "@/components/workflow/workflow-panel";
 import { AlarmasPanel } from "./alarmas-panel";
@@ -41,8 +42,11 @@ export default async function IntervencionDetailPage({
 
   // Sprint 20: cargar historial del workflow + estado actual
   const historial = await getHistorial(idNum);
-  // DEPSEEK-F2.3: cargar alarmas (problemas/necesidades reportadas)
-  const alarmasInicial = await listAlarmasByPropuesta(idNum);
+  // DEPSEEK-F2.3 + AJUSTE 5: cargar alarmas + lista de usuarios para responsable
+  const [alarmasInicial, usuarios] = await Promise.all([
+    listAlarmasByPropuesta(idNum),
+    listUsuariosMini(),
+  ]);
 
   // Permiso: ADMIN o GESTOR pueden editar. ANALISTA queda read-only.
   const canEdit = user.rol === "ADMIN" || user.rol === "GESTOR";
@@ -116,6 +120,7 @@ export default async function IntervencionDetailPage({
             idPropuesta={idNum}
             idUsuario={user.idUsuario ?? null}
             alarmasInicial={alarmasInicial}
+            usuarios={usuarios}
             canEdit={canEdit}
           />
         </Card>
