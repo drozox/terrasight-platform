@@ -1,6 +1,6 @@
 import { sql } from "../db";
 import { unstable_cache } from "next/cache";
-import { normalizarAccion, accionDef } from "../acciones";
+import { normalizarAccion, accionDef, type AccionCode } from "../acciones";
 
 // =============================================================================
 // GeoJSON helpers — convierte cada tabla geografía a FeatureCollection
@@ -238,15 +238,17 @@ export const getPropuestasPoligonoGeoJSON = unstable_cache(
 // Huella de un componente (DEEPSEEK-76) — punto + polígono + línea de TODAS las
 // propuestas del componente. Se usa para el "zoom a componente" del mapa: el
 // visor hace fitBounds sobre esta capa y la resalta encima de las capas base.
+// T1 filtro-accion: acepta también `accion` (código CxAy) para filtrar la huella
+// a una acción concreta (C3AU mapea a IN ('U','A1')).
 // No se cachea: es una consulta acotada (subconjunto) y cambia con cada filtro.
 // =============================================================================
 export async function getComponenteFootprintGeoJSON(
-  componente: string,
-  accion?: string | null,
+  componente: string | null,
+  accion: AccionCode | null = null,
 ): Promise<FeatureCollection> {
   const code = accion ? normalizarAccion(accion) : null;
   const def = code ? accionDef(code) : null;
-  const comp = def ? def.componente : /^C[123]$/.test(componente) ? componente : null;
+  const comp = def ? def.componente : /^C[123]$/.test(componente ?? "") ? componente : null;
   if (!comp) return { type: "FeatureCollection", features: [] };
   const accionSql = def ? sql`AND a.nombre IN ${sql(def.acciones)}` : sql``;
 

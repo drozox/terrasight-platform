@@ -21,6 +21,7 @@ import { AlertasMetas } from "@/components/dashboard/alertas-metas";
 import { LeafletMap } from "@/components/map/leaflet-map";
 import { MapSearchBar } from "@/components/map/map-search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { AccionCode } from "@/lib/acciones";
 import {
   getIntervencionesRecientes,
   getPrediosMini,
@@ -31,7 +32,6 @@ import {
   getPropuestasPorComponente,
 } from "@/lib/repos";
 import type { AvanceComponente, ComponenteKey, ResumenComponente } from "@/lib/repos";
-import type { AccionCode } from "@/lib/acciones";
 import type {
   DashboardKpis,
   ComponenteTotal,
@@ -70,19 +70,19 @@ const RightPanel = dynamic(
 /** Map + search overlay + health pill. Carga predios, quebradas y geojson. */
 async function MapSection({
   componenteFiltro,
-  accion,
+  accionFiltro,
   queryTexto,
   dbHealth,
 }: {
   componenteFiltro: string | null;
-  accion: AccionCode | null;
+  accionFiltro: AccionCode | null;
   queryTexto: string;
   dbHealth: { ok: boolean; latencyMs: number; server?: string };
 }) {
   const [predios, quebradas, geojson] = await Promise.all([
-    getPrediosMini(componenteFiltro),
+    getPrediosMini(componenteFiltro, accionFiltro),
     getQuebradasMini(),
-    getPrediosGeoJSON(componenteFiltro),
+    getPrediosGeoJSON(componenteFiltro, accionFiltro),
   ]);
 
   return (
@@ -92,7 +92,7 @@ async function MapSection({
         quebradas={quebradas}
         geojson={geojson as unknown as GeoJSONFeatureCollection}
         activeComponente={componenteFiltro}
-        activeAccion={accion}
+        activeAccion={accionFiltro}
         height="100%"
       />
 
@@ -165,6 +165,7 @@ async function RightPanelSection({
   seriesComponentes,
   resumen,
   componenteFiltro,
+  accionFiltro,
 }: {
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
@@ -172,6 +173,7 @@ async function RightPanelSection({
   seriesComponentes: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
   resumen?: ResumenComponente;
   componenteFiltro: string | null;
+  accionFiltro: AccionCode | null;
 }) {
   return (
     <RightPanel
@@ -180,7 +182,7 @@ async function RightPanelSection({
       footer={footer}
       seriesComponentes={seriesComponentes}
       resumen={resumen}
-      metasSlot={<MetasStrip componente={componenteFiltro} />}
+      metasSlot={<MetasStrip componente={componenteFiltro} accion={accionFiltro} />}
     />
   );
 }
@@ -245,7 +247,7 @@ export function DashboardContent({
           >
             <MapSection
               componenteFiltro={componenteFiltro}
-              accion={accionFiltro}
+              accionFiltro={accionFiltro}
               queryTexto={queryTexto}
               dbHealth={dbHealth}
             />
@@ -285,6 +287,7 @@ export function DashboardContent({
             seriesComponentes={seriesComponentes}
             resumen={resumen}
             componenteFiltro={componenteFiltro}
+            accionFiltro={accionFiltro}
           />
         </Suspense>
       </div>

@@ -3,11 +3,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SortableHeader } from "@/components/ui/sortable-header";
-import { Wrench, ArrowRight, Inbox, Plus } from "lucide-react";
+import {
+  Wrench,
+  ArrowRight,
+  Inbox,
+  Plus,
+  AlertOctagon,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import Link from "next/link";
-import { getIntervencionesRecientes, getComponentes } from "@/lib/repos";
+import {
+  getIntervencionesRecientes,
+  getComponentes,
+  getConteoIntervenciones,
+  getConteosIntervenciones,
+} from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
 import { formatDecimal, formatInt } from "@/lib/utils";
+import { normalizarAccion } from "@/lib/acciones";
 import { EstadoIntervencionDropdown } from "./estado-dropdown";
 
 export const dynamic = "force-dynamic";
@@ -35,12 +50,20 @@ const COMPONENT_ACTIVE_BG: Record<"primary" | "secondary" | "tertiary", string> 
   tertiary:  "border-tertiary bg-tertiary text-on-tertiary",
 };
 
-// DEEPSEEK-F2: acciones válidas por componente (modelo BDG).
-const ACCIONES_POR_COMPONENTE: Record<string, string[]> = {
-  C1: ["A1", "A2"],
-  C2: ["A1", "A2"],
-  C3: ["A1", "A2"],
+// T1 filtro-accion: codigos visibles por componente (C3 solo tiene C3AU).
+const ACCIONES_POR_COMPONENTE: Record<string, readonly string[]> = {
+  C1: ["C1A1", "C1A2"],
+  C2: ["C2A1", "C2A2"],
+  C3: ["C3AU"],
 };
+
+// AJUSTE 2: etiqueta humana del filtro activo (sin contar aún — eso va aparte).
+function etiquetaFiltro(componente: string | null, accion: string | null): string {
+  if (!componente && !accion) return "Todas las intervenciones";
+  if (componente && !accion) return `Componente ${componente}`;
+  if (componente && accion) return `${componente}${accion}`;
+  return accion ?? "";
+}
 
 // UX-65: helper para construir el URL de paginacion preservando el filtro.
 function buildPageUrl(componente: string | null, accion: string | null, page: number): string {
@@ -50,16 +73,6 @@ function buildPageUrl(componente: string | null, accion: string | null, page: nu
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
   return qs ? `/intervenciones?${qs}` : "/intervenciones";
-}
-
-// DEEPSEEK-F2: helper que arma el título descriptivo del filtro activo.
-function describeFilter(componente: string | null, accion: string | null): string {
-  if (!componente && !accion) return "Todas las intervenciones del convenio";
-  if (componente && !accion) return `Componente ${componente}`;
-  if (componente && accion) {
-    return `Componente ${componente} — Acción ${accion} (${componente}${accion})`;
-  }
-  return accion ? `Acción ${accion}` : "Todas";
 }
 
 export default async function IntervencionesPage({
@@ -72,8 +85,10 @@ export default async function IntervencionesPage({
     getCurrentUser(),
   ]);
   const componente = params.componente ?? null;
-  // DEEPSEEK-F2: la acción se filtra por nombre (A1/A2/U).
-  const accion = params.accion ?? null;
+  // T1 filtro-accion: el URL ahora lleva el código CxAy (no el nombre).
+  // `normalizarAccion` valida: si el valor no es un código válido (legacy
+  // "A1"/"A2" o vacío), devuelve null y NO se filtra.
+  const accion = normalizarAccion(params.accion);
   // UX-65 (audit 2026-07-24): paginacion. page=1 default. Cap a 9999
   // (mas alla es claramente input malicioso).
   const pageNum = Math.max(1, Math.min(9999, Number(params.page ?? "1") || 1));
@@ -82,15 +97,18 @@ export default async function IntervencionesPage({
   const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
   // Pedimos 1 fila extra para saber si hay mas paginas sin un COUNT extra.
-  const [intervenciones, componentes] = await Promise.all([
-    getIntervencionesRecientes(PAGE_SIZE + 1, componente, accion),
-    getComponentes(),
-  ]);
+  // AJUSTE 2: agregar `conteoTotal` (COUNT real por filtro) y `conteosGlobales`
+  // para mostrar los numeros reales en los chips.
+  const [intervenciones, componentes, conteoTotal, conteosGlobales] =
+    await Promise.all([
+      getIntervencionesRecientes(PAGE_SIZE + 1, componente, accion),
+      getComponentes(),
+      getConteoIntervenciones(componente, accion),
+      getConteosIntervenciones(),
+    ]);
 
-  const totalPorComponente = componentes.reduce<Record<string, number>>(
-    (acc, c) => ({ ...acc, [c.nombre]: c.total }),
-    {},
-  );
+  const totalPorComponente = conteosGlobales.porComponente;
+  const conteoPorAccion = conteosGlobales.porAccion;
 
   // UX-65: aplicamos paginacion client-side sobre la lista que ya vino
   // del server. Cortamos a PAGE_SIZE (la fila +1 era para detectar "hay mas").
@@ -133,11 +151,16 @@ export default async function IntervencionesPage({
                 Intervenciones
               </h1>
               <p className="text-body-sm text-on-surface-variant">
-                {describeFilter(componente, accion)} ·{" "}
+                {etiquetaFiltro(componente, accion)}
+                {" · "}
+                <span className="font-bold text-on-surface">
+                  {formatInt(conteoTotal)} {conteoTotal === 1 ? "propuesta" : "propuestas"}
+                </span>
+                {" · "}
                 {formatInt(
                   intervencionesPage.reduce((acc, i) => acc + (i.hectareas ?? 0), 0),
                 )}{" "}
-                ha totales · página {pageNum}
+                ha en página · pág {pageNum}
               </p>
             </div>
           </div>
@@ -160,7 +183,7 @@ export default async function IntervencionesPage({
                 : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
             }`}
           >
-            Todas ({componentes.reduce((a, c) => a + c.total, 0)})
+            Todas ({formatInt(conteosGlobales.total)})
           </Link>
           {componentes.map((c) => {
             const color = COMPONENT_COLOR[c.nombre];
@@ -174,7 +197,7 @@ export default async function IntervencionesPage({
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
                 }`}
               >
-                {c.nombre} ({totalPorComponente[c.nombre]})
+                {c.nombre} ({formatInt(totalPorComponente[c.nombre] ?? 0)})
               </Link>
             );
           })}
@@ -194,7 +217,7 @@ export default async function IntervencionesPage({
                   : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
               }`}
             >
-              Todas
+              Todas ({formatInt(totalPorComponente[componente] ?? 0)})
             </Link>
             {(ACCIONES_POR_COMPONENTE[componente] ?? []).map((a) => (
               <Link
@@ -206,7 +229,7 @@ export default async function IntervencionesPage({
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
                 }`}
               >
-                {componente}{a}
+                {a} ({formatInt(conteoPorAccion[a] ?? 0)})
               </Link>
             ))}
           </div>
@@ -268,6 +291,9 @@ export default async function IntervencionesPage({
                   <th className="px-4 py-3">
                     <SortableHeader field="componente" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Componente</SortableHeader>
                   </th>
+                  <th className="px-4 py-3" title="AJUSTE 5: alarmas activas">
+                    Alarmas
+                  </th>
                   <th className="px-4 py-3">
                     <SortableHeader field="estado" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Estado</SortableHeader>
                   </th>
@@ -282,7 +308,7 @@ export default async function IntervencionesPage({
                    Antes <td colSpan> con texto plano. */}
                 {intervenciones.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-0">
+                    <td colSpan={9} className="p-0">
                       <EmptyState
                         icon={Inbox}
                         eyebrow={componente ?? "Convenio CAR · WWF · Natura"}
@@ -316,10 +342,39 @@ export default async function IntervencionesPage({
                     <td className="px-4 py-3">
                       {i.componente && COMPONENT_COLOR[i.componente] ? (
                         <Badge variant={COMPONENT_COLOR[i.componente]}>
-                          {i.componente}
+                          {i.componenteAccion ?? `${i.componente}${i.accion}`}
                         </Badge>
                       ) : (
                         "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {/* AJUSTE 5: icono de prioridad + count badge */}
+                      {i.alarmaPrioridad === "ALTA" ? (
+                        <span className="inline-flex items-center gap-1 text-error" title="Alarma de prioridad ALTA">
+                          <AlertOctagon className="size-4" />
+                          {i.alarmaCount && i.alarmaCount > 1 ? (
+                            <span className="rounded-full bg-error px-1.5 text-[10px] font-bold text-on-error">{i.alarmaCount}</span>
+                          ) : null}
+                        </span>
+                      ) : i.alarmaPrioridad === "MEDIA" ? (
+                        <span className="inline-flex items-center gap-1 text-warning" title="Alarma de prioridad MEDIA">
+                          <AlertTriangle className="size-4" />
+                          {i.alarmaCount && i.alarmaCount > 1 ? (
+                            <span className="rounded-full bg-warning px-1.5 text-[10px] font-bold text-on-warning">{i.alarmaCount}</span>
+                          ) : null}
+                        </span>
+                      ) : i.alarmaPrioridad === "BAJA" ? (
+                        <span className="inline-flex items-center gap-1 text-primary" title="Alarma de prioridad BAJA">
+                          <AlertCircle className="size-4" />
+                          {i.alarmaCount && i.alarmaCount > 1 ? (
+                            <span className="rounded-full bg-primary px-1.5 text-[10px] font-bold text-on-primary">{i.alarmaCount}</span>
+                          ) : null}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-on-surface-variant/40" title="Sin alarmas activas">
+                          <CheckCircle2 className="size-4" />
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -379,7 +434,10 @@ export default async function IntervencionesPage({
         </Card>
 
         <p className="text-center text-[11px] text-on-surface-variant">
-          Mostrando las primeras {intervenciones.length} intervenciones.
+          {formatInt(conteoTotal)}{" "}
+          {conteoTotal === 1 ? "propuesta" : "propuestas"} totales en el filtro
+          activo. Listando {intervencionesPage.length} en esta página
+          (de {hasNextPage ? "más de " : ""}{formatInt(PAGE_SIZE)} por página).
         </p>
       </div>
     </div>

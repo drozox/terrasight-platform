@@ -22,6 +22,7 @@ import {
   TileLayer,
   GeoJSON,
   Marker,
+  Polygon,
 } from "react-leaflet";
 import { MapPin, Loader2 } from "lucide-react";
 import type {
@@ -31,7 +32,8 @@ import type {
   GeoJSONPolygon,
   GeoJSONMultiPolygon,
 } from "@/lib/types";
-import { centerAndZoomFromCoords } from "@/lib/geo/centroid";
+import { centerAndZoomFromCoords, flattenPairs } from "@/lib/geo/centroid";
+import type { IntervencionContexto, VecinoMini } from "@/lib/repos/propuestas";
 
 // -----------------------------------------------------------------------------
 // Centroid por tipo de geometría
@@ -40,18 +42,47 @@ const CUNDINAMARCA_CENTER: [number, number] = [4.92, -73.93];
 
 function computeCentroid(
   intervencion: IntervencionCompleta,
+  contexto: IntervencionContexto | null = null,
 ): { center: [number, number]; zoom: number } {
+  // AJUSTE 3: fitBounds colectivo cuando hay vecinos (current + todas las
+  // vecinas). Si no hay vecinos, cae al comportamiento de un solo feature.
+  const allPairs: number[][] = [];
+  // Intervencion actual.
   if (intervencion.tipo === "punto" && intervencion.geom) {
-    // En la BD, "este" es lon y "norte" es lat (EPSG:4686). El tipo ya
-    // devuelve `lon` y `lat` separados, lo cual es lo que Leaflet espera.
+    allPairs.push([intervencion.geom.lon, intervencion.geom.lat]);
+  } else if (intervencion.tipo === "linea" && intervencion.geom) {
+    const flat = flattenPairs(intervencion.geom.geojson.coordinates);
+    for (const p of flat) allPairs.push(p);
+  } else if (intervencion.tipo === "poligono" && intervencion.geom) {
+    const flat = flattenPairs(intervencion.geom.geojson.coordinates);
+    for (const p of flat) allPairs.push(p);
+  }
+  // Vecinos.
+  if (contexto) {
+    for (const v of contexto.vecinos) {
+      if (v.tipo === "punto" && isGeometryPoint(v.geom)) {
+        const c = (v.geom as GeoJSON.Point).coordinates;
+        allPairs.push([c[0] ?? 0, c[1] ?? 0]);
+      } else if (isGeometryLineOrPolygon(v.geom)) {
+        const flat = flattenPairs(
+          (v.geom as GeoJSON.LineString | GeoJSON.MultiLineString | GeoJSON.Polygon | GeoJSON.MultiPolygon).coordinates,
+        );
+        for (const p of flat) allPairs.push(p);
+      }
+    }
+  }
+  if (allPairs.length > 1) {
+    return centerAndZoomFromCoords(allPairs, {
+      center: CUNDINAMARCA_CENTER,
+      zoom: 13,
+    });
+  }
+  if (intervencion.tipo === "punto" && intervencion.geom) {
     return {
       center: [intervencion.geom.lat, intervencion.geom.lon],
       zoom: 14,
     };
   }
-  // F1: las geometrías del convenio son Multi* (MultiLineString/MultiPolygon),
-  // con coordinates ANIDADAS. `centerAndZoomFromCoords` aplana cualquier
-  // profundidad y protege contra NaN (evita el crash de Leaflet).
   if (intervencion.tipo === "linea" && intervencion.geom) {
     return centerAndZoomFromCoords(intervencion.geom.geojson.coordinates, {
       center: CUNDINAMARCA_CENTER,
@@ -85,11 +116,112 @@ const ICON_INTERVENCION = L.icon({
   popupAnchor: [0, -26],
 });
 
+// AJUSTE 3: icono tenue para vecinos (mismo componente/accion en municipio).
+const ICON_VECINO = L.icon({
+  iconUrl:
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40">
+      <path d="M16 0C7.2 0 0 7.2 0 16c0 11 16 24 16 24s16-13 16-24c0-8.8-7.2-16-16-16z"
+        fill="#9ca3af" stroke="#374151" stroke-width="1"/>
+      <circle cx="16" cy="16" r="4" fill="#FFFFFF"/>
+    </svg>
+  `),
+  iconSize: [16, 20],
+  iconAnchor: [8, 20],
+  popupAnchor: [0, -18],
+});
+
+// AJUSTE 3: helpers para extraer coordenadas de GeoJSON heterogeneo.
+type LngLat = [number, number];
+type LngLatRing = LngLat[];
+type LngLatPolygonCoords = LngLatRing[];
+
+function isGeometryPolygon(g: GeoJSON.Geometry): g is GeoJSON.Polygon | GeoJSON.MultiPolygon {
+  return g.type === "Polygon" || g.type === "MultiPolygon";
+}
+
+function isGeometryPoint(g: GeoJSON.Geometry): g is GeoJSON.Point {
+  return g.type === "Point";
+}
+
+function isGeometryLineOrPolygon(
+  g: GeoJSON.Geometry,
+): g is GeoJSON.LineString | GeoJSON.MultiLineString | GeoJSON.Polygon | GeoJSON.MultiPolygon {
+  return (
+    g.type === "LineString" ||
+    g.type === "MultiLineString" ||
+    g.type === "Polygon" ||
+    g.type === "MultiPolygon"
+  );
+}
+
+/** Aplana un Polygon / MultiPolygon a un anillo de LngLat (Polygon toma el 1er anillo). */
+function extractCoordinates(g: GeoJSON.Geometry): LngLat[] {
+  if (g.type === "Point") {
+    const c = (g as GeoJSON.Point).coordinates as number[];
+    return [[c[0] ?? 0, c[1] ?? 0]];
+  }
+  if (g.type === "LineString") {
+    return ((g as GeoJSON.LineString).coordinates as number[][]).map((c) => [c[0] ?? 0, c[1] ?? 0]);
+  }
+  if (g.type === "MultiLineString") {
+    return (((g as GeoJSON.MultiLineString).coordinates as number[][][])[0] ?? []).map(
+      (c) => [c[0] ?? 0, c[1] ?? 0],
+    );
+  }
+  if (g.type === "Polygon") {
+    return ((g as GeoJSON.Polygon).coordinates as number[][][])[0].map(
+      (c) => [c[0] ?? 0, c[1] ?? 0],
+    );
+  }
+  if (g.type === "MultiPolygon") {
+    const first = ((g as GeoJSON.MultiPolygon).coordinates as number[][][][])[0];
+    if (!first) return [];
+    return first[0].map((c) => [c[0] ?? 0, c[1] ?? 0]);
+  }
+  return [];
+}
+
+/** Construye un FeatureCollection a partir de vecinos que tengan geometría planar
+ *  (lineas + polígonos), descartando puntos (estos se renderizan con Marker). */
+function geoJsonCollectionFromVecinos(
+  vecinos: VecinoMini[],
+  _style: L.PathOptions,
+): GeoJSON.FeatureCollection | null {
+  const features: GeoJSON.Feature[] = [];
+  for (const v of vecinos) {
+    if (v.tipo === "punto") continue;
+    if (!isGeometryLineOrPolygon(v.geom)) continue;
+    features.push({
+      type: "Feature",
+      id: v.id,
+      geometry: v.geom,
+      properties: { id: v.id, tipo: v.tipo, actividad: v.actividad },
+    });
+  }
+  if (features.length === 0) return null;
+  return { type: "FeatureCollection", features };
+}
+
 // -----------------------------------------------------------------------------
-// Props del shell — recibe la intervención completa del page.tsx.
+// Props del shell — recibe la intervención completa del page.tsx y el contexto.
 // -----------------------------------------------------------------------------
-function MapaMiniShell({ intervencion }: { intervencion: IntervencionCompleta }) {
-  const { center, zoom } = computeCentroid(intervencion);
+function MapaMiniShell({
+  intervencion,
+  contexto,
+}: {
+  intervencion: IntervencionCompleta;
+  contexto: IntervencionContexto | null;
+}) {
+  const [showContext, setShowContext] = React.useState(true);
+  const vecinos: VecinoMini[] =
+    showContext && contexto ? contexto.vecinos : [];
+
+  const { center, zoom } = computeCentroid(
+    intervencion,
+    showContext ? contexto : null,
+  );
 
   // GeoJSON data — construida según el tipo.
   const data = React.useMemo(() => {
@@ -112,59 +244,119 @@ function MapaMiniShell({ intervencion }: { intervencion: IntervencionCompleta })
     [],
   );
 
-  if (intervencion.tipo === "punto" && intervencion.geom) {
-    return (
-      <div className="relative h-72 w-full overflow-hidden rounded-xl">
-        <MapContainer
-          center={center}
-          zoom={zoom}
-          scrollWheelZoom={false}
-          zoomControl={true}
-          className="h-full w-full"
-          style={{ background: "#cee5d8" }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="© OpenStreetMap"
-          />
-          <Marker
-            position={[intervencion.geom.lat, intervencion.geom.lon]}
-            icon={ICON_INTERVENCION}
-          />
-        </MapContainer>
-      </div>
-    );
-  }
+  // Estilo del contexto (predio + vecinos): lineas tenues + poligonos con fill suave.
+  const predioStyle: L.PathOptions = {
+    color: "#404040",
+    weight: 1,
+    fillColor: "#cccccc",
+    fillOpacity: 0.06,
+    dashArray: "4 3",
+  };
+  const vecinoGeoStyle: L.PathOptions = {
+    color: "#888888",
+    weight: 1.5,
+    fillColor: "#bbbbbb",
+    fillOpacity: 0.18,
+    dashArray: "2 2",
+  };
 
-  if (data) {
-    return (
-      <div className="relative h-72 w-full overflow-hidden rounded-xl">
-        <MapContainer
-          center={center}
-          zoom={zoom}
-          scrollWheelZoom={false}
-          zoomControl={true}
-          className="h-full w-full"
-          style={{ background: "#cee5d8" }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="© OpenStreetMap"
-          />
-          <GeoJSON data={data} style={style} />
-        </MapContainer>
-      </div>
-    );
-  }
+  // Helpers GeoJSON — colecciones por tipo (omitimos Point que se renderiza con Marker).
+  const vecinosLineasFC = React.useMemo(
+    () =>
+      geoJsonCollectionFromVecinos(
+        vecinos.filter((v) => v.tipo !== "punto"),
+        vecinoGeoStyle,
+      ),
+    [vecinos],
+  );
 
-  // Sin geom: placeholder con centro de Cundinamarca.
+  const canRenderMain =
+    (intervencion.tipo === "punto" && intervencion.geom) || data;
+
   return (
-    <div className="flex h-72 w-full flex-col items-center justify-center rounded-xl border border-dashed border-outline-variant bg-surface-container-low text-center text-on-surface-variant">
-      <MapPin className="mb-2 size-8 opacity-40" />
-      <p className="text-body-sm font-semibold">Geometría no disponible</p>
-      <p className="mt-1 text-[11px]">
-        La propuesta existe pero no tiene geometría asociada en la BD.
-      </p>
+    <div className="space-y-2">
+      {/* Toggle: Mostrar/ocultar contexto (AJUSTE 3). */}
+      {contexto && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-on-surface-variant">
+            {contexto.vecinos.length > 0
+              ? `Mostrando esta intervención y ${contexto.vecinos.length} ${contexto.vecinos.length === 1 ? "vecina del mismo" : "vecinas del mismo"} ${contexto.componenteAccion ?? "componente/acción"} en el municipio.`
+              : `Esta intervención no tiene vecinas del mismo ${contexto.componenteAccion ?? "componente/acción"} en el municipio.`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowContext((s) => !s)}
+            aria-pressed={showContext}
+            className="inline-flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-lowest px-3 py-1 text-[11px] font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low"
+          >
+            {showContext ? "Ocultar contexto" : "Mostrar contexto"}
+          </button>
+        </div>
+      )}
+
+      <div className="relative h-72 w-full overflow-hidden rounded-xl">
+        {canRenderMain ? (
+          <MapContainer
+            center={center}
+            zoom={zoom}
+            scrollWheelZoom={false}
+            zoomControl={true}
+            className="h-full w-full"
+            style={{ background: "#cee5d8" }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="© OpenStreetMap"
+            />
+
+            {/* Poligono del predio (AJUSTE 3). */}
+            {showContext && contexto?.predioGeom &&
+              isGeometryPolygon(contexto.predioGeom) && (
+                <Polygon
+                  positions={extractCoordinates(contexto.predioGeom)}
+                  pathOptions={predioStyle}
+                />
+              )}
+
+            {/* Vecinos: lineas + poligonos en gris tenue. */}
+            {vecinosLineasFC && (
+              <GeoJSON data={vecinosLineasFC} style={() => vecinoGeoStyle} />
+            )}
+
+            {/* Vecinos puntos: marcadores tenues (sin popup para no saturar). */}
+            {vecinos
+              .filter((v) => v.tipo === "punto" && isGeometryPoint(v.geom))
+              .map((v) => {
+                const [lon, lat] = extractCoordinates(v.geom)[0] ?? [0, 0];
+                if (!lon || !lat) return null;
+                return (
+                  <Marker
+                    key={v.id}
+                    position={[lat, lon]}
+                    icon={ICON_VECINO}
+                  />
+                );
+              })}
+
+            {/* Intervencion actual (highlight). */}
+            {intervencion.tipo === "punto" && intervencion.geom && (
+              <Marker
+                position={[intervencion.geom.lat, intervencion.geom.lon]}
+                icon={ICON_INTERVENCION}
+              />
+            )}
+            {data && <GeoJSON data={data} style={style} />}
+          </MapContainer>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center bg-surface-container-low text-center text-on-surface-variant">
+            <MapPin className="mb-2 size-8 opacity-40" />
+            <p className="text-body-sm font-semibold">Geometría no disponible</p>
+            <p className="mt-1 text-[11px]">
+              La propuesta existe pero no tiene geometría asociada en la BD.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -215,8 +407,10 @@ const MapaMiniClient = dynamic(() => Promise.resolve(MapaMiniShell), {
 
 export function IntervencionMapa({
   intervencion,
+  contexto,
 }: {
   intervencion: IntervencionCompleta;
+  contexto: IntervencionContexto | null;
 }) {
-  return <MapaMiniClient intervencion={intervencion} />;
+  return <MapaMiniClient intervencion={intervencion} contexto={contexto} />;
 }

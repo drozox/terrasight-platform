@@ -1,5 +1,5 @@
 // =============================================================================
-// /api/intervenciones/alarmas — POST/PATCH (DEEPSEEK-F2.3)
+// /api/intervenciones/alarmas — POST/PATCH (DEEPSEEK-F2.3 + AJUSTE 5)
 //
 // POST   crea una alarma nueva para una intervención
 // PATCH  marca una alarma como resuelta
@@ -22,7 +22,26 @@ const TIPOS_VALIDOS: AlarmaPropuesta["tipo"][] = [
   "problema_tecnico",
   "requiere_visita",
   "otro",
+  // Nuevos (AJUSTE 5 / migración 43):
+  "permiso_ambiental",
+  "conflicto_linderos",
+  "acceso_bloqueado",
+  "materiales_insuficientes",
+  "problema_climatico",
 ];
+
+const PRIORIDADES_VALIDAS: AlarmaPropuesta["prioridad"][] = [
+  "ALTA",
+  "MEDIA",
+  "BAJA",
+];
+
+function asIntOrNull(v: FormDataEntryValue | null): number | null {
+  const s = typeof v === "string" ? v.trim() : "";
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 export async function POST(req: Request) {
   const usuario = await getCurrentUser();
@@ -38,6 +57,11 @@ export async function POST(req: Request) {
   const idPropuesta = Number(form.get("idPropuesta"));
   const tipo = String(form.get("tipo") ?? "");
   const descripcion = String(form.get("descripcion") ?? "").trim();
+  const prioridadRaw = String(form.get("prioridad") ?? "MEDIA");
+  const responsableId = asIntOrNull(form.get("responsableId"));
+  const fechaEstimadaRaw = String(form.get("fechaEstimada") ?? "").trim();
+  const evidenciaUrl = String(form.get("evidenciaUrl") ?? "").trim();
+
   if (!Number.isFinite(idPropuesta) || idPropuesta <= 0) {
     return NextResponse.json({ ok: false, error: "idPropuesta inválido" }, { status: 400 });
   }
@@ -47,12 +71,40 @@ export async function POST(req: Request) {
   if (!descripcion) {
     return NextResponse.json({ ok: false, error: "Descripción requerida" }, { status: 400 });
   }
+  const prioridad = PRIORIDADES_VALIDAS.includes(prioridadRaw as AlarmaPropuesta["prioridad"])
+    ? (prioridadRaw as AlarmaPropuesta["prioridad"])
+    : "MEDIA";
+
+  // fecha_estimada debe ser YYYY-MM-DD o vacía (null).
+  let fechaEstimada: string | null = null;
+  if (fechaEstimadaRaw) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaEstimadaRaw)) {
+      return NextResponse.json(
+        { ok: false, error: "Fecha estimada inválida (YYYY-MM-DD)" },
+        { status: 400 },
+      );
+    }
+    fechaEstimada = fechaEstimadaRaw;
+  }
+
+  // evidencia_url si viene, debe parecer URL http(s) o path /.
+  if (evidenciaUrl && !/^(https?:\/\/|\/)/i.test(evidenciaUrl)) {
+    return NextResponse.json(
+      { ok: false, error: "URL de evidencia inválida (http/https o path /)" },
+      { status: 400 },
+    );
+  }
+
   try {
     const { idAlarma } = await crearAlarma({
       idPropuesta,
       tipo: tipo as AlarmaPropuesta["tipo"],
       descripcion,
       creadoPor: usuario.idUsuario ?? null,
+      prioridad,
+      responsableId,
+      fechaEstimada,
+      evidenciaUrl,
     });
     const alarma: AlarmaPropuesta = {
       idAlarma,
@@ -67,6 +119,11 @@ export async function POST(req: Request) {
       resueltaPorEmail: null,
       resueltaEn: null,
       notaResolucion: "",
+      prioridad,
+      responsableId,
+      responsableEmail: null,
+      fechaEstimada,
+      evidenciaUrl,
     };
     return NextResponse.json({ ok: true, alarma });
   } catch (e) {

@@ -22,7 +22,7 @@ import {
   type IndicadorMeta,
 } from "./metas-convenio";
 import { estadoDePct, type EstadoIndicador } from "../estado-indicador";
-import { normalizarAccion, accionDef, type AccionDef } from "../acciones";
+import { accionDef, type AccionCode } from "../acciones";
 
 export type { EstadoIndicador };
 
@@ -88,8 +88,16 @@ export function etiquetaComponente(comp: ComponenteKey | null): string {
   return comp ? ETIQUETA[comp] : "Todos los componentes";
 }
 
-function keysDeComponente(comp: ComponenteKey | null): IndicadorKey[] {
+function keysDeComponente(
+  comp: ComponenteKey | null,
+  accion: AccionCode | null = null,
+): IndicadorKey[] {
   const keys = Object.keys(INDICADORES_META) as IndicadorKey[];
+  if (accion) {
+    // AccionCode "C3AU" mapea al indicador "C3" (ca="C3"); los otros son literales.
+    const caFiltro = accion === "C3AU" ? "C3" : accion;
+    return keys.filter((k) => INDICADORES_META[k].ca === caFiltro);
+  }
   if (!comp) return keys;
   return keys.filter((k) => CA_COMPONENTE[INDICADORES_META[k].ca] === comp);
 }
@@ -107,15 +115,24 @@ interface ConteosRow {
   hectareas: number | string;
 }
 
-async function getConteos(comp: ComponenteKey | null, def: AccionDef | null): Promise<ResumenComponente["conteos"]> {
-  const accionSql = def ? sql`AND a.nombre IN ${sql(def.acciones)}` : sql``;
+async function getConteos(
+  comp: ComponenteKey | null,
+  nombresAccion: string[] | null = null,
+): Promise<ResumenComponente["conteos"]> {
+  const compFilter = comp ? sql`AND c.nombre = ${comp}` : sql``;
+  const accionFilter = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
+
   const [row] = await sql<ConteosRow[]>`
     WITH p AS (
       SELECT pp.id_propuesta, pp.id_predio
       FROM sgs_pro_propuesta pp
       JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-      WHERE (${comp}::text IS NULL OR c.nombre = ${comp}) ${accionSql}
+      WHERE TRUE ${compFilter} ${accionFilter}
     )
     SELECT
       (SELECT count(*) FROM p)::int                                                        AS propuestas,
@@ -133,7 +150,7 @@ async function getConteos(comp: ComponenteKey | null, def: AccionDef | null): Pr
       FROM sgs_pro_propuesta pp
       JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-      WHERE (${comp}::text IS NULL OR c.nombre = ${comp}) ${accionSql}
+      WHERE TRUE ${compFilter} ${accionFilter}
     ),
     muni AS (
       SELECT v.id_municipio
@@ -177,29 +194,45 @@ async function getConteos(comp: ComponenteKey | null, def: AccionDef | null): Pr
   };
 }
 
-async function getPorAccion(comp: ComponenteKey | null, def: AccionDef | null): Promise<ResumenComponente["porAccion"]> {
-  const accionSql = def ? sql`AND a.nombre IN ${sql(def.acciones)}` : sql``;
+async function getPorAccion(
+  comp: ComponenteKey | null,
+  nombresAccion: string[] | null = null,
+): Promise<ResumenComponente["porAccion"]> {
+  const compFilter = comp ? sql`AND c.nombre = ${comp}` : sql``;
+  const accionFilter = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
   const rows = await sql<{ accion: string; n: number | string }[]>`
     SELECT a.nombre AS accion, count(DISTINCT pp.id_propuesta)::int AS n
     FROM sgs_pro_propuesta pp
     JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
     JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-    WHERE (${comp}::text IS NULL OR c.nombre = ${comp})
+    WHERE TRUE ${compFilter} ${accionFilter}
     GROUP BY a.nombre
     ORDER BY a.nombre
   `;
   return rows.map((r) => ({ accion: pgText(r.accion), n: pgInt(r.n) }));
 }
 
-async function getTopMunicipios(comp: ComponenteKey | null, def: AccionDef | null): Promise<ResumenComponente["topMunicipios"]> {
-  const accionSql = def ? sql`AND a.nombre IN ${sql(def.acciones)}` : sql``;
+async function getTopMunicipios(
+  comp: ComponenteKey | null,
+  nombresAccion: string[] | null = null,
+): Promise<ResumenComponente["topMunicipios"]> {
+  const compFilter = comp ? sql`AND c.nombre = ${comp}` : sql``;
+  const accionFilter = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
   const rows = await sql<{ id: number | string; nombre: string; propuestas: number | string }[]>`
     WITH p AS (
       SELECT pp.id_propuesta, pp.id_predio
       FROM sgs_pro_propuesta pp
       JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-      WHERE (${comp}::text IS NULL OR c.nombre = ${comp}) ${accionSql}
+      WHERE TRUE ${compFilter} ${accionFilter}
     ),
     muni AS (
       SELECT p.id_propuesta, m.id_municipio, m.nombre_municipio
@@ -224,15 +257,23 @@ async function getTopMunicipios(comp: ComponenteKey | null, def: AccionDef | nul
   return rows.map((r) => ({ id: pgInt(r.id), nombre: pgText(r.nombre), propuestas: pgInt(r.propuestas) }));
 }
 
-async function getTopVeredas(comp: ComponenteKey | null, def: AccionDef | null): Promise<ResumenComponente["topVeredas"]> {
-  const accionSql = def ? sql`AND a.nombre IN ${sql(def.acciones)}` : sql``;
+async function getTopVeredas(
+  comp: ComponenteKey | null,
+  nombresAccion: string[] | null = null,
+): Promise<ResumenComponente["topVeredas"]> {
+  const compFilter = comp ? sql`AND c.nombre = ${comp}` : sql``;
+  const accionFilter = !nombresAccion
+    ? sql``
+    : nombresAccion.length === 1
+    ? sql`AND a.nombre = ${nombresAccion[0]}`
+    : sql`AND a.nombre IN ${sql(nombresAccion)}`;
   const rows = await sql<{ id: number | string; nombre: string; municipio: string; propuestas: number | string }[]>`
     WITH p AS (
       SELECT pp.id_propuesta, pp.id_predio
       FROM sgs_pro_propuesta pp
       JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-      WHERE (${comp}::text IS NULL OR c.nombre = ${comp}) ${accionSql}
+      WHERE TRUE ${compFilter} ${accionFilter}
     ),
     ver AS (
       SELECT p.id_propuesta, v.id_vereda, v.nombre_vereda, m.nombre_municipio
@@ -265,14 +306,17 @@ async function getTopVeredas(comp: ComponenteKey | null, def: AccionDef | null):
 // -----------------------------------------------------------------------------
 // Fallback demo (BD sin conexión)
 // -----------------------------------------------------------------------------
-function demoResumen(comp: ComponenteKey | null): ResumenComponente {
-  const keys = keysDeComponente(comp);
+function demoResumen(
+  comp: ComponenteKey | null,
+  accion: AccionCode | null = null,
+): ResumenComponente {
+  const keys = keysDeComponente(comp, accion);
   const indicadores: IndicadorResumen[] = keys.map((k) => {
     const m = INDICADORES_META[k];
-    const accion = m.ca === "C3" ? "*" : m.ca.slice(2);
+    const accionTag = m.ca === "C3" ? "*" : m.ca.slice(2);
     return {
       key: k, label: m.label, actual: 0, meta: m.meta, unidad: m.unidad,
-      pct: 0, cumplida: false, estado: "atrasada", accion,
+      pct: 0, cumplida: false, estado: "atrasada", accion: accionTag,
     };
   });
   return {
@@ -293,64 +337,67 @@ function demoResumen(comp: ComponenteKey | null): ResumenComponente {
 }
 
 // -----------------------------------------------------------------------------
-// API pública
+// API pública — acepta componente y/o acción (T1 filtro-accion).
 // -----------------------------------------------------------------------------
 const getResumenComponenteImpl = async (
   componente?: string | null,
-  accion?: string | null,
+  accion?: AccionCode | null,
 ): Promise<ResumenComponente> => {
-  const code = accion ? normalizarAccion(accion) : null;
-  const def = code ? accionDef(code) : null;
-  const comp = def ? def.componente : normalizarComponente(componente);
+  const comp = normalizarComponente(componente);
+  // Si hay accion, derivar componente si hace falta (no-op si ya viene).
+  let nombresAccion: string[] | null = null;
+  if (accion) nombresAccion = accionDef(accion).nombres;
 
-  return withFallback(`resumenComponente:${comp ?? "ALL"}:${accion ?? "ALL"}`, async () => {
-    const [flat, conteos, porAccion, topMunicipios, topVeredas] = await Promise.all([
-      getIndicadoresFlat(),
-      getConteos(comp, def),
-      getPorAccion(comp, def),
-      getTopMunicipios(comp, def),
-      getTopVeredas(comp, def),
-    ]);
+  return withFallback(
+    `resumenComponente:${comp ?? "ALL"}:${accion ?? "ALL"}`,
+    async () => {
+      const [flat, conteos, porAccion, topMunicipios, topVeredas] = await Promise.all([
+        getIndicadoresFlat(),
+        getConteos(comp, nombresAccion),
+        getPorAccion(comp, nombresAccion),
+        getTopMunicipios(comp, nombresAccion),
+        getTopVeredas(comp, nombresAccion),
+      ]);
 
-    const keys = def
-      ? (Object.keys(INDICADORES_META) as IndicadorKey[]).filter(
-          (k) => INDICADORES_META[k].ca === def.code,
-        )
-      : keysDeComponente(comp);
-    const indicadores: IndicadorResumen[] = keys.map((k) => {
-      const m = INDICADORES_META[k];
-      const f = flat[k];
+      const keys = keysDeComponente(comp, accion);
+      const indicadores: IndicadorResumen[] = keys.map((k) => {
+        const m = INDICADORES_META[k];
+        const f = flat[k];
+        return {
+          key: k,
+          label: m.label,
+          actual: f.actual,
+          meta: m.meta,
+          unidad: m.unidad,
+          pct: f.pct,
+          cumplida: f.cumplida,
+          estado: estadoDePct(f.pct),
+          accion: m.ca === "C3" ? "*" : m.ca.slice(2),
+        };
+      });
+
+      const cumplidas = indicadores.filter((i) => i.cumplida).length;
+      const pctGlobal = keys.length
+        ? Math.round(
+            keys.reduce((acc, k) => acc + Math.min(100, flat[k].pct), 0) / keys.length,
+          )
+        : 0;
+
       return {
-        key: k,
-        label: m.label,
-        actual: f.actual,
-        meta: m.meta,
-        unidad: m.unidad,
-        pct: f.pct,
-        cumplida: f.cumplida,
-        estado: estadoDePct(f.pct),
-        accion: m.ca === "C3" ? "*" : m.ca.slice(2),
+        componente: comp,
+        etiqueta: etiquetaComponente(comp),
+        indicadores,
+        cumplidas,
+        totalIndicadores: keys.length,
+        pctGlobal,
+        conteos,
+        porAccion,
+        topMunicipios,
+        topVeredas,
       };
-    });
-
-    const cumplidas = indicadores.filter((i) => i.cumplida).length;
-    const pctGlobal = keys.length
-      ? Math.round(keys.reduce((acc, k) => acc + Math.min(100, flat[k].pct), 0) / keys.length)
-      : 0;
-
-    return {
-      componente: comp,
-      etiqueta: etiquetaComponente(comp),
-      indicadores,
-      cumplidas,
-      totalIndicadores: keys.length,
-      pctGlobal,
-      conteos,
-      porAccion,
-      topMunicipios,
-      topVeredas,
-    };
-  }, demoResumen(comp));
+    },
+    demoResumen(comp, accion),
+  );
 };
 
 export const getResumenComponente = cached(getResumenComponenteImpl, {

@@ -1,19 +1,22 @@
 // =============================================================================
-// /intervenciones/nueva — Alta de intervención/propuesta (DEEPSEEK-F2.2)
+// /intervenciones/nueva — Alta de intervención/propuesta (DEEPSEEK-F2.2 + AJUSTE 4)
 //
-// Server Component: valida rol, carga catálogos (acciones, predios) y delega
-// al form client. El shape específico (punto/línea/polígono) se gestiona vía
-// la herramienta de dibujo del mapa (TODO: integrar Leaflet.draw cuando esté
-// disponible). Por ahora, esta página crea el registro en sgs_pro_propuesta
-// con tipo + acción + actividad, y redirige a la ficha donde el equipo puede
-// asociar geometría vía SQL/admin.
+// Server Component: valida rol, carga catalogos (acciones, predios,
+// municipios, veredas, propietarios) y delega al form client con mapa
+// interactivo para dibujar la geometría.
 // =============================================================================
 
 import Link from "next/link";
 import { ArrowLeft, Wrench } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth-guard";
-import { listAccionesFull, listPredios } from "@/lib/repos";
+import {
+  listAccionesFull,
+  listPredios,
+  listMunicipios,
+  listVeredas,
+  listPropietarios,
+} from "@/lib/repos";
 import { NuevaIntervencionForm } from "./nueva-intervencion-form";
 
 export const metadata = { title: "Nueva intervención — SIG TERRITORIO" };
@@ -24,11 +27,15 @@ export default async function NuevaIntervencionPage({
   searchParams: Promise<{ tipo?: string; error?: string }>;
 }) {
   await requireRole(["ADMIN", "GESTOR"] as const);
-  const [acciones, predios, sp] = await Promise.all([
-    listAccionesFull(),
-    listPredios(),
-    searchParams,
-  ]);
+  const [acciones, predios, municipios, veredas, propietarios, sp] =
+    await Promise.all([
+      listAccionesFull(),
+      listPredios(),
+      listMunicipios(),
+      listVeredas(),
+      listPropietarios(),
+      searchParams,
+    ]);
   const initialTipo =
     sp?.tipo === "punto" || sp?.tipo === "linea" || sp?.tipo === "poligono"
       ? sp.tipo
@@ -37,7 +44,7 @@ export default async function NuevaIntervencionPage({
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-container-low p-gutter">
-      <div className="mx-auto flex max-w-3xl flex-col gap-gutter">
+      <div className="mx-auto flex max-w-5xl flex-col gap-gutter">
         <Link
           href="/intervenciones"
           className="inline-flex w-fit items-center gap-2 text-label-lg font-bold text-primary hover:underline"
@@ -56,9 +63,9 @@ export default async function NuevaIntervencionPage({
                 Nueva intervención
               </h1>
               <p className="text-body-sm text-on-surface-variant">
-                Crear una propuesta o intervención nueva. La geometría
-                específica (punto, línea o polígono) se asocia después en
-                la ficha.
+                Selecciona el tipo, dibuja la geometría en el mapa y completa
+                los datos. El cálculo de área (polígonos), longitud (líneas) y
+                coordenadas (puntos) se calcula automáticamente.
               </p>
             </div>
           </div>
@@ -72,6 +79,19 @@ export default async function NuevaIntervencionPage({
             predios={predios.map((p) => ({
               idPredio: p.idPredio,
               nombrePredio: p.nombrePredio,
+            }))}
+            municipios={municipios.map((m) => ({
+              idMunicipio: m.idMunicipio,
+              nombre: m.nombreMunicipio,
+            }))}
+            veredas={veredas.map((v) => ({
+              idVereda: v.idVereda,
+              nombre: v.nombreVereda,
+              idMunicipio: v.idMunicipio,
+            }))}
+            propietarios={propietarios.map((p) => ({
+              idPropietario: p.idPropietario,
+              nombre: p.nombreRazonSocial ?? "(sin nombre)",
             }))}
             initialTipo={initialTipo}
             initialError={initialError}

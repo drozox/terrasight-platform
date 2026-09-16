@@ -1,14 +1,14 @@
 "use client";
 
 // =============================================================================
-// MapComponenteFocusLayer (DEEPSEEK-76)
+// MapComponenteFocusLayer (DEEPSEEK-76) + T1 filtro-accion
 //
-// Cuando el usuario elige un componente (C1/C2/C3) en el ribbon del dashboard,
-// este layer:
-//   1. pide la "huella" del componente (punto + polígono + línea) a
-//      /api/geo?layer=componente&componente=Cx
+// Cuando el usuario elige un componente (C1/C2/C3) — y opcionalmente una
+// acción (C1A1..C3AU) — en el ribbon del dashboard, este layer:
+//   1. pide la "huella" del componente/acción (punto + polígono + línea) a
+//      /api/geo?layer=componente&componente=Cx[&accion=CxAy]
 //   2. la pinta resaltada por encima de las capas base
-//   3. hace map.fitBounds → pan & zoom automático a la extensión del componente
+//   3. hace map.fitBounds → pan & zoom automático a la extensión seleccionada
 //
 // Sin componente activo no renderiza nada.
 // =============================================================================
@@ -16,10 +16,11 @@
 import * as React from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
+import type { AccionCode } from "@/lib/acciones";
 
 interface Props {
   componente: string | null;
-  accion?: string | null;
+  accion?: AccionCode | null;
   onClick?: (feature: GeoJSON.Feature) => void;
 }
 

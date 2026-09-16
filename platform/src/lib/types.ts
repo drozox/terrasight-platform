@@ -46,9 +46,15 @@ export type IntervencionReciente = {
   municipio: string;
   componente: string;
   accion: string;
-  /** Código canónico completo del componente+acción (C1A1 … C3AU). */
-  componenteAccion?: string | null;
   idAccion?: number | null;
+  /**
+   * Codigo visible de accion: "C1A1" | "C1A2" | "C2A1" | "C2A2" | "C3AU".
+   * T1 filtro-accion: el UI muestra este codigo en la columna "Componente"
+   * de las tablas. Equivale a `${componente}${accion}` excepto para C3,
+   * donde `accion` puede ser "U" o "A1" y `componenteAccion` se reporta como
+   * "C3AU". `null` cuando la accion en BD no mapea a un codigo canonico.
+   */
+  componenteAccion?: string | null;
   hectareas: number | null;
   longitud: number | null;
   /**
@@ -60,6 +66,14 @@ export type IntervencionReciente = {
   avance: number | null;
   /** Estado de la propuesta — usa el vocabulario del workflow (6 valores). */
   estado: EstadoIntervencion;
+  /**
+   * AJUSTE 5: prioridad maxima de alarmas activas ("ALTA" | "MEDIA" | "BAJA"
+   * | null). `null` significa que la propuesta no tiene alarmas activas. La
+   * UI muestra un icono de alerta segun el valor.
+   */
+  alarmaPrioridad?: "ALTA" | "MEDIA" | "BAJA" | null;
+  /** AJUSTE 5: cantidad de alarmas activas (badge). */
+  alarmaCount?: number;
 }
 
 export type Alerta = {

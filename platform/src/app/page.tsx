@@ -12,8 +12,8 @@ import {
   getResumenComponente,
   pingDb,
 } from "@/lib/repos";
-import { DashboardContent } from "./dashboard-suspense";
 import { normalizarAccion, componenteEfectivo } from "@/lib/acciones";
+import { DashboardContent } from "./dashboard-suspense";
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +78,9 @@ export default async function HomePage({
     avances,
     resumen,
   ] = await Promise.all([
-    componenteFiltro ? getDashboardKpisComponente(componenteFiltro, accionFiltro) : getDashboardKpis(),
+    componenteFiltro || accionFiltro
+      ? getDashboardKpisComponente(componenteFiltro, accionFiltro)
+      : getDashboardKpis(),
     getComponentes(),
     getIntervencionesRecientes(8, componenteFiltro, accionFiltro),
     getFooterKpis(),

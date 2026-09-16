@@ -9,12 +9,20 @@ import { formatDecimal } from "@/lib/utils";
 import type { IntervencionReciente } from "@/lib/types";
 import { IconLeaf, IconDrop } from "@/components/icons";
 import { ArrowRight } from "lucide-react";
+import { codigoAccionPara, type AccionCode } from "@/lib/acciones";
 
-const COMP_TINT: Record<string, string> = {
-  C1: "bg-primary/10 text-primary",
-  C2: "bg-secondary/10 text-secondary",
-  C3: "bg-tertiary/10 text-tertiary",
+// Color por componente (mismas reglas que component-ribbon.tsx).
+const COMPONENT_COLOR: Record<"C1" | "C2" | "C3", "primary" | "secondary" | "tertiary"> = {
+  C1: "primary",
+  C2: "secondary",
+  C3: "tertiary",
 };
+
+/** Resuelve el código visible (C1A1..C3AU) aunque venga de demo data sin el campo. */
+function codigoVisible(r: IntervencionReciente): AccionCode | null {
+  if (r.componenteAccion) return r.componenteAccion as AccionCode;
+  return codigoAccionPara(r.componente, r.accion);
+}
 
 export function IntervencionesTable({
   rows,
@@ -63,7 +71,10 @@ export function IntervencionesTable({
                 </td>
               </tr>
             )}
-            {data.map((r) => (
+            {data.map((r) => {
+              const codigo = codigoVisible(r);
+              const compClave = (["C1", "C2", "C3"] as const).find((c) => c === r.componente);
+              return (
               <tr
                 key={r.id}
                 onClick={() => router.push(`/intervenciones/${r.id}`)}
@@ -78,13 +89,13 @@ export function IntervencionesTable({
                   <span className="capitalize">{r.actividad || r.tipo}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                      COMP_TINT[(r.componenteAccion ?? r.componente)?.slice(0, 2)] ?? ""
-                    }`}
-                  >
-                    {r.componenteAccion ?? r.componente}
-                  </span>
+                  {codigo && compClave ? (
+                    <Badge variant={COMPONENT_COLOR[compClave]}>{codigo}</Badge>
+                  ) : (
+                    <span className="font-mono text-[12px] text-on-surface-variant">
+                      {r.componente}{r.accion}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 font-mono text-on-surface">
                   {r.codigoPredio}
@@ -132,7 +143,8 @@ export function IntervencionesTable({
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

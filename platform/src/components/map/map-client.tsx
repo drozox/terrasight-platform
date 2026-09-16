@@ -38,6 +38,7 @@ import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
 import { MapComponenteFocusLayer } from "./map-componente-focus-layer";
+import type { AccionCode } from "@/lib/acciones";
 import { MapLayerDataPanel } from "./map-layer-data-panel";
 import { MapFeaturePanel } from "./map-feature-panel";
 import { MapToolFeedback } from "./map-tool-feedback";
@@ -62,7 +63,7 @@ interface Props {
   quebradas?: { id: number; nombre: string; lon: number; lat: number }[];
   geojson?: unknown;
   activeComponente?: string | null;
-  activeAccion?: string | null;
+  activeAccion?: AccionCode | null;
   height?: string;
   showLayersPanel?: boolean;
 }

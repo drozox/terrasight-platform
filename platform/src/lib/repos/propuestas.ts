@@ -13,6 +13,7 @@
 
 import { sql, pgInt, pgNum, pgText } from "../db";
 import { withFallback } from "./_helpers";
+import { cached } from "./_cache";
 import type {
   PropuestaSimple,
   EstadoIntervencion,
@@ -566,6 +567,92 @@ export async function crearPropuesta(args: {
 }
 
 // -----------------------------------------------------------------------------
+// crearPropuestaConGeometria — AJUSTE 4 (nueva intervención con dibujo)
+//
+// Crea una propuesta + su geometría. SRID 4686 (geografico Colombia).
+// geomGeoJSON:
+//   - tipo=punto   -> { type: "Point", coordinates: [lon, lat] }
+//   - tipo=linea   -> { type: "LineString" | "MultiLineString", coordinates: [[lon,lat],...] }
+//   - tipo=poligono-> { type: "Polygon" | "MultiPolygon", coordinates: [...] }
+//
+// Notas:
+//   - No usamos transacción explícita (postgres-js ejecuta INSERTs secuenciales
+//     en una sola conexión); si falla el segundo insert queda una propuesta
+//     sin hija, lo cual es aceptable en este MVP. T0 puede envolver en
+//     BEGIN/COMMIT después si quiere atomicidad estricta.
+//   - Métricas (longitud/area) se calculan en PostGIS con ::geography para
+//    metros/ha exactos sobre el elipsoide.
+// -----------------------------------------------------------------------------
+export async function crearPropuestaConGeometria(args: {
+  tipo: "punto" | "linea" | "poligono";
+  idAccion: number;
+  idPredio: number | null;
+  idMunicipio: number | null;
+  idVereda: number | null;
+  idPropietario: number | null;
+  actividad: string;
+  descripcion?: string;
+  estado?: "BORRADOR" | "EN_REVISION" | "APROBADA" | "EN_EJECUCION" | "FINALIZADA";
+  fecha?: string;
+  geomGeoJSON: GeoJSON.Geometry;
+}): Promise<{ idPropuesta: number }> {
+  if (!args.geomGeoJSON) throw new Error("Falta la geometría");
+  const geomText = JSON.stringify(args.geomGeoJSON);
+
+  const prop = await sql<{ id_propuesta: number | string }[]>`
+    INSERT INTO sgs_pro_propuesta (
+      tipo, id_accion, id_predio, actividad, observaciones, estado
+    ) VALUES (
+      ${args.tipo}, ${args.idAccion}, ${args.idPredio},
+      ${args.actividad}, ${args.descripcion ?? ""},
+      ${args.estado ?? "BORRADOR"}
+    )
+    RETURNING id_propuesta;
+  `;
+  const idPropuestaRow = prop[0];
+  if (!idPropuestaRow) throw new Error("No devolvió id_propuesta");
+  const idPropuesta = pgInt(idPropuestaRow.id_propuesta);
+
+  if (args.tipo === "punto") {
+    const c = args.geomGeoJSON as GeoJSON.Point;
+    const lon = Number(c.coordinates[0]);
+    const lat = Number(c.coordinates[1]);
+    await sql`
+      INSERT INTO sgs_pro_propuesta_punto (
+        id_propuesta, actividad, este, norte, geom
+      ) VALUES (
+        ${idPropuesta}, ${args.actividad}, ${lon}, ${lat},
+        ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4686)
+      )
+    `;
+  } else if (args.tipo === "linea") {
+    await sql`
+      INSERT INTO sgs_pro_propuesta_linea (
+        id_propuesta, actividad, longitud_m, longitud_km, geom
+      ) VALUES (
+        ${idPropuesta}, ${args.actividad},
+        ST_Length(ST_GeomFromGeoJSON(${geomText})::geography),
+        ST_Length(ST_GeomFromGeoJSON(${geomText})::geography) / 1000.0,
+        ST_SetSRID(ST_GeomFromGeoJSON(${geomText}), 4686)
+      )
+    `;
+  } else if (args.tipo === "poligono") {
+    await sql`
+      INSERT INTO sgs_pro_propuesta_poligono (
+        id_propuesta, actividad, area_ha, area_m2, geom
+      ) VALUES (
+        ${idPropuesta}, ${args.actividad},
+        ST_Area(ST_GeomFromGeoJSON(${geomText})::geography) / 10000.0,
+        ST_Area(ST_GeomFromGeoJSON(${geomText})::geography),
+        ST_SetSRID(ST_GeomFromGeoJSON(${geomText}), 4686)
+      )
+    `;
+  }
+
+  return { idPropuesta };
+}
+
+// -----------------------------------------------------------------------------
 // Alarmas de propuesta — DEEPSEEK-F2.3
 // Reportar problemas/necesidades sobre una intervención (firma pendiente,
 // no autorizada por la comunidad, etc.) y resolverlos.
@@ -574,7 +661,7 @@ export async function crearPropuesta(args: {
 export type AlarmaPropuesta = {
   idAlarma: number;
   idPropuesta: number;
-  tipo: "firma_pendiente" | "no_autorizada_comunidad" | "problema_tecnico" | "requiere_visita" | "otro";
+  tipo: "firma_pendiente" | "no_autorizada_comunidad" | "problema_tecnico" | "requiere_visita" | "otro" | "permiso_ambiental" | "conflicto_linderos" | "acceso_bloqueado" | "materiales_insuficientes" | "problema_climatico";
   descripcion: string;
   creadoPor: number | null;
   creadoPorEmail: string | null;
@@ -584,6 +671,18 @@ export type AlarmaPropuesta = {
   resueltaPorEmail: string | null;
   resueltaEn: Date | null;
   notaResolucion: string;
+  /** AJUSTE 5: prioridad y datos de asignacion / seguimiento. */
+  prioridad: "ALTA" | "MEDIA" | "BAJA";
+  responsableId: number | null;
+  responsableEmail: string | null;
+  fechaEstimada: string | null; // YYYY-MM-DD o null
+  evidenciaUrl: string;
+};
+
+/** Tipo auxiliar para dropdowns de responsable (sgs_adm_usuario). */
+export type UsuarioMini = {
+  idUsuario: number;
+  email: string;
 };
 
 export async function listAlarmasByPropuesta(
@@ -602,6 +701,11 @@ export async function listAlarmasByPropuesta(
     resuelta_por_email: string | null;
     resuelta_en: Date | string | null;
     nota_resolucion: string;
+    prioridad: string;
+    responsable_id: number | string | null;
+    responsable_email: string | null;
+    fecha_estimada: string | null;
+    evidencia_url: string;
   }[]>`
     SELECT a.id_alarma,
            a.id_propuesta,
@@ -614,12 +718,20 @@ export async function listAlarmasByPropuesta(
            a.resuelta_por,
            ur.email AS resuelta_por_email,
            a.resuelta_en,
-           a.nota_resolucion
+           a.nota_resolucion,
+           a.prioridad,
+           a.responsable_id,
+           resp.email AS responsable_email,
+           to_char(a.fecha_estimada, 'YYYY-MM-DD') AS fecha_estimada,
+           a.evidencia_url
     FROM   sgs_pro_propuesta_alarma a
-    LEFT JOIN sgs_adm_usuario uc ON uc.id_usuario = a.creado_por
-    LEFT JOIN sgs_adm_usuario ur ON ur.id_usuario = a.resuelta_por
+    LEFT JOIN sgs_adm_usuario uc   ON uc.id_usuario   = a.creado_por
+    LEFT JOIN sgs_adm_usuario ur   ON ur.id_usuario   = a.resuelta_por
+    LEFT JOIN sgs_adm_usuario resp ON resp.id_usuario = a.responsable_id
     WHERE  a.id_propuesta = ${idPropuesta}
-    ORDER  BY a.resuelta ASC, a.creado_en DESC, a.id_alarma DESC;
+    ORDER  BY a.resuelta ASC,
+             CASE a.prioridad WHEN 'ALTA' THEN 0 WHEN 'MEDIA' THEN 1 ELSE 2 END,
+             a.creado_en DESC, a.id_alarma DESC;
   `;
   return rows.map((r) => ({
     idAlarma: pgInt(r.id_alarma),
@@ -634,6 +746,11 @@ export async function listAlarmasByPropuesta(
     resueltaPorEmail: r.resuelta_por_email,
     resueltaEn: r.resuelta_en == null ? null : new Date(pgText(r.resuelta_en)),
     notaResolucion: pgText(r.nota_resolucion),
+    prioridad: pgText(r.prioridad) as AlarmaPropuesta["prioridad"],
+    responsableId: r.responsable_id == null ? null : pgInt(r.responsable_id),
+    responsableEmail: r.responsable_email,
+    fechaEstimada: r.fecha_estimada,
+    evidenciaUrl: pgText(r.evidencia_url),
   }));
 }
 
@@ -642,10 +759,25 @@ export async function crearAlarma(args: {
   tipo: AlarmaPropuesta["tipo"];
   descripcion: string;
   creadoPor: number | null;
+  prioridad?: "ALTA" | "MEDIA" | "BAJA";
+  responsableId?: number | null;
+  fechaEstimada?: string | null;
+  evidenciaUrl?: string;
 }): Promise<{ idAlarma: number }> {
   const rows = await sql<{ id_alarma: number | string }[]>`
-    INSERT INTO sgs_pro_propuesta_alarma (id_propuesta, tipo, descripcion, creado_por)
-    VALUES (${args.idPropuesta}, ${args.tipo}, ${args.descripcion}, ${args.creadoPor})
+    INSERT INTO sgs_pro_propuesta_alarma (
+      id_propuesta, tipo, descripcion, creado_por,
+      prioridad, responsable_id, fecha_estimada, evidencia_url
+    ) VALUES (
+      ${args.idPropuesta},
+      ${args.tipo},
+      ${args.descripcion},
+      ${args.creadoPor},
+      ${args.prioridad ?? "MEDIA"},
+      ${args.responsableId ?? null},
+      ${args.fechaEstimada ?? null},
+      ${args.evidenciaUrl ?? ""}
+    )
     RETURNING id_alarma;
   `;
   const r = rows[0];
@@ -666,6 +798,156 @@ export async function resolverAlarma(args: {
            nota_resolucion = ${args.notaResolucion}
     WHERE  id_alarma = ${args.idAlarma};
   `;
+}
+
+/**
+ * Lista de usuarios activos para el dropdown de responsable de una alarma.
+ * Cacheado con TTL corto (5 min) — son pocos usuarios y los cambios son raros.
+ */
+const listUsuariosMiniImpl = async (): Promise<UsuarioMini[]> => {
+  const rows = await sql<{ id_usuario: number | string; email: string }[]>`
+    SELECT id_usuario, email
+    FROM   sgs_adm_usuario
+    WHERE  activo = TRUE
+    ORDER  BY email;
+  `;
+  return rows.map((r) => ({
+    idUsuario: pgInt(r.id_usuario),
+    email: pgText(r.email),
+  }));
+};
+export const listUsuariosMini = cached(listUsuariosMiniImpl, {
+  tags: ["usuarios:lookup"],
+  ttl: 300,
+});
+
+// =============================================================================
+// getIntervencionContexto — AJUSTE 3
+//
+// Devuelve las intervenciones de la MISMA accion y MISMO municipio (excluyendo
+// la actual) para dar contexto visual en el mapa del detalle. Tambien devuelve
+// la geometria del predio asociado (si existe) como poligono de fondo.
+// =============================================================================
+export interface VecinoMini {
+  id: number;
+  tipo: "punto" | "linea" | "poligono";
+  actividad: string;
+  /** GeoJSON Geometry ya parseado (Point / LineString / Multi* / Polygon). */
+  geom: GeoJSON.Geometry;
+}
+
+export interface IntervencionContexto {
+  vecinos: VecinoMini[];
+  /** Poligono del predio como GeoJSON o null si no tiene. */
+  predioGeom: GeoJSON.Geometry | null;
+  /** Codigo CxAy de la intervencion (derivado del catalogo canonico). */
+  componenteAccion: string | null;
+}
+
+export async function getIntervencionContexto(
+  id: number,
+): Promise<IntervencionContexto | null> {
+  // 1) Datos base: id_accion, id_predio y nombre del municipio de la intervencion.
+  const head = await sql<{
+    id_accion: number | string | null;
+    id_predio: number | string | null;
+    id_municipio: number | string | null;
+    nombre_componente: string | null;
+    nombre_accion: string | null;
+  }[]>`
+    SELECT pp.id_accion, pp.id_predio,
+           m.id_municipio, c.nombre AS nombre_componente, a.nombre AS nombre_accion
+    FROM   sgs_pro_propuesta pp
+    JOIN   sgs_com_accion     a ON a.id_accion     = pp.id_accion
+    JOIN   sgs_com_componente c ON c.id_componente = a.id_componente
+    LEFT JOIN sgs_pre_predio     pr ON pr.id_predio = pp.id_predio
+    LEFT JOIN bcs_lpa_vereda     v  ON v.id_vereda   = pr.id_vereda
+    LEFT JOIN bcs_lpa_municipio  m  ON m.id_municipio = v.id_municipio
+    WHERE  pp.id_propuesta = ${id}
+    LIMIT 1;
+  `;
+  const headRow = head[0];
+  if (!headRow) return null;
+
+  const idAccion = headRow.id_accion == null ? null : pgInt(headRow.id_accion);
+  const idMunicipio = headRow.id_municipio == null ? null : pgInt(headRow.id_municipio);
+  const idPredio = headRow.id_predio == null ? null : pgInt(headRow.id_predio);
+  const compNombre = pgText(headRow.nombre_componente);
+  const accNombre = pgText(headRow.nombre_accion);
+  // Codigo visible: C3 + U|A1 -> C3AU; resto, literal C+A.
+  const componenteAccion =
+    compNombre === "C3" && (accNombre === "U" || accNombre === "A1")
+      ? "C3AU"
+      : compNombre && accNombre
+        ? `${compNombre}${accNombre}`
+        : null;
+
+  if (!idAccion || !idMunicipio) {
+    return { vecinos: [], predioGeom: null, componenteAccion };
+  }
+
+  // 2) Vecinos: misma accion, mismo municipio, distinta intervencion.
+  const vecinosRows = await sql<{
+    id_propuesta: number | string;
+    tipo: string;
+    actividad: string;
+    geom: string | null;
+  }[]>`
+    SELECT pp.id_propuesta, pp.tipo, pp.actividad,
+           CASE WHEN pp.tipo = 'linea'   THEN ST_AsGeoJSON(pl.geom)
+                WHEN pp.tipo = 'poligono' THEN ST_AsGeoJSON(pq.geom)
+                WHEN pp.tipo = 'punto'    THEN ST_AsGeoJSON(pt.geom)
+           END AS geom
+    FROM sgs_pro_propuesta pp
+    JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+    LEFT JOIN sgs_pre_predio    pr ON pr.id_predio  = pp.id_predio
+    LEFT JOIN bcs_lpa_vereda     v  ON v.id_vereda   = pr.id_vereda
+    LEFT JOIN sgs_pro_propuesta_punto    pt ON pt.id_propuesta = pp.id_propuesta
+    LEFT JOIN sgs_pro_propuesta_linea    pl ON pl.id_propuesta = pp.id_propuesta
+    LEFT JOIN sgs_pro_propuesta_poligono pq ON pq.id_propuesta = pp.id_propuesta
+    WHERE pp.id_propuesta <> ${id}
+      AND pp.id_accion = ${idAccion}
+      AND v.id_municipio = ${idMunicipio}
+      AND (pt.geom IS NOT NULL OR pl.geom IS NOT NULL OR pq.geom IS NOT NULL)
+    LIMIT 50;
+  `;
+
+  const vecinos: VecinoMini[] = [];
+  for (const r of vecinosRows) {
+    if (!r.geom) continue;
+    try {
+      vecinos.push({
+        id: pgInt(r.id_propuesta),
+        tipo: pgText(r.tipo) as VecinoMini["tipo"],
+        actividad: pgText(r.actividad),
+        geom: JSON.parse(r.geom) as GeoJSON.Geometry,
+      });
+    } catch {
+      // JSON malformado: skip silenciosamente.
+    }
+  }
+
+  // 3) Poligono del predio asociado (si existe).
+  let predioGeom: GeoJSON.Geometry | null = null;
+  if (idPredio != null) {
+    const preds = await sql<{ geom: string | null }[]>`
+      SELECT ST_AsGeoJSON(geom) AS geom
+      FROM   sgs_pre_predio
+      WHERE  id_predio = ${idPredio} AND geom IS NOT NULL
+      LIMIT 1;
+    `;
+    const raw = preds[0]?.geom;
+    if (raw) {
+      try {
+        predioGeom = JSON.parse(raw) as GeoJSON.Geometry;
+      } catch {
+        /* skip */
+      }
+    }
+  }
+
+  return { vecinos, predioGeom, componenteAccion };
 }
 
 

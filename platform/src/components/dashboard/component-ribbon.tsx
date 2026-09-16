@@ -77,12 +77,12 @@ const ORDER: Key[] = ["TODOS", "C1", "C2", "C3", "IMPORT"];
 
 export function ComponentRibbon({
   active,
-  avances,
   activeAccion,
+  avances,
 }: {
   active?: string | null;
+  activeAccion?: AccionCode | null;
   avances?: Record<ComponenteKey, AvanceComponente>;
-  activeAccion?: string | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -91,8 +91,10 @@ export function ComponentRibbon({
     const params = new URLSearchParams(searchParams.toString());
     if (key === "TODOS" || active === key) {
       params.delete("componente");
+      params.delete("accion");
     } else {
       params.set("componente", key);
+      params.delete("accion"); // limpiar sub-filtro al cambiar de componente
     }
     const qs = params.toString();
     router.replace(qs ? `/?${qs}` : "/", { scroll: false });
