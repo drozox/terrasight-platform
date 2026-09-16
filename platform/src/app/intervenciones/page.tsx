@@ -36,11 +36,11 @@ const COMPONENT_ACTIVE_BG: Record<"primary" | "secondary" | "tertiary", string> 
   tertiary:  "border-tertiary bg-tertiary text-on-tertiary",
 };
 
-// DEEPSEEK-F2: acciones válidas por componente (modelo BDG).
-const ACCIONES_POR_COMPONENTE: Record<string, string[]> = {
-  C1: ["A1", "A2"],
-  C2: ["A1", "A2"],
-  C3: ["A1", "A2"],
+// T1 filtro-accion: codigos visibles por componente (C3 solo tiene C3AU).
+const ACCIONES_POR_COMPONENTE: Record<string, readonly string[]> = {
+  C1: ["C1A1", "C1A2"],
+  C2: ["C2A1", "C2A2"],
+  C3: ["C3AU"],
 };
 
 // UX-65: helper para construir el URL de paginacion preservando el filtro.
@@ -53,12 +53,12 @@ function buildPageUrl(componente: string | null, accion: string | null, page: nu
   return qs ? `/intervenciones?${qs}` : "/intervenciones";
 }
 
-// DEEPSEEK-F2: helper que arma el título descriptivo del filtro activo.
+// T1 filtro-accion: helper que arma el título descriptivo del filtro activo.
 function describeFilter(componente: string | null, accion: string | null): string {
   if (!componente && !accion) return "Todas las intervenciones del convenio";
   if (componente && !accion) return `Componente ${componente}`;
   if (componente && accion) {
-    return `Componente ${componente} — Acción ${accion} (${componente}${accion})`;
+    return `Componente ${componente} — Acción ${accion}`;
   }
   return accion ? `Acción ${accion}` : "Todas";
 }
@@ -209,7 +209,7 @@ export default async function IntervencionesPage({
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
                 }`}
               >
-                {componente}{a}
+                {a}
               </Link>
             ))}
           </div>
@@ -319,7 +319,7 @@ export default async function IntervencionesPage({
                     <td className="px-4 py-3">
                       {i.componente && COMPONENT_COLOR[i.componente] ? (
                         <Badge variant={COMPONENT_COLOR[i.componente]}>
-                          {i.componente}
+                          {i.componenteAccion ?? `${i.componente}${i.accion}`}
                         </Badge>
                       ) : (
                         "—"

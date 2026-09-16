@@ -9,6 +9,21 @@ import { formatDecimal } from "@/lib/utils";
 import type { IntervencionReciente } from "@/lib/types";
 import { IconLeaf, IconDrop } from "@/components/icons";
 import { ArrowRight } from "lucide-react";
+import { codigoAccionPara, type AccionCode } from "@/lib/acciones";
+import { cn } from "@/lib/utils";
+
+// Color por componente (mismas reglas que component-ribbon.tsx).
+const COMPONENT_COLOR: Record<"C1" | "C2" | "C3", "primary" | "secondary" | "tertiary"> = {
+  C1: "primary",
+  C2: "secondary",
+  C3: "tertiary",
+};
+
+/** Resuelve el código visible (C1A1..C3AU) aunque venga de demo data sin el campo. */
+function codigoVisible(r: IntervencionReciente): AccionCode | null {
+  if (r.componenteAccion) return r.componenteAccion as AccionCode;
+  return codigoAccionPara(r.componente, r.accion);
+}
 
 export function IntervencionesTable({
   rows,
@@ -39,6 +54,7 @@ export function IntervencionesTable({
           <thead>
             <tr className="bg-surface-container-low text-[11px] font-bold uppercase text-on-surface-variant">
               <th className="px-4 py-3">Intervención</th>
+              <th className="px-4 py-3">Componente</th>
               <th className="px-4 py-3">Predio</th>
               <th className="px-4 py-3">Municipio</th>
               <th className="px-4 py-3">Estado</th>
@@ -49,14 +65,17 @@ export function IntervencionesTable({
             {data.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-8 text-center text-on-surface-variant"
                 >
                   Sin intervenciones registradas aún.
                 </td>
               </tr>
             )}
-            {data.map((r) => (
+            {data.map((r) => {
+              const codigo = codigoVisible(r);
+              const compClave = (["C1", "C2", "C3"] as const).find((c) => c === r.componente);
+              return (
               <tr
                 key={r.id}
                 onClick={() => router.push(`/intervenciones/${r.id}`)}
@@ -69,6 +88,15 @@ export function IntervencionesTable({
                     <IconLeaf className="size-4 text-primary" />
                   )}
                   <span className="capitalize">{r.actividad || r.tipo}</span>
+                </td>
+                <td className="px-4 py-3">
+                  {codigo && compClave ? (
+                    <Badge variant={COMPONENT_COLOR[compClave]}>{codigo}</Badge>
+                  ) : (
+                    <span className="font-mono text-[12px] text-on-surface-variant">
+                      {r.componente}{r.accion}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 font-mono text-on-surface">
                   {r.codigoPredio}
@@ -116,7 +144,8 @@ export function IntervencionesTable({
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

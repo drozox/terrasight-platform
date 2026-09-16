@@ -47,6 +47,14 @@ export type IntervencionReciente = {
   componente: string;
   accion: string;
   idAccion?: number | null;
+  /**
+   * Codigo visible de accion: "C1A1" | "C1A2" | "C2A1" | "C2A2" | "C3AU".
+   * T1 filtro-accion: el UI muestra este codigo en la columna "Componente"
+   * de las tablas. Equivale a `${componente}${accion}` excepto para C3,
+   * donde `accion` puede ser "U" o "A1" y `componenteAccion` se reporta como
+   * "C3AU". `null` cuando la accion en BD no mapea a un codigo canonico.
+   */
+  componenteAccion?: string | null;
   hectareas: number | null;
   longitud: number | null;
   /**

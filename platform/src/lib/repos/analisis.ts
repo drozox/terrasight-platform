@@ -29,7 +29,7 @@ import {
   DEMO_TOP_MUNICIPIOS,
   DEMO_SERIES_COMPONENTES,
 } from "../demo-data";
-import { type AccionCode, accionDef } from "../acciones";
+import { type AccionCode, accionDef, codigoAccionPara } from "../acciones";
 import type {
   DashboardKpis,
   ComponenteTotal,
@@ -393,6 +393,8 @@ const getIntervencionesRecientesImpl = async (
       // o sync fuera de banda), caemos a EN_EJECUCION como "estado vivo".
       const estado: EstadoIntervencion =
         dbEstado === "BORRADOR" || dbEstado === "FINALIZADA" ? dbEstado : "EN_EJECUCION";
+      // T1 filtro-accion: codigo visible (C1A1..C3AU). Para C3 + U|A1 -> C3AU.
+      const codigo = codigoAccionPara(r.nombre_componente, r.nombre_accion);
       return {
         id: pgInt(r.id_propuesta),
         tipo: pgText(r.tipo),
@@ -402,6 +404,7 @@ const getIntervencionesRecientesImpl = async (
         municipio: pgText(r.nombre_municipio),
         componente: pgText(r.nombre_componente),
         accion: pgText(r.nombre_accion),
+        componenteAccion: codigo,
         idAccion: pgInt(r.id_accion),
         hectareas: r.hectareas !== null ? pgNum(r.hectareas) : null,
         longitud: r.longitud !== null ? pgNum(r.longitud) : null,
