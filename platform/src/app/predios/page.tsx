@@ -1,9 +1,11 @@
 ﻿// =============================================================================
-// /predios — Lista de predios concertados (DEEPSEEK-F3).
+// /predios — Lista de predios concertados (DEEPSEEK-F3 / F3.2).
 // Cambios vs versión anterior:
-//   - Filtros por ?componente=Cx y ?accion=Ay (además de ?q)
+//   - Filtros por ?componente=Cx y ?accion=CxAy (código canónico, no A1/A2 suelto)
+//   - Componente/acción derivados de las propuestas del predio (no de nucleo)
 //   - Columna "Propietario" con nombre (no solo ID)
-//   - KPI chip de C2 removido (C2 no acota por predios sino por microcuencas)
+//   - Tabla: Componente = código completo (C1A1..C3AU) + columna Acción (A1/A2/AU)
+//   - KPI chips: Total / C1 / C3 (C2 no acota por predios)
 //   - Cédula anterior → "Cédula ANT" (Agencia Nacional de Tierras)
 // =============================================================================
 
@@ -15,9 +17,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { Building2, Search, MapPin, Filter } from "lucide-react";
 import Link from "next/link";
-import { listPrediosFiltrados } from "@/lib/repos";
+import { listPrediosFiltrados, getPrediosKpis } from "@/lib/repos";
 import { getCurrentUser } from "@/lib/auth-guard";
 import { formatDecimal } from "@/lib/utils";
+import {
+  accionesDeComponente,
+  normalizarAccion,
+  type AccionCode,
+} from "@/lib/acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -38,39 +45,37 @@ const COMPONENT_COLOR: Record<string, "primary" | "secondary" | "tertiary"> = {
 // DEEPSEEK-F3: C2 no acota por predios (acota por microcuencas), lo excluimos
 // del KPI chip y de los filtros de la tabla.
 const COMPONENTES_PREDIOS = ["C1", "C3"] as const;
-const ACCIONES_POR_COMPONENTE: Record<string, string[]> = {
-  C1: ["A1", "A2"],
-  C3: ["A1", "A2"],
-};
 
 export default async function PrediosPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const [params, usuario] = await Promise.all([
-    searchParams,
-    getCurrentUser(),
-  ]);
+  const params = await searchParams;
   const q = (params.q ?? "").trim();
   const componente = params.componente ?? null;
-  const accion = params.accion ?? null;
+  const accionCode = normalizarAccion(params.accion);
   const sort = params.sort ?? "nombre";
   const order = params.order === "desc" ? "desc" : "asc";
-  const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
-  const all = await listPrediosFiltrados({ componente, accion, q: q || null });
+  const [all, kpis, usuario] = await Promise.all([
+    listPrediosFiltrados({ componente, accion: accionCode, q: q || null }),
+    getPrediosKpis(),
+    getCurrentUser(),
+  ]);
+  const canEdit = usuario?.rol === "ADMIN" || usuario?.rol === "GESTOR";
 
   const sorted = [...all].sort((a, b) => {
     const fieldMap: Record<string, string> = {
       codigo: "codigo",
       nombre: "nombrePredio",
-      componente: "componente",
+      propietario: "nombrePropietario",
+      componente: "codigoAccion",
+      accion: "accionLabel",
       nucleo: "nucleoPredial",
       area: "areaHa",
-      propietario: "nombrePropietario",
     };
-    const key = fieldMap[sort] ?? "nombre";
+    const key = fieldMap[sort] ?? "nombrePredio";
     const av = (a as unknown as Record<string, unknown>)[key];
     const bv = (b as unknown as Record<string, unknown>)[key];
     let cmp = 0;
@@ -82,13 +87,22 @@ export default async function PrediosPage({
     return order === "asc" ? cmp : -cmp;
   });
 
-  // Calcular KPIs (sin C2)
-  const totalArea = all.reduce((acc, p) => acc + (p.areaHa ?? 0), 0);
-  const porComponente = all.reduce<Record<string, number>>((acc, p) => {
-    const c = p.componente ?? "—";
-    acc[c] = (acc[c] ?? 0) + 1;
-    return acc;
-  }, {});
+  const acciones =
+    componente && (COMPONENTES_PREDIOS as readonly string[]).includes(componente)
+      ? accionesDeComponente(componente)
+      : [];
+
+  const kpisChips = [
+    { label: "Total predios", value: kpis.total, color: "text-on-surface" },
+    { label: "C1", value: kpis.c1, color: "text-primary" },
+    { label: "C3", value: kpis.c3, color: "text-tertiary" },
+  ];
+
+  const sortParams = {
+    q,
+    componente: componente ?? undefined,
+    accion: accionCode ?? undefined,
+  };
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-container-low p-gutter">
@@ -101,17 +115,18 @@ export default async function PrediosPage({
                 <Building2 className="size-5" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-on-surface">
-                  Predios
-                </h1>
+                <h1 className="text-2xl font-bold text-on-surface">Predios</h1>
                 <p className="text-body-sm text-on-surface-variant">
-                  {all.length} predios registrados · {formatDecimal(totalArea, 1)} ha totales
-                  {(componente || accion) && (
+                  {all.length} predios listados · {formatDecimal(
+                    all.reduce((acc, p) => acc + (p.areaHa ?? 0), 0),
+                    1,
+                  )}{" "}
+                  ha
+                  {(componente || accionCode) && (
                     <>
                       {" · Filtro: "}
-                      {[componente, accion ? `${componente}${accion}` : null]
-                        .filter(Boolean)
-                        .join(" — ")}
+                      {componente ?? "—"}
+                      {accionCode ? ` — ${accionCode}` : ""}
                     </>
                   )}
                 </p>
@@ -120,36 +135,19 @@ export default async function PrediosPage({
           </div>
           {canEdit && (
             <Button asChild>
-              <Link href="/predios/nuevo">
-                + Nuevo Predio
-              </Link>
+              <Link href="/predios/nuevo">+ Nuevo Predio</Link>
             </Button>
           )}
         </div>
 
-        {/* KPI chips (solo C1 y C3) */}
+        {/* KPI chips (Total / C1 / C3) */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Card className="p-4">
-            <p className="text-[10px] font-bold uppercase text-on-surface-variant">
-              Total predios
-            </p>
-            <p className="mt-1 text-2xl font-bold text-on-surface">
-              {all.length}
-            </p>
-          </Card>
-          {COMPONENTES_PREDIOS.map((c) => (
-            <Card key={c} className="p-4">
+          {kpisChips.map((c) => (
+            <Card key={c.label} className="p-4">
               <p className="text-[10px] font-bold uppercase text-on-surface-variant">
-                {c}
+                {c.label}
               </p>
-              <p
-                className={
-                  "mt-1 text-2xl font-bold " +
-                  (c === "C1" ? "text-primary" : "text-tertiary")
-                }
-              >
-                {porComponente[c] ?? 0}
-              </p>
+              <p className={"mt-1 text-2xl font-bold " + c.color}>{c.value}</p>
             </Card>
           ))}
         </div>
@@ -166,26 +164,23 @@ export default async function PrediosPage({
           >
             Todos
           </Link>
-          {COMPONENTES_PREDIOS.map((c) => {
-            const color = COMPONENT_COLOR[c];
-            return (
-              <Link
-                key={c}
-                href={`/predios?componente=${c}`}
-                className={`rounded-full border px-3 py-1 text-label-lg font-bold transition-colors ${
-                  componente === c
-                    ? `border-${color} bg-${color} text-on-${color}`
-                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
-                }`}
-              >
-                {c}
-              </Link>
-            );
-          })}
+          {COMPONENTES_PREDIOS.map((c) => (
+            <Link
+              key={c}
+              href={`/predios?componente=${c}`}
+              className={`rounded-full border px-3 py-1 text-label-lg font-bold transition-colors ${
+                componente === c
+                  ? "border-primary bg-primary text-on-primary"
+                  : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
+              }`}
+            >
+              {c}
+            </Link>
+          ))}
         </div>
 
-        {/* Chips de acción (solo si hay componente) */}
-        {componente && (
+        {/* Chips de acción (solo si hay componente con acciones) */}
+        {componente && acciones.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-label-lg font-bold text-on-surface-variant">
               Acción:
@@ -193,24 +188,24 @@ export default async function PrediosPage({
             <Link
               href={`/predios?componente=${componente}`}
               className={`rounded-full border px-3 py-1 text-label-lg font-bold transition-colors ${
-                !accion
+                !accionCode
                   ? "border-primary bg-primary text-on-primary"
                   : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
               }`}
             >
               Todas
             </Link>
-            {(ACCIONES_POR_COMPONENTE[componente] ?? []).map((a) => (
+            {acciones.map((a) => (
               <Link
-                key={a}
-                href={`/predios?componente=${componente}&accion=${a}`}
+                key={a.code}
+                href={`/predios?componente=${componente}&accion=${a.code}`}
                 className={`rounded-full border px-3 py-1 text-label-lg font-bold transition-colors ${
-                  accion === a
+                  accionCode === a.code
                     ? "border-primary bg-primary text-on-primary"
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
                 }`}
               >
-                {componente}{a}
+                {a.code}
               </Link>
             ))}
           </div>
@@ -230,15 +225,13 @@ export default async function PrediosPage({
               />
               {/* Preservar filtros de componente/accion al buscar */}
               {componente && <input type="hidden" name="componente" value={componente} />}
-              {accion && <input type="hidden" name="accion" value={accion} />}
+              {accionCode && <input type="hidden" name="accion" value={accionCode} />}
             </form>
             <div className="flex items-center gap-2 text-body-sm text-on-surface-variant">
               <Filter className="size-4" />
               <span>
                 Mostrando{" "}
-                <span className="font-bold text-on-surface">
-                  {sorted.length}
-                </span>{" "}
+                <span className="font-bold text-on-surface">{sorted.length}</span>{" "}
                 de {all.length}
               </span>
             </div>
@@ -249,58 +242,28 @@ export default async function PrediosPage({
               <thead>
                 <tr className="bg-surface-container-low text-[11px] font-bold uppercase text-on-surface-variant">
                   <th className="px-4 py-3">
-                    <SortableHeader
-                      field="codigo"
-                      currentSort={sort}
-                      currentOrder={order}
-                      basePath="/predios"
-                      searchParams={{ q, componente: componente ?? undefined, accion: accion ?? undefined }}
-                    >
+                    <SortableHeader field="codigo" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
                       Código
                     </SortableHeader>
                   </th>
                   <th className="px-4 py-3">
-                    <SortableHeader
-                      field="nombre"
-                      currentSort={sort}
-                      currentOrder={order}
-                      basePath="/predios"
-                      searchParams={{ q, componente: componente ?? undefined, accion: accion ?? undefined }}
-                    >
+                    <SortableHeader field="nombre" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
                       Nombre
                     </SortableHeader>
                   </th>
                   <th className="px-4 py-3">
-                    <SortableHeader
-                      field="componente"
-                      currentSort={sort}
-                      currentOrder={order}
-                      basePath="/predios"
-                      searchParams={{ q, componente: componente ?? undefined, accion: accion ?? undefined }}
-                    >
+                    <SortableHeader field="propietario" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
+                      Propietario
+                    </SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="componente" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
                       Componente
                     </SortableHeader>
                   </th>
                   <th className="px-4 py-3">
-                    <SortableHeader
-                      field="accion"
-                      currentSort={sort}
-                      currentOrder={order}
-                      basePath="/predios"
-                      searchParams={{ q, componente: componente ?? undefined, accion: accion ?? undefined }}
-                    >
+                    <SortableHeader field="accion" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
                       Acción
-                    </SortableHeader>
-                  </th>
-                  <th className="px-4 py-3">
-                    <SortableHeader
-                      field="propietario"
-                      currentSort={sort}
-                      currentOrder={order}
-                      basePath="/predios"
-                      searchParams={{ q, componente: componente ?? undefined, accion: accion ?? undefined }}
-                    >
-                      Propietario
                     </SortableHeader>
                   </th>
                   <th className="px-4 py-3 text-right">
@@ -309,7 +272,7 @@ export default async function PrediosPage({
                       currentSort={sort}
                       currentOrder={order}
                       basePath="/predios"
-                      searchParams={{ q, componente: componente ?? undefined, accion: accion ?? undefined }}
+                      searchParams={sortParams}
                       className="justify-end"
                     >
                       Área (ha)
@@ -325,7 +288,7 @@ export default async function PrediosPage({
                       <EmptyState
                         icon={Search}
                         title="Sin coincidencias"
-                        description={`No hay predios que coincidan con los filtros aplicados. Probá limpiar los filtros.`}
+                        description="No hay predios que coincidan con los filtros aplicados. Probá limpiar los filtros."
                         size="sm"
                         action={{ label: "Limpiar filtros", href: "/predios" }}
                       />
@@ -360,10 +323,13 @@ export default async function PrediosPage({
                     <td className="px-4 py-3 font-bold text-on-surface">
                       {p.nombrePredio}
                     </td>
+                    <td className="px-4 py-3 text-on-surface">
+                      {p.nombrePropietario || "—"}
+                    </td>
                     <td className="px-4 py-3">
-                      {p.componente && COMPONENT_COLOR[p.componente] ? (
+                      {p.codigoAccion && p.componente && COMPONENT_COLOR[p.componente] ? (
                         <Badge variant={COMPONENT_COLOR[p.componente]}>
-                          {p.componente}
+                          {p.codigoAccion}
                         </Badge>
                       ) : (
                         <span className="text-on-surface-variant">—</span>
@@ -372,15 +338,11 @@ export default async function PrediosPage({
                     <td className="px-4 py-3">
                       {p.accion ? (
                         <span className="font-mono text-[12px] text-on-surface-variant">
-                          {p.componente}
-                          {p.accion}
+                          {p.accionLabel}
                         </span>
                       ) : (
                         <span className="text-on-surface-variant">—</span>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-on-surface">
-                      {p.nombrePropietario || "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
                       {formatDecimal(p.areaHa, 2)}

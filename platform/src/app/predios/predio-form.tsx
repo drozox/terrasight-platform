@@ -6,6 +6,7 @@
 // =============================================================================
 
 import * as React from "react";
+import dynamicImport from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,20 @@ import {
   actualizarPredioAction,
   eliminarPredioAction,
 } from "./actions";
+import type { ShapeMetrics } from "./predio-shape-map";
+
+// Leaflet no corre en SSR → cargamos el editor de shape client-only.
+const PredioShapeMap = dynamicImport(
+  () => import("./predio-shape-map").then((m) => m.PredioShapeMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-80 w-full items-center justify-center rounded-lg border border-outline-variant bg-surface-container-low text-body-sm text-on-surface-variant">
+        Cargando mapa…
+      </div>
+    ),
+  },
+);
 
 type Mode = "create" | "edit";
 
@@ -56,6 +71,16 @@ function Field({
   );
 }
 
+/** Dato calculado del shape — solo lectura (F3.2). */
+function Computed({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold uppercase text-on-surface-variant">{label}</p>
+      <p className="font-mono text-body-sm font-bold text-on-surface">{value}</p>
+    </div>
+  );
+}
+
 export function PredioForm({
   mode,
   initial,
@@ -73,6 +98,7 @@ export function PredioForm({
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(initialError ?? null);
   const [flash, setFlash] = React.useState<{ tipo: "ok" | "error"; msg: string } | null>(null);
+  const [shape, setShape] = React.useState<ShapeMetrics | null>(null);
 
   function showFlash(f: { tipo: "ok" | "error"; msg: string }) {
     setFlash(f);
@@ -80,6 +106,12 @@ export function PredioForm({
   }
 
   async function onSubmitCreate(fd: FormData) {
+    // F3.2: el shape es obligatorio. El hidden input lo llena PredioShapeMap.
+    const wkt = String(fd.get("shapeWKT") ?? "").trim();
+    if (wkt.length < 15) {
+      setError("Dibujá el shape del predio en el mapa antes de guardar.");
+      return;
+    }
     setBusy(true); setError(null);
     const res = await crearPredioAction(fd);
     setBusy(false);
@@ -130,35 +162,27 @@ export function PredioForm({
       action={mode === "create" ? onSubmitCreate : onSubmitEdit}
       className="space-y-4"
     >
-      {/* DEEPSEEK-F3.4: campo WKT obligatorio en modo create */}
+      {/* DEEPSEEK-F3.2: shape OBLIGATORIO dibujado en el mapa. */}
       {mode === "create" && (
-        <Field
-          label="Shape (WKT) — POLYGON o MULTIPOLYGON, SRID 4686"
-          hint="Pegá el WKT del polígono (ej. POLYGON((-73.85 4.65, ...)). El área, perímetro y centroide se calculan automáticamente del shape."
-          error={
-            error && !initial?.idPredio
-              ? error.includes("shape") || error.includes("ST_")
-                ? error
-                : null
-              : null
-          }
-        >
-          <textarea
-            name="shapeWKT"
-            rows={4}
-            required
-            placeholder="POLYGON((-73.8500 4.6500, -73.8400 4.6500, -73.8400 4.6600, -73.8500 4.6600, -73.8500 4.6500))"
-            className="w-full rounded-lg border border-outline-variant bg-surface-container-highest px-3 py-2 font-mono text-[11px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </Field>
-      )}
-
-      {/* DEEPSEEK-F3.4: las métricas manuales solo se muestran en modo edit
-          (en create se calculan del shape). */}
-      {mode === "create" && (
-        <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-low p-3 text-body-sm text-on-surface-variant">
-          El área, perímetro, longitud y latitud del centroide se calculan
-          automáticamente del WKT. No los ingreses manualmente.
+        <div className="space-y-2">
+          <span className="block text-label-lg font-medium text-on-surface">
+            Shape del predio <span className="text-error">*</span>
+          </span>
+          <PredioShapeMap onChange={setShape} />
+          <input type="hidden" name="shapeWKT" value={shape?.wkt ?? ""} />
+          {shape ? (
+            <div className="grid grid-cols-2 gap-3 rounded-lg border border-outline-variant/40 bg-surface-container-low p-3 sm:grid-cols-4">
+              <Computed label="Área" value={`${shape.areaHa.toFixed(2)} ha`} />
+              <Computed label="Perímetro" value={`${shape.perimetroM.toFixed(0)} m`} />
+              <Computed label="Lat" value={shape.latitud.toFixed(6)} />
+              <Computed label="Lon" value={shape.longitud.toFixed(6)} />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-low p-3 text-body-sm text-on-surface-variant">
+              El área, perímetro, latitud y longitud del centroide se calculan
+              automáticamente del shape. Es obligatorio dibujarlo.
+            </div>
+          )}
         </div>
       )}
       {flash && (

@@ -11,6 +11,7 @@
 import { sql, pgInt, pgNum, pgText, pgDate } from "../db";
 import { withFallback, isValidTelefono } from "./_helpers";
 import { cached } from "./_cache";
+import { accionDef, codigoAccionPara, type AccionCode } from "../acciones";
 import type {
   PredioFull,
   PropietarioMini,
@@ -69,19 +70,24 @@ export async function listPredios(): Promise<PredioFull[]> {
 }
 
 // -----------------------------------------------------------------------------
-// listPrediosFiltrados — DEEPSEEK-F3
+// listPrediosFiltrados — DEEPSEEK-F3 / F3.2
 // Variante rica con nombre de propietario + filtros por componente/acción.
-// Los componentes y acciones se derivan del `nucleo_predial` (texto que agrupa
-// los predios por CxAy — ej. "C1A1 - Vereda X"). Es heurístico pero cubre el
-// 99% de los casos sin requerir schema changes.
+//
+// IMPORTANTE (modelo de datos): sgs_pre_predio NO guarda componente/acción ni
+// id_accion. El vínculo real es vía las PROPUESTAS del predio
+// (sgs_pro_propuesta.id_accion → sgs_com_accion → sgs_com_componente).
+// Cada predio puede tener 0..N propuestas; mostramos la primera acción (orden
+// por id_accion) como su componente/acción representativa.
 // -----------------------------------------------------------------------------
 export type PredioFiltrado = {
   idPredio: number;
   codigo: string;
   nombrePredio: string;
   nucleoPredial: string;
-  componente: string | null;   // "C1" | "C2" | "C3" | null
-  accion: string | null;        // "A1" | "A2" | "U" | null
+  componente: string | null;      // "C1" | "C2" | "C3" | null
+  accion: string | null;           // "A1" | "A2" | "U" | null (nombre en BD)
+  codigoAccion: AccionCode | null; // "C1A1" .. "C3AU"
+  accionLabel: string;             // "A1" | "A2" | "AU" | "—"
   areaHa: number;
   longitudCentroide: number;
   latitudCentroide: number;
@@ -90,19 +96,39 @@ export type PredioFiltrado = {
   idVereda: number;
 };
 
+/** Etiqueta corta de acción para la tabla: C3AU → "AU"; resto → nombre BD. */
+function etiquetaAccion(code: AccionCode | null, accion: string | null): string {
+  if (code === "C3AU") return "AU";
+  return accion ?? "—";
+}
+
 export async function listPrediosFiltrados(args: {
   componente?: string | null;
-  accion?: string | null;
+  accion?: AccionCode | null;
   q?: string | null;
 }): Promise<PredioFiltrado[]> {
   const conditions = [];
+  // Filtramos por las propuestas del predio (no por columnas del predio).
   if (args.componente) {
-    // Componente: prefijo del nucleo_predial (C1, C2, C3 al inicio)
-    conditions.push(sql`p.nucleo_predial LIKE ${args.componente + "%"}`);
+    conditions.push(sql`EXISTS (
+      SELECT 1
+      FROM sgs_pro_propuesta pp
+      JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+      WHERE pp.id_predio = p.id_predio AND c.nombre = ${args.componente}
+    )`);
   }
   if (args.accion) {
-    // Acción: tercera letra del nucleo_predial (CxAy donde y = A1/A2/U)
-    conditions.push(sql`SUBSTRING(p.nucleo_predial FROM 3 FOR 2) = ${args.accion}`);
+    const def = accionDef(args.accion);
+    conditions.push(sql`EXISTS (
+      SELECT 1
+      FROM sgs_pro_propuesta pp
+      JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+      WHERE pp.id_predio = p.id_predio
+        AND c.nombre = ${def.componente}
+        AND a.nombre IN ${sql(def.nombres)}
+    )`);
   }
   if (args.q) {
     const like = "%" + args.q + "%";
@@ -130,6 +156,8 @@ export async function listPrediosFiltrados(args: {
       id_propietario: number | string;
       nombre_propietario: string | null;
       id_vereda: number | string;
+      nombre_componente: string | null;
+      nombre_accion: string | null;
     }[]
   >`
     SELECT p.id_predio,
@@ -141,23 +169,36 @@ export async function listPrediosFiltrados(args: {
            p.latitud_centroide,
            p.id_propietario,
            pr.nombre_razon_social                          AS nombre_propietario,
-           p.id_vereda
+           p.id_vereda,
+           ca.nombre_componente,
+           ca.nombre_accion
     FROM   sgs_pre_predio p
     LEFT JOIN sgs_pre_propietario pr ON pr.id_propietario = p.id_propietario
+    LEFT JOIN LATERAL (
+      SELECT c.nombre AS nombre_componente, a.nombre AS nombre_accion
+      FROM   sgs_pro_propuesta pp
+      JOIN   sgs_com_accion     a ON a.id_accion     = pp.id_accion
+      JOIN   sgs_com_componente c ON c.id_componente = a.id_componente
+      WHERE  pp.id_predio = p.id_predio
+      ORDER  BY a.id_accion
+      LIMIT  1
+    ) ca ON true
     ${whereClause}
     ORDER  BY p.nombre_predio;
   `;
   return rows.map((r) => {
-    const nucleo = pgText(r.nucleo_predial);
-    const compMatch = nucleo.match(/^(C[123])/);
-    const accMatch = nucleo.match(/^C[123](A1|A2|U)/);
+    const componente = r.nombre_componente ? pgText(r.nombre_componente) : null;
+    const accion = r.nombre_accion ? pgText(r.nombre_accion) : null;
+    const codigoAccion = codigoAccionPara(componente, accion);
     return {
       idPredio: pgInt(r.id_predio),
       codigo: r.codigo ?? `PR-${String(pgInt(r.id_predio)).padStart(5, "0")}`,
       nombrePredio: pgText(r.nombre_predio),
-      nucleoPredial: nucleo,
-      componente: compMatch ? compMatch[1] : null,
-      accion: accMatch ? accMatch[1] : null,
+      nucleoPredial: pgText(r.nucleo_predial),
+      componente,
+      accion,
+      codigoAccion,
+      accionLabel: etiquetaAccion(codigoAccion, accion),
       areaHa: pgNum(r.area_ha),
       longitudCentroide: pgNum(r.longitud_centroide),
       latitudCentroide: pgNum(r.latitud_centroide),
@@ -166,6 +207,35 @@ export async function listPrediosFiltrados(args: {
       idVereda: pgInt(r.id_vereda),
     };
   });
+}
+
+// -----------------------------------------------------------------------------
+// getPrediosKpis — conteos del encabezado (Total / C1 / C3).
+// C2 se excluye: no acota por predios (se maneja por microcuencas).
+// Un predio se cuenta en un componente si tiene ≥1 propuesta de ese componente.
+// -----------------------------------------------------------------------------
+export type PrediosKpis = { total: number; c1: number; c3: number };
+
+export async function getPrediosKpis(): Promise<PrediosKpis> {
+  const [row] = await sql<{ total: number | string; c1: number | string; c3: number | string }[]>`
+    WITH pc AS (
+      SELECT pp.id_predio, c.nombre AS comp
+      FROM   sgs_pro_propuesta pp
+      JOIN   sgs_com_accion     a ON a.id_accion     = pp.id_accion
+      JOIN   sgs_com_componente c ON c.id_componente = a.id_componente
+      WHERE  pp.id_predio IS NOT NULL
+      GROUP  BY pp.id_predio, c.nombre
+    )
+    SELECT
+      (SELECT count(*) FROM sgs_pre_predio)::int                       AS total,
+      (SELECT count(DISTINCT id_predio) FROM pc WHERE comp = 'C1')::int AS c1,
+      (SELECT count(DISTINCT id_predio) FROM pc WHERE comp = 'C3')::int AS c3
+  `;
+  return {
+    total: pgInt(row?.total),
+    c1: pgInt(row?.c1),
+    c3: pgInt(row?.c3),
+  };
 }
 
 export async function getPredioById(id: number): Promise<PredioFull | null> {
@@ -185,12 +255,20 @@ export async function getPredioById(id: number): Promise<PredioFull | null> {
     id_propietario: number | string;
     id_vereda: number | string;
     nombre_propietario: string | null;
+    lat_calc: number | string | null;
+    lon_calc: number | string | null;
   };
   const rows = (await sql`
     SELECT p.id_predio, p.nombre_predio, p.area_ha, p.cedula_catastral, p.cedula_ant,
            p.longitud_centroide, p.latitud_centroide, p.nucleo_predial,
            p.observaciones, p.perimetro, p.id_propietario, p.id_vereda,
-           pr.nombre_razon_social AS nombre_propietario
+           pr.nombre_razon_social AS nombre_propietario,
+           CASE WHEN (p.latitud_centroide = 0 OR p.longitud_centroide = 0) AND p.geom IS NOT NULL
+                THEN ST_Y(ST_Centroid(ST_Transform(p.geom, 4326)))
+                ELSE p.latitud_centroide END AS lat_calc,
+           CASE WHEN (p.latitud_centroide = 0 OR p.longitud_centroide = 0) AND p.geom IS NOT NULL
+                THEN ST_X(ST_Centroid(ST_Transform(p.geom, 4326)))
+                ELSE p.longitud_centroide END AS lon_calc
     FROM   sgs_pre_predio p
     LEFT JOIN sgs_pre_propietario pr ON pr.id_propietario = p.id_propietario
     WHERE  p.id_predio = ${id}
@@ -200,6 +278,9 @@ export async function getPredioById(id: number): Promise<PredioFull | null> {
   const r = rows[0]!;
   return {
     ...mapPredioRow(r),
+    // DEEPSEEK-F3.2: si el centroide guardado es 0,0 lo derivamos del shape.
+    latitudCentroide: pgNum(r.lat_calc ?? r.latitud_centroide),
+    longitudCentroide: pgNum(r.lon_calc ?? r.longitud_centroide),
     nombrePropietario: pgText(r.nombre_propietario ?? ""),
   };
 }
@@ -264,12 +345,13 @@ export async function crearPredio(input: Omit<PredioFull, "idPredio">): Promise<
 }
 
 // -----------------------------------------------------------------------------
-// crearPredioConShape — DEEPSEEK-F3.4
-// Variante que recibe WKT del shape. Extrae automáticamente:
-//   - longitud_centroide / latitud_centroide (ST_Centroid)
-//   - area_ha (ST_Area ::geography / 10000)
+// crearPredioConShape — DEEPSEEK-F3.4 / F3.2-fix
+// Recibe WKT del shape en SRID 4326 (lon/lat, como lo dibuja Leaflet) y extrae
+// automáticamente:
+//   - longitud_centroide / latitud_centroide (ST_Centroid sobre 4326)
+//   - area_ha (ST_Area ::geography / 10000) — geography exige 4326
 //   - perimetro (ST_Perimeter ::geography)
-//   - geom (MULTIPOLYGON, SRID 4686) — usa migración 39
+//   - geom (MULTIPOLYGON, SRID 4686) — transformado desde 4326 (migración 39)
 // El WKT DEBE ser POLYGON o MULTIPOLYGON.
 // -----------------------------------------------------------------------------
 export async function crearPredioConShape(input: {
@@ -291,17 +373,17 @@ export async function crearPredioConShape(input: {
     )
     SELECT
       ${input.nombrePredio},
-      ST_Area(ST_GeomFromText(${input.shapeWkt}, 4686)::geography) / 10000.0,
+      ST_Area(ST_GeomFromText(${input.shapeWkt}, 4326)::geography) / 10000.0,
       ${input.cedulaCatastral},
       ${input.cedulaAnt},
-      ST_X(ST_Centroid(ST_GeomFromText(${input.shapeWkt}, 4686))),
-      ST_Y(ST_Centroid(ST_GeomFromText(${input.shapeWkt}, 4686))),
+      ST_X(ST_Centroid(ST_GeomFromText(${input.shapeWkt}, 4326))),
+      ST_Y(ST_Centroid(ST_GeomFromText(${input.shapeWkt}, 4326))),
       ${input.nucleoPredial},
       ${input.observaciones ?? ""},
-      ST_Perimeter(ST_GeomFromText(${input.shapeWkt}, 4686)::geography),
+      ST_Perimeter(ST_GeomFromText(${input.shapeWkt}, 4326)::geography),
       ${input.idPropietario},
       ${input.idVereda},
-      ST_Multi(ST_GeomFromText(${input.shapeWkt}, 4686))
+      ST_Multi(ST_Transform(ST_GeomFromText(${input.shapeWkt}, 4326), 4686))
     RETURNING id_predio;
   `;
   if (!rows[0]) throw new Error("Insert de predio con shape fallido");

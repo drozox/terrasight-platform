@@ -63,7 +63,10 @@ export const getPrediosGeoJSON = unstable_cache(
   async (): Promise<FeatureCollection> => {
     const rows = await sql<{ id: number; nombre: string; area_ha: number; geom: string }[]>`
       SELECT id_predio AS id, nombre_predio AS nombre, area_ha,
-             ST_AsGeoJSON(geom) AS geom
+             ST_AsGeoJSON(
+               CASE WHEN ST_SRID(geom) = 4326 THEN geom
+                    ELSE ST_Transform(geom, 4326) END
+             ) AS geom
       FROM sgs_pre_predio
       WHERE geom IS NOT NULL
       ORDER BY id_predio;

@@ -1,16 +1,19 @@
 "use client";
 
 // =============================================================================
-// PredioMapa — DEEPSEEK-71 (F4)
+// PredioMapa — DEEPSEEK-71 (F4) / F3.2-fix
 //
-// Mini-mapa con el polígono del predio centrado en su bbox.
-// El padre (page.tsx) lo carga con `dynamic({ ssr: false })` para evitar el
-// `window is not defined` de leaflet en SSR (mismo patrón que el visor).
-//
-// Soporta MultiPolygon, Polygon y Point.
+// Mini-mapa con la geometría del predio.
+//   - El padre (page.tsx) lo carga con `dynamic({ ssr: false })` para evitar el
+//     `window is not defined` de leaflet en SSR.
+//   - El GeoJSON que llega ya viene reproyectado a 4326 (ver getPrediosGeoJSON).
+//   - Polygon/MultiPolygon: polígono resaltado + tooltip + fitBounds.
+//   - Point: marcador + tooltip.
 // =============================================================================
 
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
+import * as React from "react";
+import L from "leaflet";
+import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { MapFeature } from "@/lib/types";
 import type { Geometry } from "geojson";
@@ -42,11 +45,29 @@ function centroidBBox(geom: Geometry): { center: LngLat; zoom: number } | null {
     if (b.south > south) south = b.south;
     if (b.north > north) north = b.north;
   }
+  if (![west, south, east, north].every(Number.isFinite)) return null;
   const center: LngLat = [(west + east) / 2, (south + north) / 2];
   const span = Math.max(east - west, north - south);
   const zoom = span > 0.1 ? 12 : span > 0.01 ? 14 : span > 0.001 ? 16 : 17;
   return { center, zoom };
 }
+
+/** Ajusta el viewport a la geometría (más robusto que center/zoom fijos). */
+function FitBounds({ geometry }: { geometry: Geometry }) {
+  const map = useMap();
+  React.useEffect(() => {
+    const b = L.geoJSON(geometry).getBounds();
+    if (b.isValid()) {
+      map.fitBounds(b, { padding: [30, 30], maxZoom: 16 });
+    }
+  }, [geometry, map]);
+  return null;
+}
+
+const OSM = {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a>',
+  url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+};
 
 export function PredioMapa({ feature }: { feature: MapFeature | null }) {
   if (!feature || !feature.geometry) {
@@ -57,7 +78,9 @@ export function PredioMapa({ feature }: { feature: MapFeature | null }) {
     );
   }
   const geometry = feature.geometry as Geometry;
-  const codigo = (feature.properties as { codigo?: string })?.codigo ?? "Predio";
+  const props = (feature.properties ?? {}) as { codigo?: string; nombre?: string };
+  const nombre = props.nombre ?? "Predio";
+  const codigo = props.codigo ?? props.nombre ?? "Predio";
 
   if (geometry.type === "Point") {
     const [lng, lat] = geometry.coordinates as number[];
@@ -68,13 +91,18 @@ export function PredioMapa({ feature }: { feature: MapFeature | null }) {
         scrollWheelZoom={false}
         className="h-64 w-full rounded-lg border border-outline-variant"
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/">OSM</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer {...OSM} />
+        <CircleMarker
+          center={[lat, lng] as LngLat}
+          radius={9}
+          pathOptions={{ color: "#d9480f", weight: 2, fillColor: "#ff922b", fillOpacity: 0.9 }}
+        >
+          <Tooltip>{nombre}</Tooltip>
+        </CircleMarker>
       </MapContainer>
     );
   }
+
   const cb = centroidBBox(geometry);
   if (!cb) {
     return (
@@ -90,10 +118,8 @@ export function PredioMapa({ feature }: { feature: MapFeature | null }) {
       scrollWheelZoom={false}
       className="h-64 w-full rounded-lg border border-outline-variant"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/">OSM</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <TileLayer {...OSM} />
+      <FitBounds geometry={geometry} />
       <GeoJSON
         data={{
           type: "Feature",
@@ -101,10 +127,13 @@ export function PredioMapa({ feature }: { feature: MapFeature | null }) {
           properties: { name: codigo },
         } as never}
         style={{
-          color: "#1f6f43",
-          weight: 2,
-          fillColor: "#2e7d4f",
-          fillOpacity: 0.25,
+          color: "#d9480f",
+          weight: 2.5,
+          fillColor: "#ff922b",
+          fillOpacity: 0.28,
+        }}
+        onEachFeature={(_f, layer) => {
+          layer.bindTooltip(nombre, { sticky: true });
         }}
       />
     </MapContainer>
