@@ -12,7 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth-guard";
 import { getIntervencionCompleta } from "@/lib/repos";
 import { getHistorial, type EstadoPropuesta } from "@/lib/repos/workflow";
-import { listAlarmasByPropuesta } from "@/lib/repos/propuestas";
+import {
+  listAlarmasByPropuesta,
+  getIntervencionContexto,
+} from "@/lib/repos/propuestas";
 import { WorkflowPanel } from "@/components/workflow/workflow-panel";
 import { AlarmasPanel } from "./alarmas-panel";
 import { IntervencionDetail } from "./intervencion-detail";
@@ -30,12 +33,15 @@ export default async function IntervencionDetailPage({
   const idNum = Number(id);
   if (!Number.isFinite(idNum) || idNum <= 0) notFound();
 
-  const intervencion = await getIntervencionCompleta(idNum);
+  const [intervencion, contexto] = await Promise.all([
+    getIntervencionCompleta(idNum),
+    getIntervencionContexto(idNum),
+  ]);
   if (!intervencion) notFound();
 
   // Sprint 20: cargar historial del workflow + estado actual
   const historial = await getHistorial(idNum);
-  // DEEPSEEK-F2.3: cargar alarmas (problemas/necesidades reportadas)
+  // DEPSEEK-F2.3: cargar alarmas (problemas/necesidades reportadas)
   const alarmasInicial = await listAlarmasByPropuesta(idNum);
 
   // Permiso: ADMIN o GESTOR pueden editar. ANALISTA queda read-only.
@@ -92,7 +98,7 @@ export default async function IntervencionDetailPage({
             </div>
           </div>
 
-          <IntervencionDetail initial={intervencion} canEdit={canEdit} />
+          <IntervencionDetail initial={intervencion} contexto={contexto ?? null} canEdit={canEdit} />
         </Card>
 
         <Card className="p-6">

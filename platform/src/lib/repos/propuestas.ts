@@ -668,4 +668,133 @@ export async function resolverAlarma(args: {
   `;
 }
 
+// =============================================================================
+// getIntervencionContexto — AJUSTE 3
+//
+// Devuelve las intervenciones de la MISMA accion y MISMO municipio (excluyendo
+// la actual) para dar contexto visual en el mapa del detalle. Tambien devuelve
+// la geometria del predio asociado (si existe) como poligono de fondo.
+// =============================================================================
+export interface VecinoMini {
+  id: number;
+  tipo: "punto" | "linea" | "poligono";
+  actividad: string;
+  /** GeoJSON Geometry ya parseado (Point / LineString / Multi* / Polygon). */
+  geom: GeoJSON.Geometry;
+}
+
+export interface IntervencionContexto {
+  vecinos: VecinoMini[];
+  /** Poligono del predio como GeoJSON o null si no tiene. */
+  predioGeom: GeoJSON.Geometry | null;
+  /** Codigo CxAy de la intervencion (derivado del catalogo canonico). */
+  componenteAccion: string | null;
+}
+
+export async function getIntervencionContexto(
+  id: number,
+): Promise<IntervencionContexto | null> {
+  // 1) Datos base: id_accion, id_predio y nombre del municipio de la intervencion.
+  const head = await sql<{
+    id_accion: number | string | null;
+    id_predio: number | string | null;
+    id_municipio: number | string | null;
+    nombre_componente: string | null;
+    nombre_accion: string | null;
+  }[]>`
+    SELECT pp.id_accion, pp.id_predio,
+           m.id_municipio, c.nombre AS nombre_componente, a.nombre AS nombre_accion
+    FROM   sgs_pro_propuesta pp
+    JOIN   sgs_com_accion     a ON a.id_accion     = pp.id_accion
+    JOIN   sgs_com_componente c ON c.id_componente = a.id_componente
+    LEFT JOIN sgs_pre_predio     pr ON pr.id_predio = pp.id_predio
+    LEFT JOIN bcs_lpa_vereda     v  ON v.id_vereda   = pr.id_vereda
+    LEFT JOIN bcs_lpa_municipio  m  ON m.id_municipio = v.id_municipio
+    WHERE  pp.id_propuesta = ${id}
+    LIMIT 1;
+  `;
+  const headRow = head[0];
+  if (!headRow) return null;
+
+  const idAccion = headRow.id_accion == null ? null : pgInt(headRow.id_accion);
+  const idMunicipio = headRow.id_municipio == null ? null : pgInt(headRow.id_municipio);
+  const idPredio = headRow.id_predio == null ? null : pgInt(headRow.id_predio);
+  const compNombre = pgText(headRow.nombre_componente);
+  const accNombre = pgText(headRow.nombre_accion);
+  // Codigo visible: C3 + U|A1 -> C3AU; resto, literal C+A.
+  const componenteAccion =
+    compNombre === "C3" && (accNombre === "U" || accNombre === "A1")
+      ? "C3AU"
+      : compNombre && accNombre
+        ? `${compNombre}${accNombre}`
+        : null;
+
+  if (!idAccion || !idMunicipio) {
+    return { vecinos: [], predioGeom: null, componenteAccion };
+  }
+
+  // 2) Vecinos: misma accion, mismo municipio, distinta intervencion.
+  const vecinosRows = await sql<{
+    id_propuesta: number | string;
+    tipo: string;
+    actividad: string;
+    geom: string | null;
+  }[]>`
+    SELECT pp.id_propuesta, pp.tipo, pp.actividad,
+           CASE WHEN pp.tipo = 'linea'   THEN ST_AsGeoJSON(pl.geom)
+                WHEN pp.tipo = 'poligono' THEN ST_AsGeoJSON(pq.geom)
+                WHEN pp.tipo = 'punto'    THEN ST_AsGeoJSON(pt.geom)
+           END AS geom
+    FROM sgs_pro_propuesta pp
+    JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+    JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+    LEFT JOIN sgs_pre_predio    pr ON pr.id_predio  = pp.id_predio
+    LEFT JOIN bcs_lpa_vereda     v  ON v.id_vereda   = pr.id_vereda
+    LEFT JOIN sgs_pro_propuesta_punto    pt ON pt.id_propuesta = pp.id_propuesta
+    LEFT JOIN sgs_pro_propuesta_linea    pl ON pl.id_propuesta = pp.id_propuesta
+    LEFT JOIN sgs_pro_propuesta_poligono pq ON pq.id_propuesta = pp.id_propuesta
+    WHERE pp.id_propuesta <> ${id}
+      AND pp.id_accion = ${idAccion}
+      AND v.id_municipio = ${idMunicipio}
+      AND (pt.geom IS NOT NULL OR pl.geom IS NOT NULL OR pq.geom IS NOT NULL)
+    LIMIT 50;
+  `;
+
+  const vecinos: VecinoMini[] = [];
+  for (const r of vecinosRows) {
+    if (!r.geom) continue;
+    try {
+      vecinos.push({
+        id: pgInt(r.id_propuesta),
+        tipo: pgText(r.tipo) as VecinoMini["tipo"],
+        actividad: pgText(r.actividad),
+        geom: JSON.parse(r.geom) as GeoJSON.Geometry,
+      });
+    } catch {
+      // JSON malformado: skip silenciosamente.
+    }
+  }
+
+  // 3) Poligono del predio asociado (si existe).
+  let predioGeom: GeoJSON.Geometry | null = null;
+  if (idPredio != null) {
+    const preds = await sql<{ geom: string | null }[]>`
+      SELECT ST_AsGeoJSON(geom) AS geom
+      FROM   sgs_pre_predio
+      WHERE  id_predio = ${idPredio} AND geom IS NOT NULL
+      LIMIT 1;
+    `;
+    const raw = preds[0]?.geom;
+    if (raw) {
+      try {
+        predioGeom = JSON.parse(raw) as GeoJSON.Geometry;
+      } catch {
+        /* skip */
+      }
+    }
+  }
+
+  return { vecinos, predioGeom, componenteAccion };
+}
+
 

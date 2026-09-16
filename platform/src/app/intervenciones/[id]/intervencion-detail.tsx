@@ -33,6 +33,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import type { IntervencionCompleta } from "@/lib/types";
+import type { IntervencionContexto } from "@/lib/repos/propuestas";
 // Sprint 23 (P0-1 FINAL-CLOSURE-PLAN): el EstadoIntervencionDropdown se removió
 // de la ficha detallada para evitar la duplicación que rompía el CHECK constraint.
 // El cambio de estado se hace ahora en <WorkflowPanel> (Sprint 20) con
@@ -53,9 +54,11 @@ type Flash = { tipo: "ok" | "error"; msg: string };
 
 export function IntervencionDetail({
   initial,
+  contexto,
   canEdit,
 }: {
   initial: IntervencionCompleta;
+  contexto: IntervencionContexto | null;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -185,7 +188,7 @@ export function IntervencionDetail({
           </span>
         </div>
         <div className="p-3">
-          <IntervencionMapa intervencion={initial} />
+          <IntervencionMapa intervencion={initial} contexto={contexto} />
         </div>
       </Card>
 
