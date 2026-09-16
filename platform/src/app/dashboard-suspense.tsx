@@ -21,6 +21,7 @@ import { AlertasMetas } from "@/components/dashboard/alertas-metas";
 import { LeafletMap } from "@/components/map/leaflet-map";
 import { MapSearchBar } from "@/components/map/map-search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { AccionCode } from "@/lib/acciones";
 import {
   getCoberturaVegetal,
   getIntervencionesRecientes,
@@ -70,17 +71,19 @@ const RightPanel = dynamic(
 /** Map + search overlay + health pill. Carga predios, quebradas y geojson. */
 async function MapSection({
   componenteFiltro,
+  accionFiltro,
   queryTexto,
   dbHealth,
 }: {
   componenteFiltro: string | null;
+  accionFiltro: AccionCode | null;
   queryTexto: string;
   dbHealth: { ok: boolean; latencyMs: number; server?: string };
 }) {
   const [predios, quebradas, geojson] = await Promise.all([
-    getPrediosMini(componenteFiltro),
+    getPrediosMini(componenteFiltro, accionFiltro),
     getQuebradasMini(),
-    getPrediosGeoJSON(componenteFiltro),
+    getPrediosGeoJSON(componenteFiltro, accionFiltro),
   ]);
 
   return (
@@ -90,6 +93,7 @@ async function MapSection({
         quebradas={quebradas}
         geojson={geojson as unknown as GeoJSONFeatureCollection}
         activeComponente={componenteFiltro}
+        activeAccion={accionFiltro}
         height="100%"
       />
 
@@ -185,6 +189,7 @@ async function RightPanelSection({
 
 export function DashboardContent({
   componenteFiltro,
+  accionFiltro,
   queryTexto,
   kpis,
   componentes,
@@ -196,6 +201,7 @@ export function DashboardContent({
   resumen,
 }: {
   componenteFiltro: string | null;
+  accionFiltro: AccionCode | null;
   queryTexto: string;
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
@@ -210,7 +216,11 @@ export function DashboardContent({
     <div className="flex h-full flex-1 flex-col overflow-hidden">
       {/* ComponentRibbon — siempre visible, no hace queries */}
       <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-2">
-        <ComponentRibbon active={componenteFiltro} avances={avances} />
+        <ComponentRibbon
+          active={componenteFiltro}
+          activeAccion={accionFiltro}
+          avances={avances}
+        />
       </div>
 
       {/* Contenido principal */}
@@ -218,7 +228,7 @@ export function DashboardContent({
         {/* Columna izquierda: mapa (Suspense) + bottom sections (Suspense) */}
         <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
           <Suspense fallback={<Skeleton className="h-36 w-full rounded-xl" />}>
-            <MetasStrip componente={componenteFiltro} />
+            <MetasStrip componente={componenteFiltro} accion={accionFiltro} />
           </Suspense>
 
           <AlertasMetas indicadores={resumen.indicadores} />
@@ -237,6 +247,7 @@ export function DashboardContent({
           >
             <MapSection
               componenteFiltro={componenteFiltro}
+              accionFiltro={accionFiltro}
               queryTexto={queryTexto}
               dbHealth={dbHealth}
             />

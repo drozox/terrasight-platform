@@ -12,11 +12,12 @@ import {
   getResumenComponente,
   pingDb,
 } from "@/lib/repos";
+import { normalizarAccion } from "@/lib/acciones";
 import { DashboardContent } from "./dashboard-suspense";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ componente?: string; q?: string }>;
+type SearchParams = Promise<{ componente?: string; q?: string; accion?: string }>;
 
 export default async function HomePage({
   searchParams,
@@ -25,6 +26,7 @@ export default async function HomePage({
 }) {
   const params = await searchParams;
   const componenteFiltro = params.componente ?? null;
+  const accionFiltro = normalizarAccion(params.accion);
   const queryTexto = params.q ?? "";
   const esImportar = componenteFiltro === "IMPORT";
 
@@ -76,19 +78,22 @@ export default async function HomePage({
     avances,
     resumen,
   ] = await Promise.all([
-    componenteFiltro ? getDashboardKpisComponente(componenteFiltro) : getDashboardKpis(),
+    componenteFiltro || accionFiltro
+      ? getDashboardKpisComponente(componenteFiltro, accionFiltro)
+      : getDashboardKpis(),
     getComponentes(),
-    getIntervencionesRecientes(8, componenteFiltro),
+    getIntervencionesRecientes(8, componenteFiltro, accionFiltro),
     getFooterKpis(),
     getPropuestasPorComponente(),
     pingDb(),
     getAvancePorComponente(),
-    getResumenComponente(componenteFiltro),
+    getResumenComponente(componenteFiltro, accionFiltro),
   ]);
 
   return (
     <DashboardContent
       componenteFiltro={componenteFiltro}
+      accionFiltro={accionFiltro}
       queryTexto={queryTexto}
       kpis={kpis}
       componentes={componentes}

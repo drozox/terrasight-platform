@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { Target, ArrowRight } from "lucide-react";
 import { getResumenComponente, normalizarComponente } from "@/lib/repos";
+import type { AccionCode } from "@/lib/acciones";
 import {
   ESTADO_BAR,
   ESTADO_TEXT,
@@ -14,10 +15,17 @@ import {
   METODOLOGIA_SEMAFORO,
 } from "@/lib/estado-indicador";
 
-export async function MetasStrip({ componente = null }: { componente?: string | null }) {
+export async function MetasStrip({
+  componente = null,
+  accion = null,
+}: {
+  componente?: string | null;
+  /** T1 filtro-accion: codigo CxAy del catalogo canonico. */
+  accion?: AccionCode | null;
+}) {
   const comp = normalizarComponente(componente);
   const { indicadores, cumplidas, totalIndicadores, pctGlobal, etiqueta } =
-    await getResumenComponente(comp);
+    await getResumenComponente(comp, accion);
 
   return (
     <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
