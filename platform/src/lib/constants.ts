@@ -65,26 +65,18 @@ export const TIPO_PUNTO_COLOR: Record<
 export const REPORTE_LABELS: Record<ReporteTipo, string> = {
   R1: "R1 — Listado completo de predios",
   R2: "R2 — Predios con coberturas y biomas",
-  R3: "R3 — Propuestas por componente y acción",
   R4: "R4 — Propuestas por predio",
-  R5: "R5 — Propuestas punto con beneficiarios",
   R6: "R6 — Zonificaciones por predio",
-  R7: "R7 — Infraestructura por municipio",
-  R8: "R8 — Resumen de predios por componente",
-  R9: "R9 — Quebradas con más propuestas",
+  R7: "R7 — Infraestructura vial",
   R10: "R10 — Área total de conservación por bioma",
 };
 
 export const REPORTE_DESCRIPCIONES: Record<ReporteTipo, string> = {
   R1: "Lista los predios con propietario, vereda, municipio, cédula catastral y área. Útil para cruce con catastro IGAC.",
   R2: "Predios con sus coberturas CLC (CORINE Land Cover) y biomas IAVH asociados, agregados como listas separadas por coma. Útil para análisis de uso del suelo.",
-  R3: "Agrupa las propuestas por componente (C1/C2/C3) y acción (A1/A2). Muestra el total y desglose por tipo (punto/línea/polígono).",
-  R4: "Detalle de cada propuesta asociada a un predio: tipo, actividad, componente, acción, quebrada y métrica específica (longitud / área / tipo de punto).",
-  R5: "Propuestas de tipo punto con sus usuarios beneficiarios asociados y coordenadas (este/norte). Útil para trazabilidad social.",
-  R6: "Predios con sus zonificaciones ambientales: POMCA, RFP y páramos. Lista agregada de categorías presentes por predio.",
-  R7: "Inventario de infraestructura (vías, drenajes simples y dobles) por municipio, con tipos y conteos.",
-  R8: "Resumen ejecutivo de predios con propuestas por componente, con totales por tipo. Para reportes de avance.",
-  R9: "Top de quebradas con más propuestas asociadas, con desglose por tipo. Útil para priorizar inversión.",
+  R4: "Lista completa de predios. Cada predio tiene el detalle de sus intervenciones (tipo, actividad, estado, área/longitud).",
+  R6: "Predios con vereda, núcleo predial y sus zonificaciones ambientales (POMCA, RFP y páramos).",
+  R7: "Inventario de infraestructura vial (vías) por municipio, con tipos y conteos.",
   R10: "Área total de predios por bioma IAVH, con conteo de predios y área promedio. Para reportes de conservación.",
 };
 

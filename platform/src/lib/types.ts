@@ -520,9 +520,7 @@ export type IntersectionResult = {
 // Reportes (HU-CO-04)
 // -----------------------------------------------------------------------------
 
-export type ReporteTipo =
-  | "R1" | "R2" | "R3" | "R4" | "R5"
-  | "R6" | "R7" | "R8" | "R9" | "R10";
+export type ReporteTipo = "R1" | "R2" | "R4" | "R6" | "R7" | "R10";
 
 export type ReporteR1Fila = {
   idPredio: number;
@@ -559,16 +557,21 @@ export type ReporteR3Fila = {
 
 export type ReporteR4Fila = {
   idPredio: number;
+  codigo: string;
   nombrePredio: string;
+  propietario: string;
+}
+
+/** R4 — intervención de un predio (subpestaña "Ver intervenciones"). */
+export type ReporteR4Intervencion = {
   idPropuesta: number;
   tipo: string;
   actividad: string;
+  estado: string;
+  /** "1.50 km" | "2.30 ha" | "punto" | "—" */
+  medida: string;
   componente: string;
   accion: string;
-  nombreQuebrada: string;
-  detalleEspecifico: string;
-  /** % de avance real (0-100) o `null` si la propuesta no tiene evento manual. */
-  avancePct: number | null;
 }
 
 export type ReporteR5Fila = {
@@ -587,6 +590,8 @@ export type ReporteR5Fila = {
 export type ReporteR6Fila = {
   idPredio: number;
   nombrePredio: string;
+  nombreVereda: string;
+  nucleoPredial: string;
   zonificacionPomca: string;
   zonificacionRfp: string;
   paramos: string;
@@ -596,11 +601,7 @@ export type ReporteR7Fila = {
   nombreMunicipio: string;
   departamento: string;
   totalVias: number;
-  totalDrenajesSimples: number;
-  totalDrenajesDobles: number;
   tiposVia: string;
-  estadosDrenajeSimple: string;
-  tiposDrenajeDoble: string;
 }
 
 export type ReporteR8Fila = {

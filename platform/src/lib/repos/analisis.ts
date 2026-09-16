@@ -336,7 +336,7 @@ const getIntervencionesRecientesImpl = async (
         pp.actividad,
         pr.nombre_predio,
         CASE WHEN pr.id_predio IS NOT NULL
-             THEN ('PR-' || LPAD(pr.id_predio::text, 5, '0'))
+             THEN ('PR-' || LPAD(pr.id_predio::text, GREATEST(5, length(pr.id_predio::text)), '0'))
              ELSE NULL END                                           AS codigo_predio,
         m.nombre_municipio,
         c.nombre                                                     AS nombre_componente,
@@ -548,7 +548,7 @@ const getPrediosGeoJSONImpl = async (
       SELECT
         p.id_predio,
         p.nombre_predio                                                  AS nombre,
-        ('PR-' || LPAD(p.id_predio::text, 5, '0'))                       AS codigo,
+        ('PR-' || LPAD(p.id_predio::text, GREATEST(5, length(p.id_predio::text)), '0'))                       AS codigo,
         p.area_ha,
         (
           SELECT c.nombre

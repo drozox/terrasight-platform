@@ -419,15 +419,15 @@ test.describe("DEBT-3.2 — Runtime smoke /reportes", () => {
     expect(body).toMatch(/Reportes/);
   });
 
-  test("GET /api/reportes?tipo=R4 con sesión devuelve CSV con header de Avance", async ({
+  test("GET /api/reportes?tipo=R4 con sesión devuelve CSV de predios", async ({
     request,
   }) => {
     await loginAsAdmin(request);
     const r = await request.get("/api/reportes?tipo=R4", { failOnStatusCode: false });
     expect(r.status()).toBe(200);
     const body = await r.text();
-    // CSV con BOM + separador ; (Excel-es)
-    expect(body).toMatch(/Avance/i);
+    // CSV con separador ; (Excel-es): R4 ahora lista predios (Código/Predio/Propietario).
+    expect(body).toMatch(/Código|Predio|Propietario/i);
   });
 });
 

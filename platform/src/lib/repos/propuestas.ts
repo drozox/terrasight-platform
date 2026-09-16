@@ -226,7 +226,7 @@ export async function getIntervencionCompleta(
       pp.estado,
       pr.id_predio,
       pr.nombre_predio,
-      ('PR-' || LPAD(pr.id_predio::text, 5, '0')) AS codigo_predio,
+      ('PR-' || LPAD(pr.id_predio::text, GREATEST(5, length(pr.id_predio::text)), '0')) AS codigo_predio,
       pr.area_ha                                       AS area_ha_predio,
       v.id_vereda,
       v.nombre_vereda,

@@ -161,7 +161,7 @@ export async function listPrediosFiltrados(args: {
     }[]
   >`
     SELECT p.id_predio,
-           ('PR-' || LPAD(p.id_predio::text, 5, '0'))     AS codigo,
+           ('PR-' || LPAD(p.id_predio::text, GREATEST(5, length(p.id_predio::text)), '0'))     AS codigo,
            p.nombre_predio,
            p.nucleo_predial,
            p.area_ha,

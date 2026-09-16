@@ -1,9 +1,8 @@
 ﻿// =============================================================================
-// GET /api/reportes?tipo=R1
+// GET /api/reportes?tipo=R1[&componente=C1&accion=C1A1]
 //
-// Devuelve el reporte elegido como CSV descargable.
-// Séparation of concerns: la página renderiza HTML (para vista + print a
-// PDF); este endpoint es para descarga directa. Ambos usan el mismo repo.
+// Devuelve el reporte elegido como CSV descargable. Mismos filtros que la
+// página. Reportes vivos: R1, R2, R4, R6, R7, R10.
 // =============================================================================
 
 import { type NextRequest, NextResponse } from "next/server";
@@ -11,32 +10,27 @@ import { getCurrentUser } from "@/lib/auth-guard";
 import {
   getReporteR1,
   getReporteR2,
-  getReporteR3,
   getReporteR4,
-  getReporteR5,
   getReporteR6,
   getReporteR7,
-  getReporteR8,
-  getReporteR9,
   getReporteR10,
+  type ReporteFiltros,
 } from "@/lib/repos";
+import { normalizarAccion } from "@/lib/acciones";
 import { REPORTE_LABELS } from "@/lib/constants";
 import type { ReporteTipo } from "@/lib/types";
 import { toCsv, slugFilename, type CsvCell } from "@/lib/csv";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const REPORTE_FNS: Record<ReporteTipo, () => Promise<Record<string, CsvCell>[]>> = {
-  R1:  () => getReporteR1()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R2:  () => getReporteR2()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R3:  () => getReporteR3()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R4:  () => getReporteR4()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R5:  () => getReporteR5()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R6:  () => getReporteR6()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R7:  () => getReporteR7()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R8:  () => getReporteR8()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R9:  () => getReporteR9()  as unknown as Promise<Record<string, CsvCell>[]>,
-  R10: () => getReporteR10() as unknown as Promise<Record<string, CsvCell>[]>,
+const REPORTE_FNS: Record<ReporteTipo, (f: ReporteFiltros) => Promise<Record<string, CsvCell>[]>> = {
+  R1:  (f) => getReporteR1(f)  as unknown as Promise<Record<string, CsvCell>[]>,
+  R2:  (f) => getReporteR2(f)  as unknown as Promise<Record<string, CsvCell>[]>,
+  R4:  (f) => getReporteR4(f)  as unknown as Promise<Record<string, CsvCell>[]>,
+  R6:  (f) => getReporteR6(f)  as unknown as Promise<Record<string, CsvCell>[]>,
+  R7:  ()  => getReporteR7()   as unknown as Promise<Record<string, CsvCell>[]>,
+  R10: ()  => getReporteR10()  as unknown as Promise<Record<string, CsvCell>[]>,
 };
 
 const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
@@ -61,72 +55,26 @@ const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
     { key: "totalCoberturas", header: "# Coberturas" },
     { key: "totalBiomas",     header: "# Biomas" },
   ],
-  R3: [
-    { key: "componente",        header: "Componente" },
-    { key: "accion",            header: "Acción" },
-    { key: "totalPropuestas",   header: "Total propuestas" },
-    { key: "propuestasPunto",   header: "Punto" },
-    { key: "propuestasLinea",   header: "Línea" },
-    { key: "propuestasPoligono",header: "Polígono" },
-    { key: "tiposPresentes",    header: "Tipos presentes" },
-  ],
   R4: [
-    { key: "idPredio",          header: "ID Predio" },
-    { key: "nombrePredio",      header: "Predio" },
-    { key: "idPropuesta",       header: "ID Propuesta" },
-    { key: "tipo",              header: "Tipo" },
-    { key: "actividad",         header: "Actividad" },
-    { key: "componente",        header: "Componente" },
-    { key: "accion",            header: "Acción" },
-    { key: "nombreQuebrada",    header: "Quebrada" },
-    { key: "detalleEspecifico", header: "Detalle específico" },
-    { key: "avancePct",         header: "Avance %" },
-  ],
-  R5: [
-    { key: "idPropPunto",            header: "ID Punto" },
-    { key: "actividad",              header: "Actividad" },
-    { key: "tipoPunto",               header: "Tipo de punto" },
-    { key: "este",                    header: "Este" },
-    { key: "norte",                   header: "Norte" },
-    { key: "nombreQuebrada",          header: "Quebrada" },
-    { key: "usuariosBeneficiarios",   header: "Beneficiarios" },
-    { key: "totalUsuarios",           header: "# Beneficiarios" },
-    { key: "avancePct",                header: "Avance %" },
+    { key: "idPredio",     header: "ID Predio" },
+    { key: "codigo",       header: "Código" },
+    { key: "nombrePredio", header: "Predio" },
+    { key: "propietario",  header: "Propietario" },
   ],
   R6: [
-    { key: "idPredio",           header: "ID" },
-    { key: "nombrePredio",       header: "Predio" },
-    { key: "zonificacionPomca",  header: "Zonificación POMCA" },
-    { key: "zonificacionRfp",    header: "Zonificación RFP" },
-    { key: "paramos",            header: "Páramos" },
+    { key: "idPredio",          header: "ID" },
+    { key: "nombrePredio",      header: "Predio" },
+    { key: "nombreVereda",      header: "Vereda" },
+    { key: "nucleoPredial",     header: "Núcleo predial" },
+    { key: "zonificacionPomca", header: "Zonificación POMCA" },
+    { key: "zonificacionRfp",   header: "Zonificación RFP" },
+    { key: "paramos",           header: "Páramos" },
   ],
   R7: [
-    { key: "nombreMunicipio",        header: "Municipio" },
-    { key: "departamento",           header: "Departamento" },
-    { key: "totalVias",              header: "# Vías" },
-    { key: "totalDrenajesSimples",   header: "# Drenajes simples" },
-    { key: "totalDrenajesDobles",    header: "# Drenajes dobles" },
-    { key: "tiposVia",               header: "Tipos de vía" },
-    { key: "estadosDrenajeSimple",   header: "Estados drenaje simple" },
-    { key: "tiposDrenajeDoble",      header: "Tipos drenaje doble" },
-  ],
-  R8: [
-    { key: "componente",            header: "Componente" },
-    { key: "prediosConPropuestas",  header: "Predios con propuestas" },
-    { key: "totalPropuestas",       header: "Total propuestas" },
-    { key: "punto",                 header: "Punto" },
-    { key: "linea",                 header: "Línea" },
-    { key: "poligono",              header: "Polígono" },
-  ],
-  R9: [
-    { key: "idQuebrada",         header: "ID" },
-    { key: "nombreQuebrada",     header: "Quebrada" },
-    { key: "nombreMunicipio",    header: "Municipio" },
-    { key: "area",               header: "Área (ha)" },
-    { key: "totalPropuestas",    header: "Total propuestas" },
-    { key: "propuestasPunto",    header: "Punto" },
-    { key: "propuestasLinea",    header: "Línea" },
-    { key: "propuestasPoligono", header: "Polígono" },
+    { key: "nombreMunicipio", header: "Municipio" },
+    { key: "departamento",    header: "Departamento" },
+    { key: "totalVias",       header: "# Vías" },
+    { key: "tiposVia",        header: "Tipos de vía" },
   ],
   R10: [
     { key: "biomaIavh",        header: "Bioma IAVH" },
@@ -138,8 +86,7 @@ const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
 };
 
 function isReporteTipo(s: string | undefined): s is ReporteTipo {
-  return s === "R1" || s === "R2" || s === "R3" || s === "R4" || s === "R5"
-      || s === "R6" || s === "R7" || s === "R8" || s === "R9" || s === "R10";
+  return s === "R1" || s === "R2" || s === "R4" || s === "R6" || s === "R7" || s === "R10";
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -152,13 +99,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const tipo = req.nextUrl.searchParams.get("tipo");
   if (!tipo || !isReporteTipo(tipo)) {
     return NextResponse.json(
-      { error: "tipo inválido. Permitidos: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10" },
+      { error: "tipo inválido. Permitidos: R1, R2, R4, R6, R7, R10" },
       { status: 400 },
     );
   }
 
+  const componenteRaw = req.nextUrl.searchParams.get("componente");
+  const filtros: ReporteFiltros = {
+    componente: componenteRaw && /^C[123]$/.test(componenteRaw) ? componenteRaw : null,
+    accion: normalizarAccion(req.nextUrl.searchParams.get("accion")),
+  };
+
   try {
-    const rows = await REPORTE_FNS[tipo]();
+    const rows = await REPORTE_FNS[tipo](filtros);
     const csv = toCsv(rows, COLUMNAS[tipo]);
     const filename = slugFilename(REPORTE_LABELS[tipo], "csv");
     return new NextResponse(csv, {

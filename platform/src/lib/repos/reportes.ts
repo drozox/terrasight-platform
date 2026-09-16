@@ -1,35 +1,61 @@
 ﻿// =============================================================================
 // Reportes (HU-CO-04)
 //
-// Implementamos los reportes que están escritos en
-// `DOCS/7. Consultas y Vistas/Consultas_Reportes.sql`. Cada uno devuelve
-// filas planas con tipos primitivos — el componente cliente (page o API
-// CSV) se encarga del formato.
+// Implementa los reportes vivos: R1, R2, R4, R6, R7, R10.
+//   - R3 (propuestas por componente/acción), R5 (beneficiarios), R8 (resumen) y
+//     R9 (quebradas) se ELIMINARON a pedido del cliente (sin valor / sin datos).
+//   - R1, R2, R4, R6 aceptan filtro por componente y acción (vía las propuestas
+//     del predio; sgs_pre_predio no guarda componente/acción).
 //
 // Reglas del split:
-//   - Solo importa de `./_helpers`, `./types`, `../db`. Nunca de otro
-//     `repos/*.ts`.
-//   - `REPORTE_LABELS` y `REPORTE_DESCRIPCIONES` viven en `lib/constants.ts`.
+//   - Solo importa de `./_helpers`, `./types`, `../db` y `../acciones`.
 // =============================================================================
 
 import { sql, pgInt, pgNum, pgText } from "../db";
+import { accionDef, type AccionCode } from "../acciones";
 import type {
   ReporteR1Fila,
   ReporteR2Fila,
-  ReporteR3Fila,
   ReporteR4Fila,
-  ReporteR5Fila,
+  ReporteR4Intervencion,
   ReporteR6Fila,
   ReporteR7Fila,
-  ReporteR8Fila,
-  ReporteR9Fila,
   ReporteR10Fila,
 } from "../types";
+
+export type ReporteFiltros = {
+  componente?: string | null;
+  accion?: AccionCode | null;
+};
+
+/**
+ * Fragmento SQL `AND EXISTS (...)` que filtra predios (alias `p`) por
+ * componente/acción a través de sus propuestas. Devuelve `sql`` `` si no hay
+ * filtro. Requiere que la query externa use `sgs_pre_predio p`.
+ */
+function filtroPredio(f: ReporteFiltros = {}) {
+  const conds = [];
+  if (f.componente) conds.push(sql`c.nombre = ${f.componente}`);
+  if (f.accion) {
+    const def = accionDef(f.accion);
+    conds.push(sql`c.nombre = ${def.componente}`);
+    conds.push(sql`a.nombre IN ${sql(def.nombres)}`);
+  }
+  if (conds.length === 0) return sql``;
+  const where = conds.reduce((acc, c, i) => (i === 0 ? c : sql`${acc} AND ${c}`), sql``);
+  return sql`AND EXISTS (
+    SELECT 1
+    FROM   sgs_pro_propuesta pp
+    JOIN   sgs_com_accion     a ON a.id_accion     = pp.id_accion
+    JOIN   sgs_com_componente c ON c.id_componente = a.id_componente
+    WHERE  pp.id_predio = p.id_predio AND ${where}
+  )`;
+}
 
 // -----------------------------------------------------------------------------
 // R1 — Listado completo de predios
 // -----------------------------------------------------------------------------
-export async function getReporteR1(): Promise<ReporteR1Fila[]> {
+export async function getReporteR1(f: ReporteFiltros = {}): Promise<ReporteR1Fila[]> {
   const rows = await sql<{
     id_predio: number | string;
     nombre_predio: string;
@@ -49,9 +75,10 @@ export async function getReporteR1(): Promise<ReporteR1Fila[]> {
            m.departamento,
            p.cedula_catastral, p.observaciones
     FROM   sgs_pre_predio p
-    JOIN   sgs_pre_propietario pr ON p.id_propietario = pr.id_propietario
-    JOIN   bcs_lpa_vereda       v ON p.id_vereda      = v.id_vereda
-    JOIN   bcs_lpa_municipio    m ON v.id_municipio   = m.id_municipio
+    LEFT JOIN sgs_pre_propietario pr ON p.id_propietario = pr.id_propietario
+    LEFT JOIN bcs_lpa_vereda       v ON p.id_vereda      = v.id_vereda
+    LEFT JOIN bcs_lpa_municipio    m ON v.id_municipio   = m.id_municipio
+    WHERE  TRUE ${filtroPredio(f)}
     ORDER  BY m.nombre_municipio, v.nombre_vereda, p.nombre_predio;
   `;
   return rows.map((r) => ({
@@ -71,7 +98,7 @@ export async function getReporteR1(): Promise<ReporteR1Fila[]> {
 // -----------------------------------------------------------------------------
 // R2 — Predios con coberturas y biomas
 // -----------------------------------------------------------------------------
-export async function getReporteR2(): Promise<ReporteR2Fila[]> {
+export async function getReporteR2(f: ReporteFiltros = {}): Promise<ReporteR2Fila[]> {
   const rows = await sql<{
     id_predio: number | string;
     nombre_predio: string;
@@ -91,6 +118,7 @@ export async function getReporteR2(): Promise<ReporteR2Fila[]> {
     LEFT JOIN sgs_amb_cobertura_clc   c  ON pc.id_cobertura = c.id_cobertura
     LEFT JOIN sgs_rel_predio_bioma    pb ON p.id_predio    = pb.id_predio
     LEFT JOIN sgs_amb_bioma           b  ON pb.id_bioma    = b.id_bioma
+    WHERE  TRUE ${filtroPredio(f)}
     GROUP  BY p.id_predio, p.nombre_predio, p.area_ha
     ORDER  BY p.nombre_predio;
   `;
@@ -106,177 +134,114 @@ export async function getReporteR2(): Promise<ReporteR2Fila[]> {
 }
 
 // -----------------------------------------------------------------------------
-// R3 — Propuestas por componente y acción
+// R4 — Predios (lista completa). El detalle de intervenciones se carga aparte.
 // -----------------------------------------------------------------------------
-export async function getReporteR3(): Promise<ReporteR3Fila[]> {
-  const rows = await sql<{
-    componente: string;
-    accion: string;
-    total_propuestas: number | string;
-    propuestas_linea: number | string;
-    propuestas_poligono: number | string;
-    propuestas_punto: number | string;
-    tipos_presentes: string;
-  }[]>`
-    SELECT comp.nombre AS componente,
-           acc.nombre AS accion,
-           COUNT(prop.id_propuesta)::int AS total_propuestas,
-           COUNT(*) FILTER (WHERE prop.tipo = 'linea')::int    AS propuestas_linea,
-           COUNT(*) FILTER (WHERE prop.tipo = 'poligono')::int AS propuestas_poligono,
-           COUNT(*) FILTER (WHERE prop.tipo = 'punto')::int    AS propuestas_punto,
-           STRING_AGG(DISTINCT prop.tipo, ', ')               AS tipos_presentes
-    FROM   sgs_pro_propuesta prop
-    JOIN   sgs_com_accion     acc ON prop.id_accion     = acc.id_accion
-    JOIN   sgs_com_componente comp ON acc.id_componente = comp.id_componente
-    GROUP  BY comp.nombre, acc.nombre
-    ORDER  BY comp.nombre, acc.nombre;
-  `;
-  return rows.map((r) => ({
-    componente: pgText(r.componente),
-    accion: pgText(r.accion),
-    totalPropuestas: pgInt(r.total_propuestas),
-    propuestasLinea: pgInt(r.propuestas_linea),
-    propuestasPoligono: pgInt(r.propuestas_poligono),
-    propuestasPunto: pgInt(r.propuestas_punto),
-    tiposPresentes: pgText(r.tipos_presentes),
-  }));
-}
-
-// -----------------------------------------------------------------------------
-// R4 — Propuestas por predio
-// -----------------------------------------------------------------------------
-export async function getReporteR4(): Promise<ReporteR4Fila[]> {
+export async function getReporteR4(f: ReporteFiltros = {}): Promise<ReporteR4Fila[]> {
   const rows = await sql<{
     id_predio: number | string;
+    codigo: string;
     nombre_predio: string;
-    id_propuesta: number | string;
-    tipo: string;
-    actividad: string;
-    componente: string;
-    accion: string;
-    nombre_quebrada: string | null;
-    detalle_especifico: string | null;
-    avance_pct: number | string | null;
+    propietario: string | null;
   }[]>`
-    SELECT p.id_predio, p.nombre_predio,
-           prop.id_propuesta, prop.tipo, prop.actividad,
-           comp.nombre AS componente,
-           acc.nombre  AS accion,
-           q.nombre_quebrada,
-           CASE
-             WHEN prop.tipo = 'linea'    THEN (SELECT (longitud_m)::TEXT FROM sgs_pro_propuesta_linea   WHERE id_propuesta = prop.id_propuesta) || ' m'
-             WHEN prop.tipo = 'poligono' THEN (SELECT (area_ha)::TEXT     FROM sgs_pro_propuesta_poligono WHERE id_propuesta = prop.id_propuesta) || ' ha'
-             WHEN prop.tipo = 'punto'    THEN (SELECT tipo_punto             FROM sgs_pro_propuesta_punto    WHERE id_propuesta = prop.id_propuesta)
-             ELSE 'N/A'
-           END AS detalle_especifico,
-           av.avance_pct
+    SELECT p.id_predio,
+           ('PR-' || LPAD(p.id_predio::text, GREATEST(5, length(p.id_predio::text)), '0')) AS codigo,
+           p.nombre_predio,
+           pr.nombre_razon_social AS propietario
     FROM   sgs_pre_predio p
-    JOIN   sgs_pro_propuesta prop ON p.id_predio = prop.id_predio
-    JOIN   sgs_com_accion     acc  ON prop.id_accion     = acc.id_accion
-    JOIN   sgs_com_componente comp ON acc.id_componente = comp.id_componente
-    LEFT JOIN bcs_dh_quebrada q   ON prop.id_quebrada   = q.id_quebrada
-    LEFT JOIN LATERAL (
-      SELECT av2.avance_pct
-      FROM   sgs_pro_propuesta_avance av2
-      WHERE  av2.id_propuesta = prop.id_propuesta
-        AND  av2.es_backfill = FALSE
-      ORDER  BY av2.created_at DESC, av2.id_avance DESC
-      LIMIT  1
-    ) av ON true
-    ORDER  BY p.nombre_predio, prop.id_propuesta;
+    LEFT JOIN sgs_pre_propietario pr ON p.id_propietario = pr.id_propietario
+    WHERE  TRUE ${filtroPredio(f)}
+    ORDER  BY p.nombre_predio;
   `;
   return rows.map((r) => ({
     idPredio: pgInt(r.id_predio),
+    codigo: pgText(r.codigo),
     nombrePredio: pgText(r.nombre_predio),
+    propietario: pgText(r.propietario ?? ""),
+  }));
+}
+
+// -----------------------------------------------------------------------------
+// R4 — Intervenciones de un predio (subpestaña "Ver intervenciones").
+// -----------------------------------------------------------------------------
+export async function getIntervencionesDePredio(
+  idPredio: number,
+): Promise<ReporteR4Intervencion[]> {
+  const rows = await sql<{
+    id_propuesta: number | string;
+    tipo: string;
+    actividad: string;
+    estado: string;
+    componente: string | null;
+    accion: string | null;
+    medida: string | null;
+  }[]>`
+    SELECT prop.id_propuesta, prop.tipo, prop.actividad, prop.estado,
+           c.nombre AS componente,
+           a.nombre AS accion,
+           CASE
+             WHEN prop.tipo = 'linea'
+               THEN (SELECT ROUND(pl.longitud_m::numeric, 0)::text || ' m'
+                     FROM sgs_pro_propuesta_linea pl WHERE pl.id_propuesta = prop.id_propuesta)
+             WHEN prop.tipo = 'poligono'
+               THEN (SELECT ROUND(pq.area_ha::numeric, 2)::text || ' ha'
+                     FROM sgs_pro_propuesta_poligono pq WHERE pq.id_propuesta = prop.id_propuesta)
+             WHEN prop.tipo = 'punto' THEN 'punto'
+             ELSE '—'
+           END AS medida
+    FROM   sgs_pro_propuesta prop
+    LEFT JOIN sgs_com_accion     a ON prop.id_accion     = a.id_accion
+    LEFT JOIN sgs_com_componente c ON a.id_componente    = c.id_componente
+    WHERE  prop.id_predio = ${idPredio}
+    ORDER  BY prop.id_propuesta;
+  `;
+  return rows.map((r) => ({
     idPropuesta: pgInt(r.id_propuesta),
     tipo: pgText(r.tipo),
     actividad: pgText(r.actividad),
-    componente: pgText(r.componente),
-    accion: pgText(r.accion),
-    nombreQuebrada: r.nombre_quebrada ?? "",
-    detalleEspecifico: r.detalle_especifico ?? "N/A",
-    avancePct: r.avance_pct == null ? null : pgInt(r.avance_pct),
+    estado: pgText(r.estado),
+    medida: pgText(r.medida ?? "—"),
+    componente: pgText(r.componente ?? ""),
+    accion: pgText(r.accion ?? ""),
   }));
 }
 
 // -----------------------------------------------------------------------------
-// R5 — Propuestas punto con beneficiarios
+// R6 — Zonificaciones por predio (+ vereda y núcleo predial)
+//   POMCA: se muestra el NOMBRE (descripcion), no el código ("01"/"02").
 // -----------------------------------------------------------------------------
-export async function getReporteR5(): Promise<ReporteR5Fila[]> {
-  const rows = await sql<{
-    id_prop_punto: number | string;
-    actividad: string;
-    tipo_punto: string;
-    este: number | string | null;
-    norte: number | string | null;
-    nombre_quebrada: string | null;
-    usuarios_beneficiarios: string | null;
-    total_usuarios: number | string | null;
-    avance_pct: number | string | null;
-  }[]>`
-    SELECT pp.id_prop_punto, pp.actividad, pp.tipo_punto,
-           pp.este, pp.norte,
-           q.nombre_quebrada,
-           STRING_AGG(u.nombre, ', ' ORDER BY u.nombre) AS usuarios_beneficiarios,
-           COUNT(u.id_usuario)::int                     AS total_usuarios,
-           av.avance_pct
-    FROM   sgs_pro_propuesta_punto pp
-    JOIN   sgs_pro_propuesta           prop ON pp.id_propuesta = prop.id_propuesta
-    LEFT JOIN bcs_dh_quebrada          q    ON pp.id_quebrada   = q.id_quebrada
-    LEFT JOIN sgs_rel_propuesta_punto_usuario rpu ON pp.id_prop_punto = rpu.id_prop_punto
-    LEFT JOIN sgs_pre_usuario          u    ON rpu.id_usuario   = u.id_usuario
-    LEFT JOIN LATERAL (
-      SELECT av2.avance_pct
-      FROM   sgs_pro_propuesta_avance av2
-      WHERE  av2.id_propuesta = prop.id_propuesta
-        AND  av2.es_backfill = FALSE
-      ORDER  BY av2.created_at DESC, av2.id_avance DESC
-      LIMIT  1
-    ) av ON true
-    GROUP  BY pp.id_prop_punto, pp.actividad, pp.tipo_punto, pp.este, pp.norte, q.nombre_quebrada, av.avance_pct
-    ORDER  BY pp.tipo_punto, pp.actividad;
-  `;
-  return rows.map((r) => ({
-    idPropPunto: pgInt(r.id_prop_punto),
-    actividad: pgText(r.actividad),
-    tipoPunto: pgText(r.tipo_punto),
-    este:    r.este    == null ? null : pgNum(r.este),
-    norte:   r.norte   == null ? null : pgNum(r.norte),
-    nombreQuebrada: r.nombre_quebrada ?? "",
-    usuariosBeneficiarios: r.usuarios_beneficiarios ?? "",
-    totalUsuarios: pgInt(r.total_usuarios ?? 0),
-    avancePct: r.avance_pct == null ? null : pgInt(r.avance_pct),
-  }));
-}
-
-// -----------------------------------------------------------------------------
-// R6 — Zonificaciones por predio
-// -----------------------------------------------------------------------------
-export async function getReporteR6(): Promise<ReporteR6Fila[]> {
+export async function getReporteR6(f: ReporteFiltros = {}): Promise<ReporteR6Fila[]> {
   const rows = await sql<{
     id_predio: number | string;
     nombre_predio: string;
+    nombre_vereda: string | null;
+    nucleo_predial: string | null;
     zonificacion_pomca: string | null;
     zonificacion_rfp:   string | null;
     paramos:            string | null;
   }[]>`
     SELECT p.id_predio, p.nombre_predio,
-           STRING_AGG(DISTINCT zp.categoria_zonificacion, ', ' ORDER BY zp.categoria_zonificacion) AS zonificacion_pomca,
+           p.nucleo_predial,
+           v.nombre_vereda,
+           STRING_AGG(DISTINCT NULLIF(BTRIM(COALESCE(zp.descripcion, zp.nomenclatura)), ''), ', ' ORDER BY NULLIF(BTRIM(COALESCE(zp.descripcion, zp.nomenclatura)), '')) AS zonificacion_pomca,
            STRING_AGG(DISTINCT zr.categoria_zonificacion, ', ' ORDER BY zr.categoria_zonificacion) AS zonificacion_rfp,
            STRING_AGG(DISTINCT pa.nombre_paramo,          ', ' ORDER BY pa.nombre_paramo)          AS paramos
     FROM   sgs_pre_predio p
-    LEFT JOIN sgs_rel_predio_zonificacion_pomca rpzp ON p.id_predio         = rpzp.id_predio
-    LEFT JOIN sgs_amb_zonificacion_pomca        zp   ON rpzp.id_zonificacion_pomca = zp.id_zonificacion_pomca
-    LEFT JOIN sgs_rel_predio_zonificacion_rfp   rpzr ON p.id_predio         = rpzr.id_predio
-    LEFT JOIN sgs_amb_zonificacion_rfp          zr   ON rpzr.id_zonificacion_rfp    = zr.id_zonificacion_rfp
-    LEFT JOIN sgs_rel_predio_paramos            rpp  ON p.id_predio         = rpp.id_predio
-    LEFT JOIN sgs_amb_paramos                   pa   ON rpp.id_paramos      = pa.id_paramos
-    GROUP  BY p.id_predio, p.nombre_predio
+    LEFT JOIN bcs_lpa_vereda                      v    ON p.id_vereda = v.id_vereda
+    LEFT JOIN sgs_rel_predio_zonificacion_pomca   rpzp ON p.id_predio = rpzp.id_predio
+    LEFT JOIN sgs_amb_zonificacion_pomca          zp   ON rpzp.id_zonificacion_pomca = zp.id_zonificacion_pomca
+    LEFT JOIN sgs_rel_predio_zonificacion_rfp     rpzr ON p.id_predio = rpzr.id_predio
+    LEFT JOIN sgs_amb_zonificacion_rfp            zr   ON rpzr.id_zonificacion_rfp    = zr.id_zonificacion_rfp
+    LEFT JOIN sgs_rel_predio_paramos              rpp  ON p.id_predio = rpp.id_predio
+    LEFT JOIN sgs_amb_paramos                     pa   ON rpp.id_paramos      = pa.id_paramos
+    WHERE  TRUE ${filtroPredio(f)}
+    GROUP  BY p.id_predio, p.nombre_predio, p.nucleo_predial, v.nombre_vereda
     ORDER  BY p.nombre_predio;
   `;
   return rows.map((r) => ({
     idPredio: pgInt(r.id_predio),
     nombrePredio: pgText(r.nombre_predio),
+    nombreVereda: pgText(r.nombre_vereda ?? ""),
+    nucleoPredial: pgText(r.nucleo_predial ?? ""),
     zonificacionPomca: r.zonificacion_pomca ?? "",
     zonificacionRfp:   r.zonificacion_rfp   ?? "",
     paramos:           r.paramos            ?? "",
@@ -284,138 +249,33 @@ export async function getReporteR6(): Promise<ReporteR6Fila[]> {
 }
 
 // -----------------------------------------------------------------------------
-// R7 — Infraestructura por municipio
+// R7 — Infraestructura vial por municipio
 // -----------------------------------------------------------------------------
 export async function getReporteR7(): Promise<ReporteR7Fila[]> {
-  // Optimización: pre-agregar vías/drenajes por municipio en subqueries antes
-  // del JOIN con municipios. Sin esto, los 3 LEFT JOIN × 2303/2993/33 filas
-  // de infra producen un CROSS JOIN implícito de ~228M filas que cuelga la
-  // query (>120s). Con subqueries el plan va a Merge Left Join sobre 10 filas
-  // y termina en <20ms. Misma semántica (los conteos DISTINCT sobre el
-  // conjunto total coinciden con COUNT(*) sobre el grupo por municipio).
   const rows = await sql<{
     nombre_municipio: string;
     departamento:     string;
-    total_vias:               number | string | null;
-    total_drenajes_simples:   number | string | null;
-    total_drenajes_dobles:    number | string | null;
-    tipos_via:                string | null;
-    estados_drenaje_simple:   string | null;
-    tipos_drenaje_doble:      string | null;
+    total_vias:       number | string | null;
+    tipos_via:        string | null;
   }[]>`
     SELECT m.nombre_municipio, m.departamento,
-           COALESCE(v.total_vias,            0) AS total_vias,
-           COALESCE(ds.total_drenajes_simples, 0) AS total_drenajes_simples,
-           COALESCE(dd.total_drenajes_dobles,  0) AS total_drenajes_dobles,
-           v.tipos_via,
-           ds.estados_drenaje_simple,
-           dd.tipos_drenaje_doble
+           COALESCE(v.total_vias, 0) AS total_vias,
+           v.tipos_via
     FROM   bcs_lpa_municipio m
     LEFT JOIN (
       SELECT id_municipio,
-             COUNT(*)::int                            AS total_vias,
-             STRING_AGG(DISTINCT tipo_via, ', ')      AS tipos_via
+             COUNT(*)::int                       AS total_vias,
+             STRING_AGG(DISTINCT tipo_via, ', ') AS tipos_via
       FROM   sgs_inf_via
       GROUP  BY id_municipio
-    ) v  ON m.id_municipio = v.id_municipio
-    LEFT JOIN (
-      SELECT id_municipio,
-             COUNT(*)::int                                 AS total_drenajes_simples,
-             STRING_AGG(DISTINCT estado_drenaje, ', ')     AS estados_drenaje_simple
-      FROM   sgs_inf_drenaje_simple
-      GROUP  BY id_municipio
-    ) ds ON m.id_municipio = ds.id_municipio
-    LEFT JOIN (
-      SELECT id_municipio,
-             COUNT(*)::int                            AS total_drenajes_dobles,
-             STRING_AGG(DISTINCT tipo, ', ')          AS tipos_drenaje_doble
-      FROM   sgs_inf_drenaje_doble
-      GROUP  BY id_municipio
-    ) dd ON m.id_municipio = dd.id_municipio
+    ) v ON m.id_municipio = v.id_municipio
     ORDER  BY m.nombre_municipio;
   `;
   return rows.map((r) => ({
-    nombreMunicipio:        pgText(r.nombre_municipio),
-    departamento:           pgText(r.departamento),
-    totalVias:              pgInt(r.total_vias            ?? 0),
-    totalDrenajesSimples:   pgInt(r.total_drenajes_simples ?? 0),
-    totalDrenajesDobles:    pgInt(r.total_drenajes_dobles  ?? 0),
-    tiposVia:               r.tipos_via              ?? "",
-    estadosDrenajeSimple:   r.estados_drenaje_simple ?? "",
-    tiposDrenajeDoble:      r.tipos_drenaje_doble    ?? "",
-  }));
-}
-
-// -----------------------------------------------------------------------------
-// R8 — Resumen de predios por componente
-// -----------------------------------------------------------------------------
-export async function getReporteR8(): Promise<ReporteR8Fila[]> {
-  const rows = await sql<{
-    componente: string;
-    predios_con_propuestas: number | string;
-    total_propuestas: number | string;
-    linea: number | string;
-    poligono: number | string;
-    punto: number | string;
-  }[]>`
-    SELECT comp.nombre AS componente,
-           COUNT(DISTINCT prop.id_predio)::int AS predios_con_propuestas,
-           COUNT(prop.id_propuesta)::int      AS total_propuestas,
-           COUNT(*) FILTER (WHERE prop.tipo = 'linea')::int    AS linea,
-           COUNT(*) FILTER (WHERE prop.tipo = 'poligono')::int AS poligono,
-           COUNT(*) FILTER (WHERE prop.tipo = 'punto')::int    AS punto
-    FROM   sgs_com_componente comp
-    LEFT JOIN sgs_com_accion     acc  ON comp.id_componente = acc.id_componente
-    LEFT JOIN sgs_pro_propuesta prop  ON acc.id_accion      = prop.id_accion
-    GROUP  BY comp.id_componente, comp.nombre
-    ORDER  BY comp.nombre;
-  `;
-  return rows.map((r) => ({
-    componente: pgText(r.componente),
-    prediosConPropuestas: pgInt(r.predios_con_propuestas),
-    totalPropuestas: pgInt(r.total_propuestas),
-    linea: pgInt(r.linea),
-    poligono: pgInt(r.poligono),
-    punto: pgInt(r.punto),
-  }));
-}
-
-// -----------------------------------------------------------------------------
-// R9 — Quebradas con más propuestas
-// -----------------------------------------------------------------------------
-export async function getReporteR9(): Promise<ReporteR9Fila[]> {
-  const rows = await sql<{
-    id_quebrada: number | string;
-    nombre_quebrada: string;
-    area: number | string | null;
-    nombre_municipio: string;
-    total_propuestas: number | string;
-    propuestas_linea: number | string;
-    propuestas_poligono: number | string;
-    propuestas_punto: number | string;
-  }[]>`
-    SELECT q.id_quebrada, q.nombre_quebrada, q.area,
-           m.nombre_municipio,
-           COUNT(prop.id_propuesta)::int                       AS total_propuestas,
-           COUNT(*) FILTER (WHERE prop.tipo = 'linea')::int    AS propuestas_linea,
-           COUNT(*) FILTER (WHERE prop.tipo = 'poligono')::int AS propuestas_poligono,
-           COUNT(*) FILTER (WHERE prop.tipo = 'punto')::int    AS propuestas_punto
-    FROM   bcs_dh_quebrada q
-    JOIN   bcs_lpa_municipio m ON q.id_municipio = m.id_municipio
-    LEFT JOIN sgs_pro_propuesta prop ON q.id_quebrada = prop.id_quebrada
-    GROUP  BY q.id_quebrada, q.nombre_quebrada, q.area, m.nombre_municipio
-    HAVING  COUNT(prop.id_propuesta) > 0
-    ORDER  BY total_propuestas DESC, q.nombre_quebrada;
-  `;
-  return rows.map((r) => ({
-    idQuebrada: pgInt(r.id_quebrada),
-    nombreQuebrada: pgText(r.nombre_quebrada),
-    area: r.area == null ? null : pgNum(r.area),
     nombreMunicipio: pgText(r.nombre_municipio),
-    totalPropuestas: pgInt(r.total_propuestas),
-    propuestasLinea: pgInt(r.propuestas_linea),
-    propuestasPoligono: pgInt(r.propuestas_poligono),
-    propuestasPunto: pgInt(r.propuestas_punto),
+    departamento:    pgText(r.departamento),
+    totalVias:       pgInt(r.total_vias ?? 0),
+    tiposVia:        r.tipos_via ?? "",
   }));
 }
 
