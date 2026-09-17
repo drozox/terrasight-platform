@@ -127,9 +127,12 @@ export default function MapClient({
       propuestas: true,
       propuestas_punto: true,
       propuestas_poligono: true,
+      predios: true,
+      municipios: true,
+      veredas: true,
       drenaje_simple: true,
       drenaje_doble: true,
-      municipios: true,
+      vias: true,
     }));
   }, [activeComponente, activeAccion]);
   const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
@@ -371,7 +374,7 @@ export default function MapClient({
         {/* Capas geográficas — geometría real (DEBT-3.8) */}
         {layers.municipios && (
           <GeoJsonLayer
-            url="/api/geo?layer=municipios"
+            url={`/api/geo?layer=municipios${filtroQS}`}
             color="#1f6feb"
             weight={2}
             fillColor="#1f6feb"
@@ -382,7 +385,7 @@ export default function MapClient({
         )}
         {layers.veredas && (
           <GeoJsonLayer
-            url="/api/geo?layer=veredas"
+            url={`/api/geo?layer=veredas${filtroQS}`}
             color="#0b7c3a"
             weight={1}
             fillColor="#0b7c3a"
@@ -393,7 +396,7 @@ export default function MapClient({
         )}
         {layers.predios && (
           <GeoJsonLayer
-            url="/api/geo?layer=predios"
+            url={`/api/geo?layer=predios${filtroQS}`}
             color="#006d37"
             weight={2}
             fillColor="#006d37"
@@ -458,7 +461,7 @@ export default function MapClient({
         )}
         {layers.drenaje_simple && (
           <GeoJsonLayer
-            url="/api/geo?layer=drenajes"
+            url={`/api/geo?layer=drenajes${filtroQS}`}
             color="#1f79b9"
             weight={1.5}
             fillOpacity={0}
@@ -467,7 +470,7 @@ export default function MapClient({
         )}
         {layers.drenaje_doble && (
           <GeoJsonLayer
-            url="/api/geo?layer=drenajes_dobles"
+            url={`/api/geo?layer=drenajes_dobles${filtroQS}`}
             color="#0e4b6e"
             weight={2.5}
             fillOpacity={0}
@@ -476,7 +479,7 @@ export default function MapClient({
         )}
         {layers.vias && (
           <GeoJsonLayer
-            url="/api/geo?layer=vias"
+            url={`/api/geo?layer=vias${filtroQS}`}
             color="#7a4a00"
             weight={1.2}
             fillOpacity={0}

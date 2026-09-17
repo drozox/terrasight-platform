@@ -10,14 +10,63 @@ import { normalizarAccion, accionDef, type AccionCode } from "../acciones";
 
 type FeatureCollection = GeoJSON.FeatureCollection;
 
+/**
+ * Municipios donde ocurre una acción: por el predio→vereda→municipio de sus
+ * propuestas + por intersección espacial de las geometrías (línea/polígono/punto).
+ */
+function accionMunicipiosSub(componente: string | null, accion: string | null) {
+  const { compCond, accionCond } = filtroProps(componente, accion);
+  return sql`(
+    SELECT DISTINCT v.id_municipio
+    FROM sgs_pro_propuesta pp
+      JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+      JOIN sgs_pre_predio     p ON p.id_predio     = pp.id_predio
+      JOIN bcs_lpa_vereda     v ON v.id_vereda     = p.id_vereda
+    WHERE TRUE ${compCond} ${accionCond}
+    UNION
+    SELECT DISTINCT m.id_municipio
+    FROM sgs_pro_propuesta_linea pl
+      JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pl.id_propuesta
+      JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
+      JOIN bcs_lpa_municipio  m  ON ST_Intersects(m.geom, pl.geom)
+    WHERE TRUE ${compCond} ${accionCond} AND pp.id_predio IS NULL
+    UNION
+    SELECT DISTINCT m.id_municipio
+    FROM sgs_pro_propuesta_poligono pq
+      JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pq.id_propuesta
+      JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
+      JOIN bcs_lpa_municipio  m  ON ST_Intersects(m.geom, pq.geom)
+    WHERE TRUE ${compCond} ${accionCond} AND pp.id_predio IS NULL
+    UNION
+    SELECT DISTINCT m.id_municipio
+    FROM sgs_pro_propuesta_punto pt
+      JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pt.id_propuesta
+      JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
+      JOIN bcs_lpa_municipio  m  ON ST_Intersects(m.geom, pt.geom)
+    WHERE TRUE ${compCond} ${accionCond} AND pp.id_predio IS NULL
+  )`;
+}
+
+/** Filtro de capas base (columnas `id_municipio`) al municipio de la acción. */
+function filtroMunicipioAccion(componente: string | null, accion: string | null) {
+  if (!componente && !accion) return sql``;
+  const code = accion ? normalizarAccion(accion) : null;
+  if (accion && !code) return sql``;
+  return sql`AND id_municipio IN ${accionMunicipiosSub(componente, code)}`;
+}
+
 /** Municipios — polígonos administrativos. */
 export const getMunicipiosGeoJSON = unstable_cache(
-  async (): Promise<FeatureCollection> => {
+  async (componente: string | null = null, accion: string | null = null): Promise<FeatureCollection> => {
     const rows = await sql<{ id: number; nombre: string; departamento: string; geom: string }[]>`
       SELECT id_municipio AS id, nombre_municipio AS nombre, departamento,
              ST_AsGeoJSON(geom) AS geom
       FROM bcs_lpa_municipio
-      WHERE geom IS NOT NULL
+      WHERE geom IS NOT NULL ${filtroMunicipioAccion(componente, accion)}
       ORDER BY nombre_municipio;
     `;
     return {
@@ -36,12 +85,12 @@ export const getMunicipiosGeoJSON = unstable_cache(
 
 /** Veredas — polígonos administrativos. */
 export const getVeredasGeoJSON = unstable_cache(
-  async (): Promise<FeatureCollection> => {
+  async (componente: string | null = null, accion: string | null = null): Promise<FeatureCollection> => {
     const rows = await sql<{ id: number; nombre: string; id_municipio: number; geom: string }[]>`
       SELECT id_vereda AS id, nombre_vereda AS nombre, id_municipio,
              ST_AsGeoJSON(geom) AS geom
       FROM bcs_lpa_vereda
-      WHERE geom IS NOT NULL
+      WHERE geom IS NOT NULL ${filtroMunicipioAccion(componente, accion)}
       ORDER BY nombre_vereda;
     `;
     return {
@@ -58,18 +107,28 @@ export const getVeredasGeoJSON = unstable_cache(
   { revalidate: 300, tags: ["mapa"] },
 );
 
-/** Predios — polígonos catastrales. */
+/** Predios — polígonos catastrales (filtrable por componente/acción). */
 export const getPrediosGeoJSON = unstable_cache(
-  async (): Promise<FeatureCollection> => {
+  async (componente: string | null = null, accion: string | null = null): Promise<FeatureCollection> => {
+    let filtro = sql``;
+    if (componente || accion) {
+      const { compCond, accionCond } = filtroProps(componente, accion);
+      filtro = sql`AND EXISTS (
+        SELECT 1 FROM sgs_pro_propuesta pp
+        JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
+        JOIN sgs_com_componente c ON c.id_componente = a.id_componente
+        WHERE pp.id_predio = p.id_predio ${compCond} ${accionCond}
+      )`;
+    }
     const rows = await sql<{ id: number; nombre: string; area_ha: number; geom: string }[]>`
-      SELECT id_predio AS id, nombre_predio AS nombre, area_ha,
+      SELECT p.id_predio AS id, p.nombre_predio AS nombre, p.area_ha,
              ST_AsGeoJSON(
-               CASE WHEN ST_SRID(geom) = 4326 THEN geom
-                    ELSE ST_Transform(geom, 4326) END
+               CASE WHEN ST_SRID(p.geom) = 4326 THEN p.geom
+                    ELSE ST_Transform(p.geom, 4326) END
              ) AS geom
-      FROM sgs_pre_predio
-      WHERE geom IS NOT NULL
-      ORDER BY id_predio;
+      FROM sgs_pre_predio p
+      WHERE p.geom IS NOT NULL ${filtro}
+      ORDER BY p.id_predio;
     `;
     return {
       type: "FeatureCollection",
@@ -122,12 +181,15 @@ export const getBiomasGeoJSON = unstable_cache(
  * a >100MB y queremos cache real, la opcion es vector tiles (MVT) o
  * simplificar la geometria en BD (`ST_Simplify(geom, 0.0001)`).
  */
-export async function getDrenajesSimplesGeoJSON(): Promise<FeatureCollection> {
+export async function getDrenajesSimplesGeoJSON(
+  componente: string | null = null,
+  accion: string | null = null,
+): Promise<FeatureCollection> {
   const rows = await sql<{ id: number; nombre: string; estado: string; geom: string }[]>`
     SELECT id_drenaje_simple AS id, nombre_geografico AS nombre, estado_drenaje AS estado,
            ST_AsGeoJSON(geom) AS geom
     FROM sgs_inf_drenaje_simple
-    WHERE geom IS NOT NULL
+    WHERE geom IS NOT NULL ${filtroMunicipioAccion(componente, accion)}
     ORDER BY id_drenaje_simple;
   `;
   return {
@@ -142,12 +204,15 @@ export async function getDrenajesSimplesGeoJSON(): Promise<FeatureCollection> {
 }
 
 /** Drenaje doble — líneas. */
-export async function getDrenajesDoblesGeoJSON(): Promise<FeatureCollection> {
+export async function getDrenajesDoblesGeoJSON(
+  componente: string | null = null,
+  accion: string | null = null,
+): Promise<FeatureCollection> {
   const rows = await sql<{ id: number; nombre: string; tipo: string; geom: string }[]>`
     SELECT id_drenaje_doble AS id, nombre_geografico AS nombre, tipo,
            ST_AsGeoJSON(geom) AS geom
     FROM sgs_inf_drenaje_doble
-    WHERE geom IS NOT NULL
+    WHERE geom IS NOT NULL ${filtroMunicipioAccion(componente, accion)}
     ORDER BY id_drenaje_doble;
   `;
   return {
@@ -169,12 +234,12 @@ export async function getParamosGeoJSON(): Promise<FeatureCollection> {
 
 /** Vías — líneas. */
 export const getViasGeoJSON = unstable_cache(
-  async (): Promise<FeatureCollection> => {
+  async (componente: string | null = null, accion: string | null = null): Promise<FeatureCollection> => {
     const rows = await sql<{ id: number; tipo: string; estado: string; geom: string }[]>`
       SELECT id_via AS id, tipo_via AS tipo, estado_superficie AS estado,
              ST_AsGeoJSON(geom) AS geom
       FROM sgs_inf_via
-      WHERE geom IS NOT NULL
+      WHERE geom IS NOT NULL ${filtroMunicipioAccion(componente, accion)}
       ORDER BY id_via;
     `;
     return {

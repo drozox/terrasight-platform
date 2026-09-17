@@ -102,10 +102,14 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Propuestas: aceptan filtro por componente/acción.
+    // Capas que aceptan filtro por componente/acción (propuestas + base).
+    const CON_FILTRO = new Set([
+      "propuestas", "propuestas_punto", "propuestas_poligono",
+      "municipios", "veredas", "drenajes", "drenajes_dobles", "vias",
+    ]);
     let data: FeatureCollection;
-    if (layer === "propuestas" || layer === "propuestas_punto" || layer === "propuestas_poligono") {
-      const fn = LAYERS[layer] as (c: string | null, a: string | null) => Promise<FeatureCollection>;
+    if (CON_FILTRO.has(layer)) {
+      const fn = LAYERS[layer as LayerKey] as (c: string | null, a: string | null) => Promise<FeatureCollection>;
       data = await fn(sp.get("componente"), sp.get("accion"));
     } else {
       data = await LAYERS[layer as LayerKey]();
