@@ -19,12 +19,16 @@ export function RightPanel({
   kpis,
   footer,
   resumen,
+  filtrosSlot,
   metasSlot,
+  atencionSlot,
 }: {
   kpis: DashboardKpis;
   footer: FooterKpis;
   resumen?: ResumenComponente;
+  filtrosSlot?: ReactNode;
   metasSlot?: ReactNode;
+  atencionSlot?: ReactNode;
 }) {
   const c = resumen?.conteos;
   const indicadores = [
@@ -42,7 +46,9 @@ export function RightPanel({
 
   return (
     <aside className="flex w-full flex-col gap-5 rounded-[20px] border border-outline-variant bg-surface p-6">
-      {/* Ajuste 6: Metas del convenio vive en la columna derecha (slot). */}
+      {filtrosSlot}
+
+      {/* Metas del convenio */}
       {metasSlot}
 
       {/* SECCIÓN 1 — Avance del componente */}
@@ -138,6 +144,8 @@ export function RightPanel({
         </div>
       </Card>
       </PanelGate>
+
+      {atencionSlot}
     </aside>
   );
 }

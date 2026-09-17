@@ -141,6 +141,32 @@ export async function getDrenajesSimplesGeoJSON(): Promise<FeatureCollection> {
   };
 }
 
+/** Drenaje doble — líneas. */
+export async function getDrenajesDoblesGeoJSON(): Promise<FeatureCollection> {
+  const rows = await sql<{ id: number; nombre: string; tipo: string; geom: string }[]>`
+    SELECT id_drenaje_doble AS id, nombre_geografico AS nombre, tipo,
+           ST_AsGeoJSON(geom) AS geom
+    FROM sgs_inf_drenaje_doble
+    WHERE geom IS NOT NULL
+    ORDER BY id_drenaje_doble;
+  `;
+  return {
+    type: "FeatureCollection",
+    features: rows.map((r) => ({
+      type: "Feature",
+      id: r.id,
+      properties: { id: r.id, nombre: r.nombre, tipo: r.tipo, layer: "drenajes_dobles" },
+      geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
+    })),
+  };
+}
+
+/** Páramos — polígonos. La tabla `sgs_amb_paramos` no tiene geometría en la BD
+ *  (solo atributos + relaciones), así que hoy devuelve vacío. */
+export async function getParamosGeoJSON(): Promise<FeatureCollection> {
+  return { type: "FeatureCollection", features: [] };
+}
+
 /** Vías — líneas. */
 export const getViasGeoJSON = unstable_cache(
   async (): Promise<FeatureCollection> => {

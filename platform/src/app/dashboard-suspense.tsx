@@ -6,11 +6,9 @@
 // =============================================================================
 
 import { Suspense } from "react";
+import type { ReactNode } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { Upload } from "lucide-react";
 import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
-import { SummaryBar } from "@/components/dashboard/bottom-sections";
 import { MetasStrip } from "@/components/dashboard/metas-strip";
 import { ComparativaComponentes } from "@/components/dashboard/comparativa-componentes";
 import { AlertasMetas } from "@/components/dashboard/alertas-metas";
@@ -125,18 +123,24 @@ async function RightPanelSection({
   resumen,
   componenteFiltro,
   accionFiltro,
+  filtrosSlot,
+  atencionSlot,
 }: {
   kpis: DashboardKpis;
   footer: FooterKpis;
   resumen?: ResumenComponente;
   componenteFiltro: string | null;
   accionFiltro: AccionCode | null;
+  filtrosSlot?: ReactNode;
+  atencionSlot?: ReactNode;
 }) {
   return (
     <RightPanel
       kpis={kpis}
       footer={footer}
       resumen={resumen}
+      filtrosSlot={filtrosSlot}
+      atencionSlot={atencionSlot}
       metasSlot={
         <PanelGate id="metas">
           <MetasStrip componente={componenteFiltro} accion={accionFiltro} />
@@ -174,29 +178,13 @@ export function DashboardContent({
   resumen: ResumenComponente;
 }) {
   return (
-    <div className="flex h-full flex-1 flex-col overflow-hidden">
-      {/* HEADER */}
-      <header className="border-b border-outline-variant bg-surface-container-lowest px-8 py-5">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-5">
-          <div>
-            <h1 className="text-[24px] font-semibold leading-tight text-on-surface">
-              Panel de control
-            </h1>
-            <p className="mt-1 text-[14px] text-on-surface-variant">
-              Monitoreo de las acciones ambientales del convenio CAR · WWF · Fundación Natura
-            </p>
-          </div>
-          <Link
-            href="/?componente=IMPORT"
-            className="inline-flex items-center gap-2 rounded-xl border border-primary px-5 py-3 text-[14px] font-semibold text-primary transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          >
-            <Upload className="size-4" />
-            Importar capa
-          </Link>
-        </div>
-      </header>
+    <div className="flex h-full flex-1 overflow-hidden">
+      {/* Barra de control de paneles (izquierda, fija, fuera del mapa) */}
+      <div className="hidden w-[64px] shrink-0 flex-col items-center border-r border-outline-variant bg-surface-container-lowest py-6 lg:flex">
+        <PanelToggles />
+      </div>
 
-      {/* CONTENIDO */}
+      {/* Contenido */}
       <div className="flex-1 overflow-y-auto bg-surface-container-low">
         <div className="mx-auto w-full max-w-[1600px] px-8 py-8">
           {/* 1. Componentes */}
@@ -207,47 +195,30 @@ export function DashboardContent({
             <WelcomeBanner nombre={usuarioNombre} />
           </div>
 
-          {/* 3. Filtros territoriales */}
-          <div className="mt-6">
-            <FiltroTerritorial
-              municipios={opcionesTerritorio.municipios}
-              veredas={opcionesTerritorio.veredas}
-              predios={opcionesTerritorio.predios}
-              municipio={territorio.municipio}
-              vereda={territorio.vereda}
-              predio={territorio.predio}
-              componente={componenteFiltro}
-              accion={accionFiltro}
-            />
-          </div>
-
-          {/* 4. Requiere atención */}
-          <div className="mt-8">
-            <PanelGate id="atencion">
-              <AlertasMetas indicadores={resumen.indicadores} />
-            </PanelGate>
-          </div>
-
-          {/* 6. GRID PRINCIPAL: mapa 70% + panel derecho 30% */}
-          <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,7fr)_minmax(340px,3fr)]">
-            <Suspense
-              fallback={
-                <div className="relative flex h-[520px] w-full items-center justify-center overflow-hidden rounded-[24px] border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[660px]">
-                  <div className="flex flex-col items-center gap-3 text-on-surface-variant">
-                    <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p className="text-sm">Cargando mapa y predios…</p>
+          {/* 3. Grid principal: mapa + comparativa | panel derecho con todos los paneles */}
+          <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <div className="flex min-w-0 flex-col gap-8">
+              <Suspense
+                fallback={
+                  <div className="relative flex h-[520px] w-full items-center justify-center overflow-hidden rounded-[24px] border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[660px]">
+                    <div className="flex flex-col items-center gap-3 text-on-surface-variant">
+                      <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <p className="text-sm">Cargando mapa y predios…</p>
+                    </div>
                   </div>
-                </div>
-              }
-            >
-              <MapSection
-                componenteFiltro={componenteFiltro}
-                accionFiltro={accionFiltro}
-                territorio={territorio}
-                focusTerritorio={focusTerritorio}
-                dbHealth={dbHealth}
-              />
-            </Suspense>
+                }
+              >
+                <MapSection
+                  componenteFiltro={componenteFiltro}
+                  accionFiltro={accionFiltro}
+                  territorio={territorio}
+                  focusTerritorio={focusTerritorio}
+                  dbHealth={dbHealth}
+                />
+              </Suspense>
+
+              <ComparativaComponentes componentes={componentes} avances={avances} />
+            </div>
 
             <Suspense
               fallback={
@@ -264,20 +235,25 @@ export function DashboardContent({
                 resumen={resumen}
                 componenteFiltro={componenteFiltro}
                 accionFiltro={accionFiltro}
+                filtrosSlot={
+                  <PanelGate id="filtros">
+                    <FiltroTerritorial
+                      municipios={opcionesTerritorio.municipios}
+                      veredas={opcionesTerritorio.veredas}
+                      predios={opcionesTerritorio.predios}
+                      municipio={territorio.municipio}
+                      vereda={territorio.vereda}
+                      predio={territorio.predio}
+                    />
+                  </PanelGate>
+                }
+                atencionSlot={
+                  <PanelGate id="atencion">
+                    <AlertasMetas indicadores={resumen.indicadores} />
+                  </PanelGate>
+                }
               />
             </Suspense>
-          </div>
-
-          {/* 7. Comparativa */}
-          <div className="mt-12">
-            <ComparativaComponentes componentes={componentes} avances={avances} />
-          </div>
-
-          {/* 8. Indicadores inferiores */}
-          <div className="mt-8">
-            <PanelGate id="franja">
-              <SummaryBar footer={footerInicial} resumen={resumen} />
-            </PanelGate>
           </div>
         </div>
       </div>

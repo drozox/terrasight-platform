@@ -20,12 +20,13 @@ import { Swatch, LAYER_SYMBOLOGY } from "./map-legend";
 export type MapLayerKey =
   | "municipios"
   | "veredas"
-  | "rios"
-  | "quebradas"
+  | "drenaje_simple"
+  | "drenaje_doble"
   | "vias"
   | "biomas"
   | "parques"
   | "reservas"
+  | "paramos"
   | "predios"
   | "propuestas"
   | "propuestas_punto"
@@ -80,8 +81,8 @@ const LAYER_GROUPS: Array<{
     title: "Hidrografía",
     Icon: Droplets,
     items: [
-      { key: "quebradas", label: "Quebradas / Drenajes" },
-      { key: "rios",      label: "Ríos principales" },
+      { key: "drenaje_simple", label: "Drenaje simple" },
+      { key: "drenaje_doble",  label: "Drenaje doble" },
     ],
   },
   {
@@ -97,6 +98,7 @@ const LAYER_GROUPS: Array<{
     items: [
       { key: "parques",  label: "Parques Naturales" },
       { key: "reservas", label: "Reservas Forestales" },
+      { key: "paramos",  label: "Páramos" },
     ],
   },
   {

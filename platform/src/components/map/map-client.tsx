@@ -98,14 +98,15 @@ export default function MapClient({
   // y quitar el "próx." stale en el panel.
   const [layers, setLayers] = React.useState<Record<MapLayerKey, boolean>>({
     predios: true,
-    quebradas: true,
+    drenaje_simple: true,
     municipios: true,
     veredas: false,
-    rios: false,
+    drenaje_doble: false,
     vias: false,
     biomas: false,
     parques: false,
     reservas: false,
+    paramos: false,
     propuestas: false,
     propuestas_punto: false,
     propuestas_poligono: false,
@@ -441,7 +442,7 @@ export default function MapClient({
             onClick={setSelectedFeature}
           />
         )}
-        {layers.quebradas && (
+        {layers.drenaje_simple && (
           <GeoJsonLayer
             url="/api/geo?layer=drenajes"
             color="#1f79b9"
@@ -450,10 +451,10 @@ export default function MapClient({
             onClick={setSelectedFeature}
           />
         )}
-        {layers.rios && (
+        {layers.drenaje_doble && (
           <GeoJsonLayer
-            url="/api/geo?layer=drenajes"
-            color="#1f79b9"
+            url="/api/geo?layer=drenajes_dobles"
+            color="#0e4b6e"
             weight={2.5}
             fillOpacity={0}
             onClick={setSelectedFeature}
@@ -476,6 +477,16 @@ export default function MapClient({
         )}
         {layers.reservas && (
           <WfsLayer url="/api/wfs/reservas" color="#558b2f" fillOpacity={0.12} />
+        )}
+        {layers.paramos && (
+          <GeoJsonLayer
+            url="/api/geo?layer=paramos"
+            color="#6d7a6e"
+            weight={1}
+            fillColor="#9aa79b"
+            fillOpacity={0.2}
+            onClick={setSelectedFeature}
+          />
         )}
 
         <MapRegionLabels />

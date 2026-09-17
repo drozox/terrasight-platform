@@ -25,14 +25,15 @@ export const LAYER_SYMBOLOGY: Record<MapLayerKey, LayerStyle> = {
   veredas:             { label: "Límite veredal",         color: "#0b7c3a", kind: "line" },
   predios:             { label: "Predios concertados",    color: "#006d37", kind: "polygon" },
   biomas:              { label: "Biomas IAVH",            color: "#a3d977", kind: "polygon" },
-  quebradas:           { label: "Quebradas / drenajes",   color: "#1f79b9", kind: "line" },
-  rios:                { label: "Ríos",                   color: "#1f79b9", kind: "line" },
+  drenaje_simple:      { label: "Drenaje simple",         color: "#1f79b9", kind: "line" },
+  drenaje_doble:       { label: "Drenaje doble",          color: "#0e4b6e", kind: "line" },
   vias:                { label: "Vías",                   color: "#7a4a00", kind: "line" },
   propuestas_poligono: { label: "Intervenciones (áreas)", color: "#f0b24a", kind: "polygon" },
   propuestas:          { label: "Intervenciones (líneas)", color: "#b26a00", kind: "line" },
   propuestas_punto:    { label: "Intervenciones (puntos)", color: "#b26a00", kind: "point" },
   parques:             { label: "Parques naturales",      color: "#2e7d32", kind: "polygon" },
   reservas:            { label: "Reservas forestales",    color: "#558b2f", kind: "polygon" },
+  paramos:             { label: "Páramos",                color: "#6d7a6e", kind: "polygon" },
 };
 
 export function Swatch({ style }: { style: LayerStyle }) {

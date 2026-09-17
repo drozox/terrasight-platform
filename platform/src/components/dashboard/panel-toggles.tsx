@@ -1,29 +1,29 @@
 "use client";
 
 // =============================================================================
-// PanelToggles (barra lateral derecha, solo íconos) + PanelGate.
+// PanelToggles (barra lateral izquierda, solo íconos) + PanelGate.
 // Cada ícono prende/apaga un panel de INICIO; tooltip nativo con el nombre.
 // La preferencia se guarda en localStorage y se comparte vía evento de window.
 // =============================================================================
 
 import * as React from "react";
 import {
+  SlidersHorizontal,
   BarChart3,
   Target,
   TrendingUp,
   AlertTriangle,
-  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type PanelId = "indicadores" | "metas" | "franja" | "avance" | "atencion";
+export type PanelId = "filtros" | "indicadores" | "metas" | "avance" | "atencion";
 
 const PANELS: { id: PanelId; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "filtros", label: "Filtros territoriales", Icon: SlidersHorizontal },
   { id: "indicadores", label: "Indicadores generales", Icon: BarChart3 },
   { id: "metas", label: "Metas del convenio", Icon: Target },
   { id: "avance", label: "Avance del proyecto", Icon: TrendingUp },
   { id: "atencion", label: "Requiere atención", Icon: AlertTriangle },
-  { id: "franja", label: "Franja de indicadores", Icon: Building2 },
 ];
 
 const KEY = "inicio.panels";
@@ -60,7 +60,7 @@ export function PanelToggles() {
 
   return (
     <div
-      className="flex flex-col gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest/95 p-2 shadow-lg backdrop-blur"
+      className="flex flex-col gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest p-2"
       role="toolbar"
       aria-label="Mostrar u ocultar paneles"
     >
