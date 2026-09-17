@@ -38,7 +38,7 @@ export const ESTADO_TEXT: Record<EstadoIndicador, string> = {
 export const ESTADO_CHIP: Record<EstadoIndicador, string> = {
   cumplida: "bg-success/10 text-success",
   en_curso: "bg-warning/10 text-warning",
-  atrasada: "bg-error/10 text-error",
+  atrasada: "bg-error-container text-on-error-container",
 };
 
 export const METODOLOGIA_SEMAFORO =

@@ -10,7 +10,7 @@ import { getResumenComponente, normalizarComponente } from "@/lib/repos";
 import type { AccionCode } from "@/lib/acciones";
 import {
   ESTADO_BAR,
-  ESTADO_TEXT,
+  ESTADO_CHIP,
   ESTADO_LABEL,
   METODOLOGIA_SEMAFORO,
 } from "@/lib/estado-indicador";
@@ -67,46 +67,52 @@ export async function MetasStrip({
           Este componente no tiene indicadores configurados.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <ul className="flex flex-col gap-3">
           {indicadores.map((ind) => {
             const bar = ESTADO_BAR[ind.estado];
-            const text = ESTADO_TEXT[ind.estado];
+            const chip = ESTADO_CHIP[ind.estado];
             const label = ESTADO_LABEL[ind.estado];
+            const actual = ind.actual.toLocaleString("es-CO", {
+              maximumFractionDigits: 2,
+            });
             return (
-              <div
+              <li
                 key={ind.key}
-                className="rounded-lg border border-outline-variant/60 bg-surface-container-low p-3"
+                className="w-full rounded-lg border border-outline-variant/60 bg-surface-container-low p-3.5"
               >
-                <div className="flex items-start justify-between gap-1">
-                  <p
-                    className="truncate text-[11px] text-on-surface-variant"
-                    title={ind.label}
-                  >
-                    {ind.label}
-                  </p>
-                  <span className="shrink-0 rounded bg-surface-variant/60 px-1 text-[9px] font-bold text-on-surface-variant">
+                {/* Nombre completo de la meta (con su acción) */}
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 rounded bg-surface-variant/60 px-1.5 py-0.5 text-[10px] font-bold text-on-surface-variant">
                     {ind.accion}
                   </span>
+                  <p className="min-w-0 text-body-sm font-semibold text-on-surface">
+                    {ind.label}
+                  </p>
                 </div>
-                <p className="mt-1 text-lg font-bold leading-none text-on-surface">
-                  {ind.actual.toLocaleString("es-CO", { maximumFractionDigits: 2 })}
-                  <span className="ml-1 text-[11px] font-normal text-on-surface-variant">
-                    / {ind.meta} {ind.unidad}
+
+                {/* Valores: numérico a la izquierda, % + estado al extremo derecho */}
+                <div className="mt-1.5 flex items-center justify-between gap-3">
+                  <span className="text-body-sm text-on-surface-variant tabular-nums">
+                    {actual} / {ind.meta}{" "}
+                    <span className="text-on-surface-variant/80">{ind.unidad}</span>
                   </span>
-                </p>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${chip}`}
+                  >
+                    {ind.pct}% · {label}
+                  </span>
+                </div>
+
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-variant/40">
                   <div
                     className={`h-full ${bar}`}
                     style={{ width: `${Math.min(100, ind.pct)}%` }}
                   />
                 </div>
-                <p className={`mt-1 text-[10px] font-bold ${text}`}>
-                  {ind.pct}% · {label}
-                </p>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </section>
   );
