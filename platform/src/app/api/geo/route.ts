@@ -22,6 +22,7 @@ import {
   getMunicipiosGeoJSON,
   getVeredasGeoJSON,
   getPrediosGeoJSON,
+  getPredioGeoJSONById,
   getBiomasGeoJSON,
   getDrenajesSimplesGeoJSON,
   getDrenajesDoblesGeoJSON,
@@ -86,6 +87,22 @@ export async function GET(req: Request) {
       return NextResponse.json(data, {
         headers: { "Cache-Control": "public, max-age=120" },
       });
+    } catch (err) {
+      return NextResponse.json(
+        { error: (err as Error).message ?? "Error desconocido" },
+        { status: 503 },
+      );
+    }
+  }
+
+  if (layer === "predio") {
+    const id = Number(sp.get("id"));
+    if (!Number.isFinite(id) || id <= 0) {
+      return NextResponse.json({ error: "Falta el parámetro 'id' válido." }, { status: 400 });
+    }
+    try {
+      const data = await getPredioGeoJSONById(id);
+      return NextResponse.json(data, { headers: { "Cache-Control": "private, no-store" } });
     } catch (err) {
       return NextResponse.json(
         { error: (err as Error).message ?? "Error desconocido" },

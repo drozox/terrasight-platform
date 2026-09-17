@@ -26,22 +26,31 @@ export function TerritorioFocusLayer({
 
   React.useEffect(() => {
     if (!focus) return;
-    const layer = predio ? "predios" : vereda ? "veredas" : municipio ? "municipios" : null;
+    const url = predio
+      ? `/api/geo?layer=predio&id=${predio}`
+      : vereda
+        ? `/api/geo?layer=veredas`
+        : municipio
+          ? `/api/geo?layer=municipios`
+          : null;
     const id = predio ?? vereda ?? municipio;
-    if (!layer || id == null) return;
+    if (!url || id == null) return;
 
     let cancelled = false;
     const ctrl = new AbortController();
 
     (async () => {
       try {
-        const r = await fetch(`/api/geo?layer=${layer}`, { signal: ctrl.signal });
+        const r = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
         if (!r.ok) return;
         const data = (await r.json()) as GeoJSON.FeatureCollection;
         if (cancelled) return;
-        const feat = data.features.find(
-          (f) => Number((f.properties as Record<string, unknown> | null)?.id) === id,
-        );
+        // `layer=predio` ya devuelve solo ese predio; el resto filtra por id.
+        const feat = predio
+          ? data.features[0]
+          : data.features.find(
+              (f) => Number((f.properties as Record<string, unknown> | null)?.id) === id,
+            );
         if (!feat) return;
 
         const nombre = String(

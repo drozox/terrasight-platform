@@ -155,6 +155,32 @@ export const getPrediosGeoJSON = unstable_cache(
   { revalidate: 300, tags: ["mapa"] },
 );
 
+/**
+ * Un solo predio por id (para el filtro territorial de INICIO: foco + fitBounds).
+ * Devuelve una FeatureCollection con 0 o 1 feature, con la geometría ya en 4326.
+ */
+export async function getPredioGeoJSONById(id: number): Promise<FeatureCollection> {
+  const rows = await sql<{ id: number; nombre: string; area_ha: number; geom: string }[]>`
+    SELECT p.id_predio AS id, p.nombre_predio AS nombre, p.area_ha,
+           ST_AsGeoJSON(
+             CASE WHEN ST_SRID(p.geom) = 4326 THEN p.geom
+                  ELSE ST_Transform(p.geom, 4326) END
+           ) AS geom
+    FROM sgs_pre_predio p
+    WHERE p.id_predio = ${id} AND p.geom IS NOT NULL
+    LIMIT 1;
+  `;
+  return {
+    type: "FeatureCollection",
+    features: rows.map((r) => ({
+      type: "Feature",
+      id: r.id,
+      properties: { id: r.id, nombre: r.nombre, areaHa: Number(r.area_ha), layer: "predios" },
+      geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
+    })),
+  };
+}
+
 /** Biomas — polígonos de cobertura vegetal IAVH. */
 export const getBiomasGeoJSON = unstable_cache(
   async (): Promise<FeatureCollection> => {
