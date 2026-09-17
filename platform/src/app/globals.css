@@ -110,11 +110,11 @@
      --container-{X} definido). Redefinir --spacing-md rompía max-w-md
      (lo computaba como 0.75rem en lugar de 28rem). Usamos namespace
      `terrasight-` para evitar la colisión. Ver DEBT-3.4. */
-  --spacing-terrasight-sm:           0.5rem;   /* 8px */
-  --spacing-terrasight-md:           0.75rem;  /* 12px - py-md, px-md */
-  --spacing-terrasight-lg:           1.5rem;   /* 24px - mb-lg, pt-lg */
-  --spacing-terrasight-gutter:       1rem;     /* 16px - spacing estándar entre componentes */
-  --spacing-terrasight-margin-edge:  1.5rem;   /* 24px - padding lateral del shell */
+  --spacing-terrasight-sm:           0.75rem;  /* 12px */
+  --spacing-terrasight-md:           1rem;     /* 16px - py-md, px-md */
+  --spacing-terrasight-lg:           2rem;     /* 32px - mb-lg, pt-lg */
+  --spacing-terrasight-gutter:       1.5rem;   /* 24px - spacing estándar entre componentes */
+  --spacing-terrasight-margin-edge:  2rem;     /* 32px - padding lateral del shell */
 
   /* Geometry */
   --radius:        0.5rem;

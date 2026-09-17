@@ -29,10 +29,11 @@ interface Props {
   basemap: "osm" | "topo" | "satellite";
   componente?: string | null;
   accion?: string | null;
+  open: boolean;
+  onClose: () => void;
 }
 
-export function MapPrintPanel({ layers, componente, accion }: Props) {
-  const [open, setOpen] = React.useState(false);
+export function MapPrintPanel({ layers, componente, accion, open, onClose }: Props) {
   const [titulo, setTitulo] = React.useState("");
   const [descripcion, setDescripcion] = React.useState("");
   const [solicitadoPor, setSolicitadoPor] = React.useState("");
@@ -146,26 +147,15 @@ export function MapPrintPanel({ layers, componente, accion }: Props) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        title="Imprimir layout"
-        aria-label="Imprimir layout"
-        className="absolute bottom-20 right-4 z-[600] flex items-center gap-1.5 rounded-lg border border-outline-variant/40 bg-surface-container-lowest/95 px-3 py-2 text-[11px] font-bold text-on-surface shadow-lg backdrop-blur transition-colors hover:bg-surface-container-low"
-      >
-        <Printer className="size-4" aria-hidden="true" />
-        Imprimir layout
-      </button>
-
       {open && (
         <div className="fixed inset-0 z-[2000] flex items-start justify-center overflow-y-auto bg-black/50 p-4">
           <div className="mt-6 w-full max-w-3xl rounded-xl border border-outline-variant bg-surface-container-lowest shadow-2xl">
             <div className="no-print flex items-center justify-between border-b border-outline-variant p-3">
-              <p className="text-title-md font-bold text-on-surface">Imprimir layout</p>
+              <p className="text-title-md font-bold text-on-surface">Imprimir mapa</p>
               <button
                 type="button"
                 aria-label="Cerrar"
-                onClick={() => setOpen(false)}
+                onClick={onClose}
                 className="flex size-8 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-variant/50"
               >
                 <X className="size-4" />

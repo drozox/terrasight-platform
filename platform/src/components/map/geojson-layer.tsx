@@ -18,6 +18,10 @@ interface Props {
   fillOpacity?: number;
   dashArray?: string;
   onClick?: (feature: GeoJSON.Feature) => void;
+  /** Estilo por feature (actividad/grupo). Tiene prioridad sobre color/weight. */
+  styleForFeature?: (feature: GeoJSON.Feature) => L.PathOptions;
+  /** Icono por feature para capas de puntos. */
+  pointToLayer?: (feature: GeoJSON.Feature, latlng: L.LatLng) => L.Layer;
 }
 
 export function GeoJsonLayer({
@@ -28,6 +32,8 @@ export function GeoJsonLayer({
   fillOpacity = 0.25,
   dashArray,
   onClick,
+  styleForFeature,
+  pointToLayer,
 }: Props) {
   const map = useMap();
   const layerRef = React.useRef<L.GeoJSON | null>(null);
@@ -44,13 +50,19 @@ export function GeoJsonLayer({
         if (cancelled) return;
 
         const gj = L.geoJSON(data, {
-          style: () => ({
-            color,
-            weight,
-            fillColor: fillColor ?? color,
-            fillOpacity,
-            dashArray,
-          }),
+          style: (feature) =>
+            styleForFeature && feature
+              ? styleForFeature(feature)
+              : {
+                  color,
+                  weight,
+                  fillColor: fillColor ?? color,
+                  fillOpacity,
+                  dashArray,
+                },
+          pointToLayer: pointToLayer
+            ? (feature, latlng) => pointToLayer(feature as GeoJSON.Feature, latlng)
+            : undefined,
           onEachFeature: (feature, layer) => {
             const props = (feature.properties ?? {}) as Record<string, unknown>;
             const html = renderPopup(props, feature);
@@ -77,7 +89,7 @@ export function GeoJsonLayer({
         layerRef.current = null;
       }
     };
-  }, [url, color, weight, fillColor, fillOpacity, dashArray, onClick, map]);
+  }, [url, color, weight, fillColor, fillOpacity, dashArray, onClick, styleForFeature, pointToLayer, map]);
 
   return null;
 }

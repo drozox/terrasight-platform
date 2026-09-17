@@ -14,6 +14,7 @@ import type {
 } from "@/lib/types";
 import type { ResumenComponente } from "@/lib/repos";
 import { ESTADO_BAR } from "@/lib/estado-indicador";
+import { PanelGate } from "./panel-toggles";
 import type { ReactNode } from "react";
 
 /**
@@ -75,6 +76,7 @@ export function RightPanel({
 
       {/* SECCIÓN 1 — Avance del componente */}
       {resumen && (
+        <PanelGate id="avance">
         <Card className="p-3">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-title-md font-bold text-on-surface">Avance del proyecto</h3>
@@ -125,9 +127,11 @@ export function RightPanel({
             ))}
           </ul>
         </Card>
+        </PanelGate>
       )}
 
       {/* SECCIÓN 2 — Indicadores del componente */}
+      <PanelGate id="indicadores">
       <Card className="p-3">
         <div className="mb-2.5 flex items-center justify-between">
           <h3 className="text-title-md font-bold text-on-surface">Indicadores</h3>
@@ -162,6 +166,7 @@ export function RightPanel({
           })}
         </div>
       </Card>
+      </PanelGate>
 
       {/* SECCIÓN 3 — Intervenciones por componente */}
       <Card className="p-3">

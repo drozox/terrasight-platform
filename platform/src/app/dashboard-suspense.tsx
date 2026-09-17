@@ -1,35 +1,34 @@
 // =============================================================================
 // Sub-componentes del dashboard `/` con Suspense boundaries para streaming.
-//
-// Razón: la home hace 13 queries en Promise.all. Si una sola tarda 2s, TODO
-// el SSR espera 2s antes de enviar HTML. Con Suspense boundaries el navegador
-// recibe la primera parte del HTML (ribbon, header) inmediatamente y el
-// resto se streama cuando está listo.
-//
-// Cada sub-componente es un async server component que se renderiza dentro
-// de un <Suspense>. El cliente (browser) no necesita hacer nada — Next.js
-// maneja el streaming transparentemente.
+// Reforma INICIO: saludo, filtros territoriales, barra de comandos de paneles,
+// sin búsqueda en el mapa ni monitor de intervenciones.
 // =============================================================================
 
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
-import { BottomSections, SummaryBar } from "@/components/dashboard/bottom-sections";
+import { CoberturaChart } from "@/components/dashboard/cobertura-chart";
+import { SummaryBar } from "@/components/dashboard/bottom-sections";
 import { MetasStrip } from "@/components/dashboard/metas-strip";
 import { ComparativaComponentes } from "@/components/dashboard/comparativa-componentes";
 import { AlertasMetas } from "@/components/dashboard/alertas-metas";
+import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
+import { PanelToggles, PanelGate } from "@/components/dashboard/panel-toggles";
+import {
+  FiltroTerritorial,
+  type MunOption,
+  type VerOption,
+  type PreOption,
+} from "@/components/dashboard/filtro-territorial";
 import { LeafletMap } from "@/components/map/leaflet-map";
-import { MapSearchBar } from "@/components/map/map-search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import type { AccionCode } from "@/lib/acciones";
 import {
-  getIntervencionesRecientes,
   getPrediosMini,
   getQuebradasMini,
   getPrediosGeoJSON,
-  getFooterKpis,
   getPrediosPorMunicipio,
-  getPropuestasPorComponente,
 } from "@/lib/repos";
 import type { AvanceComponente, ComponenteKey, ResumenComponente } from "@/lib/repos";
 import type {
@@ -38,17 +37,18 @@ import type {
   FooterKpis,
   SerieTemporal,
   PredioMini,
-  PredioPorMunicipio,
-  IntervencionReciente,
+  CoberturaTotal,
 } from "@/lib/types";
+import { formatInt } from "@/lib/utils";
 import type { FeatureCollection as GeoJSONFeatureCollection } from "geojson";
 
-// =============================================================================
-// Cargas lazy de los Client Components pesados (Recharts, etc.)
-// =============================================================================
+export type TerritorioFiltro = {
+  municipio: string | null;
+  vereda: string | null;
+  predio: string | null;
+};
 
-// RightPanel: usa DonutChart + LineChart (Recharts). Se renderiza client-side.
-// Lo cargamos async para que el bundle inicial no lo incluya.
+// RightPanel (Recharts) cargado client-side.
 const RightPanel = dynamic(
   () => import("@/components/dashboard/right-panel").then((m) => m.RightPanel),
   {
@@ -63,30 +63,32 @@ const RightPanel = dynamic(
   },
 );
 
-// =============================================================================
-// Sub-componentes async con Suspense — cada uno hace sus queries en paralelo
-// =============================================================================
+function toTerritorioNum(t: TerritorioFiltro) {
+  const num = (v: string | null) => (v && /^\d+$/.test(v) ? Number(v) : null);
+  return { municipio: num(t.municipio), vereda: num(t.vereda), predio: num(t.predio) };
+}
 
-/** Map + search overlay + health pill. Carga predios, quebradas y geojson. */
+/** Map + health pill. Carga predios, quebradas y geojson (con filtro territorial). */
 async function MapSection({
   componenteFiltro,
   accionFiltro,
-  queryTexto,
+  territorio,
   dbHealth,
 }: {
   componenteFiltro: string | null;
   accionFiltro: AccionCode | null;
-  queryTexto: string;
+  territorio: TerritorioFiltro;
   dbHealth: { ok: boolean; latencyMs: number; server?: string };
 }) {
+  const terr = toTerritorioNum(territorio);
   const [predios, quebradas, geojson] = await Promise.all([
-    getPrediosMini(componenteFiltro, accionFiltro),
+    getPrediosMini(componenteFiltro, accionFiltro, terr),
     getQuebradasMini(),
-    getPrediosGeoJSON(componenteFiltro, accionFiltro),
+    getPrediosGeoJSON(componenteFiltro, accionFiltro, terr),
   ]);
 
   return (
-    <div className="relative h-[400px] w-full flex-shrink-0 overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[560px] lg:flex-1">
+    <div className="relative h-[440px] w-full flex-shrink-0 overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[600px] lg:flex-1">
       <LeafletMap
         predios={predios}
         quebradas={quebradas}
@@ -96,24 +98,16 @@ async function MapSection({
         height="100%"
       />
 
-      <MapSearchBar initialQuery={queryTexto} />
-
       <div className="absolute bottom-4 left-4 z-[600] rounded-full bg-surface-container-lowest/95 px-3 py-1.5 text-[11px] shadow-md backdrop-blur">
         <span
           className="mr-1 inline-block size-2 rounded-full align-middle"
-          style={{
-            background: dbHealth.ok
-              ? "var(--color-success)"
-              : "var(--color-error)",
-          }}
+          style={{ background: dbHealth.ok ? "var(--color-success)" : "var(--color-error)" }}
         />
         {dbHealth.ok
           ? `PostGIS OK · ${dbHealth.latencyMs} ms · ${dbHealth.server ?? ""}`
           : `Postgres sin conexión (${dbHealth.latencyMs} ms)`}
       </div>
 
-      {/* Ajuste 3: hint reubicado al centro-abajo para NO tapar la escala
-         (ScaleControl) que vive abajo a la derecha. */}
       <div className="absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 rounded-md bg-surface-container-lowest/80 px-2 py-1 text-[10px] text-on-surface-variant shadow-sm backdrop-blur">
         Zoom 3–22 · wheel / double-click / +/–
       </div>
@@ -121,43 +115,31 @@ async function MapSection({
   );
 }
 
-/** Bottom sections (tabla + cards). Carga intervenciones, cobertura, top municipios. */
-async function BottomSection({
-  intervenciones,
-  queryTexto,
-  resumen,
-}: {
-  intervenciones: IntervencionReciente[];
-  queryTexto: string;
-  resumen?: ResumenComponente;
-}) {
-  const [topMunicipios, footer] = await Promise.all([
-    getPrediosPorMunicipio(6),
-    getFooterKpis(),
-  ]);
-
-  const filtradas = queryTexto
-    ? intervenciones.filter((i) => {
-        const t = queryTexto.toLowerCase();
-        return (
-          i.nombrePredio?.toLowerCase().includes(t) ||
-          i.municipio?.toLowerCase().includes(t) ||
-          i.actividad?.toLowerCase().includes(t)
-        );
-      })
-    : intervenciones;
-
+/** Top municipios por predios. */
+async function TopMunicipiosSection({ resumen }: { resumen?: ResumenComponente }) {
+  const topMunicipios = await getPrediosPorMunicipio(6);
+  const muniSource = resumen?.topMunicipios?.length
+    ? resumen.topMunicipios.map((m) => ({ nombre_municipio: m.nombre, predios: m.propuestas }))
+    : topMunicipios;
+  const total = muniSource.reduce((a, m) => a + m.predios, 0) || 1;
+  const items: CoberturaTotal[] = muniSource.map((m, i) => ({
+    nombre: m.nombre_municipio,
+    area: m.predios,
+    porcentaje: Math.round((m.predios / total) * 100),
+    color: i === 0 ? "primary" : i === 1 ? "secondary" : i === 2 ? "tertiary" : "outline",
+  }));
   return (
-    <BottomSections
-      intervenciones={filtradas}
-      topMunicipios={topMunicipios}
-      footer={footer}
-      resumen={resumen}
-    />
+    <div className="grid grid-cols-1 gap-gutter">
+      <CoberturaChart
+        title="Top Municipios por Predios"
+        items={items}
+        totalValue={formatInt(total)}
+        totalLabel="predios"
+      />
+    </div>
   );
 }
 
-/** Right panel: KPIs + componentes + tendencia. (DEEPSEEK-66: alertas fuera de alcance.) */
 async function RightPanelSection({
   kpis,
   componentes,
@@ -182,23 +164,24 @@ async function RightPanelSection({
       footer={footer}
       seriesComponentes={seriesComponentes}
       resumen={resumen}
-      metasSlot={<MetasStrip componente={componenteFiltro} accion={accionFiltro} />}
+      metasSlot={
+        <PanelGate id="metas">
+          <MetasStrip componente={componenteFiltro} accion={accionFiltro} />
+        </PanelGate>
+      }
     />
   );
 }
 
-// =============================================================================
-// Componente público que el home renderiza
-// =============================================================================
-
 export function DashboardContent({
   componenteFiltro,
   accionFiltro,
-  queryTexto,
+  territorio,
+  opcionesTerritorio,
+  usuarioNombre,
   kpis,
   componentes,
   footerInicial,
-  intervenciones,
   seriesComponentes,
   dbHealth,
   avances,
@@ -206,11 +189,12 @@ export function DashboardContent({
 }: {
   componenteFiltro: string | null;
   accionFiltro: AccionCode | null;
-  queryTexto: string;
+  territorio: TerritorioFiltro;
+  opcionesTerritorio: { municipios: MunOption[]; veredas: VerOption[]; predios: PreOption[] };
+  usuarioNombre: string;
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
   footerInicial: FooterKpis;
-  intervenciones: IntervencionReciente[];
   seriesComponentes: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
   dbHealth: { ok: boolean; latencyMs: number; server?: string };
   avances: Record<ComponenteKey, AvanceComponente>;
@@ -218,26 +202,34 @@ export function DashboardContent({
 }) {
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">
-      {/* ComponentRibbon — siempre visible, no hace queries */}
-      <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-2">
-        <ComponentRibbon
-          active={componenteFiltro}
-          avances={avances}
-          activeAccion={accionFiltro}
-        />
+      <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-md">
+        <ComponentRibbon active={componenteFiltro} avances={avances} activeAccion={accionFiltro} />
       </div>
 
-      {/* Contenido principal */}
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
-        {/* Columna izquierda: mapa (Suspense) + bottom sections (Suspense) */}
         <div className="flex flex-1 flex-col gap-gutter overflow-y-auto bg-surface-container-low p-gutter">
-          <AlertasMetas indicadores={resumen.indicadores} />
+          <WelcomeBanner nombre={usuarioNombre} />
+
+          <PanelToggles />
+
+          <FiltroTerritorial
+            municipios={opcionesTerritorio.municipios}
+            veredas={opcionesTerritorio.veredas}
+            predios={opcionesTerritorio.predios}
+            municipio={territorio.municipio}
+            vereda={territorio.vereda}
+            predio={territorio.predio}
+          />
+
+          <PanelGate id="atencion">
+            <AlertasMetas indicadores={resumen.indicadores} />
+          </PanelGate>
 
           <ComparativaComponentes componentes={componentes} avances={avances} />
 
           <Suspense
             fallback={
-              <div className="relative flex h-[400px] w-full flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[560px] lg:flex-1">
+              <div className="relative flex h-[440px] w-full flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-outline-variant bg-surface-variant shadow-sm lg:min-h-[600px] lg:flex-1">
                 <div className="flex flex-col items-center gap-3 text-on-surface-variant">
                   <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   <p className="text-sm">Cargando mapa y predios…</p>
@@ -248,28 +240,22 @@ export function DashboardContent({
             <MapSection
               componenteFiltro={componenteFiltro}
               accionFiltro={accionFiltro}
-              queryTexto={queryTexto}
+              territorio={territorio}
               dbHealth={dbHealth}
             />
           </Suspense>
 
           <Suspense
             fallback={
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <Skeleton className="h-48 w-full rounded-lg" />
-                <Skeleton className="h-48 w-full rounded-lg" />
-              </div>
+              <Card className="h-56 w-full">
+                <Skeleton className="h-full w-full rounded-lg" />
+              </Card>
             }
           >
-            <BottomSection
-              intervenciones={intervenciones}
-              queryTexto={queryTexto}
-              resumen={resumen}
-            />
+            <TopMunicipiosSection resumen={resumen} />
           </Suspense>
         </div>
 
-        {/* Right panel: carga lazy del client component + Suspense para datos */}
         <Suspense
           fallback={
             <aside className="hidden w-[360px] flex-shrink-0 flex-col gap-3 overflow-y-auto border-l border-outline-variant bg-surface p-3 lg:flex">
@@ -292,11 +278,11 @@ export function DashboardContent({
         </Suspense>
       </div>
 
-      {/* Footer Summary Bar */}
-      <SummaryBar footer={footerInicial} resumen={resumen} />
+      <PanelGate id="franja">
+        <SummaryBar footer={footerInicial} resumen={resumen} />
+      </PanelGate>
     </div>
   );
 }
 
-// Re-export unused type imports to keep them referenced for tooling
 export type { PredioMini };

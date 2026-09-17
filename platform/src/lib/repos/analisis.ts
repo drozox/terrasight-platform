@@ -517,6 +517,7 @@ export async function getConteosIntervenciones(): Promise<ConteosPorAccion> {
 const getPrediosGeoJSONImpl = async (
   componente: string | null = null,
   accion: AccionCode | null = null,
+  territorio: { municipio?: number | null; vereda?: number | null; predio?: number | null } = {},
 ): Promise<MapFeatureCollection> => {
   // Derivar componente desde la accion si hace falta.
   let comp: string | null = componente;
@@ -532,6 +533,14 @@ const getPrediosGeoJSONImpl = async (
     : nombresAccion.length === 1
     ? sql`AND a.nombre = ${nombresAccion[0]}`
     : sql`AND a.nombre IN ${sql(nombresAccion)}`;
+
+  // Filtros territoriales (aplican al predio).
+  const predioCond = territorio.predio ? sql`AND p.id_predio = ${territorio.predio}` : sql``;
+  const veredaCond = territorio.vereda ? sql`AND p.id_vereda = ${territorio.vereda}` : sql``;
+  const muniCond = territorio.municipio
+    ? sql`AND EXISTS (SELECT 1 FROM bcs_lpa_vereda v WHERE v.id_vereda = p.id_vereda AND v.id_municipio = ${territorio.municipio})`
+    : sql``;
+  const hasTerritorio = !!(territorio.predio || territorio.vereda || territorio.municipio);
 
   return withFallback("prediosGeoJSON", async () => {
     const rows = await sql<
@@ -567,7 +576,8 @@ const getPrediosGeoJSONImpl = async (
           JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
           JOIN sgs_com_componente c ON c.id_componente = a.id_componente
           WHERE pp.id_predio = p.id_predio ${compCond} ${accionCond}
-        )` : sql`TRUE`};
+        )` : sql`TRUE`}
+        ${predioCond} ${veredaCond} ${muniCond};
     `;
 
     const features: MapFeature[] = rows.map((r) => ({
@@ -582,11 +592,10 @@ const getPrediosGeoJSONImpl = async (
       },
     }));
     return { type: "FeatureCollection", features };
-  }, (comp || accion) ? {
+  }, (comp || accion || hasTerritorio) ? {
     type: "FeatureCollection" as const,
     features: DEMO_PREDIOS_GEOJSON.features.filter(f => {
       if (comp && f.properties.componente !== comp) return false;
-      // Demo data does not carry action -> best-effort, return all matching comp rows.
       return true;
     }),
   } : DEMO_PREDIOS_GEOJSON);
@@ -599,6 +608,7 @@ export const getPrediosGeoJSON = cached(getPrediosGeoJSONImpl, {
 const getPrediosMiniImpl = async (
   componente: string | null = null,
   accion: AccionCode | null = null,
+  territorio: { municipio?: number | null; vereda?: number | null; predio?: number | null } = {},
 ): Promise<PredioMini[]> => {
   let comp: string | null = componente;
   let nombresAccion: string[] | null = null;
@@ -614,13 +624,20 @@ const getPrediosMiniImpl = async (
     ? sql`AND a.nombre = ${nombresAccion[0]}`
     : sql`AND a.nombre IN ${sql(nombresAccion)}`;
 
+  const predioCond = territorio.predio ? sql`AND p.id_predio = ${territorio.predio}` : sql``;
+  const veredaCond = territorio.vereda ? sql`AND p.id_vereda = ${territorio.vereda}` : sql``;
+  const muniCond = territorio.municipio
+    ? sql`AND EXISTS (SELECT 1 FROM bcs_lpa_vereda v WHERE v.id_vereda = p.id_vereda AND v.id_municipio = ${territorio.municipio})`
+    : sql``;
+
   return withFallback("prediosMini", async () => {
     if (!comp && !accion) {
       const rows = await sql<
         { id: number | string; nombre: string; lon: number | string; lat: number | string }[]
-      >`SELECT id_predio AS id, nombre_predio AS nombre,
-                 longitud_centroide AS lon, latitud_centroide AS lat
-          FROM sgs_pre_predio;`;
+      >`SELECT p.id_predio AS id, p.nombre_predio AS nombre,
+                 p.longitud_centroide AS lon, p.latitud_centroide AS lat
+          FROM sgs_pre_predio p
+          WHERE TRUE ${predioCond} ${veredaCond} ${muniCond};`;
       return rows.map((r) => ({
         id: pgInt(r.id),
         nombre: pgText(r.nombre),
@@ -639,7 +656,7 @@ const getPrediosMiniImpl = async (
         JOIN sgs_com_accion a ON a.id_accion = pp.id_accion
         JOIN sgs_com_componente c ON c.id_componente = a.id_componente
         WHERE pp.id_predio = p.id_predio ${compCond} ${accionCond}
-      );
+      ) ${predioCond} ${veredaCond} ${muniCond};
     `;
     return rows.map((r) => ({
       id: pgInt(r.id),

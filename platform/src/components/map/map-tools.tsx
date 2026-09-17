@@ -8,6 +8,7 @@ import {
   Bookmark,
   Crosshair,
   BoxSelect,
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,10 +28,12 @@ export function MapTools({
   onSelect,
   activeTool,
   onRecenter,
+  onPrint,
 }: {
   onSelect: (tool: MapToolKey) => void;
   activeTool: MapToolKey | null;
   onRecenter: () => void;
+  onPrint?: () => void;
 }) {
   return (
     <div className="absolute bottom-4 left-1/2 z-[600] flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-outline-variant/40 bg-surface-container-lowest/95 px-1.5 py-1 shadow-lg backdrop-blur">
@@ -65,6 +68,9 @@ export function MapTools({
         onClick={() => onSelect("markers")}
       />
       <div className="mx-1 h-5 w-px bg-outline-variant/50" />
+      {onPrint && (
+        <ToolButton icon={Printer} label="Imprimir mapa" onClick={onPrint} />
+      )}
       <ToolButton
         icon={Crosshair}
         label="Recentrar a Cundinamarca"

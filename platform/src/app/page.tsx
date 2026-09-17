@@ -5,19 +5,29 @@ import {
   getDashboardKpis,
   getDashboardKpisComponente,
   getComponentes,
-  getIntervencionesRecientes,
   getFooterKpis,
   getPropuestasPorComponente,
   getAvancePorComponente,
   getResumenComponente,
+  listMunicipios,
+  listVeredas,
+  listPredios,
   pingDb,
 } from "@/lib/repos";
+import { getCurrentUser } from "@/lib/auth-guard";
 import { normalizarAccion, componenteEfectivo } from "@/lib/acciones";
 import { DashboardContent } from "./dashboard-suspense";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ componente?: string; accion?: string; q?: string }>;
+type SearchParams = Promise<{
+  componente?: string;
+  accion?: string;
+  q?: string;
+  municipio?: string;
+  vereda?: string;
+  predio?: string;
+}>;
 
 export default async function HomePage({
   searchParams,
@@ -29,17 +39,21 @@ export default async function HomePage({
   const componenteFiltro = componenteEfectivo(accionFiltro, params.componente ?? null);
   const queryTexto = params.q ?? "";
   const esImportar = componenteFiltro === "IMPORT";
+  const territorio = {
+    municipio: params.municipio ?? null,
+    vereda: params.vereda ?? null,
+    predio: params.predio ?? null,
+  };
 
   // Modo "Importar capa": reemplazamos el cuerpo por el ImportPanel.
   if (esImportar) {
-    // Datos ligeros solo para el ribbon + footer
     const [componentes, footer] = await Promise.all([
       getComponentes(),
       getFooterKpis(),
     ]);
     return (
       <div className="flex h-full flex-1 flex-col overflow-hidden">
-        <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-3">
+        <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-md">
           <ComponentRibbon active="IMPORT" />
         </div>
         <div className="flex flex-1 overflow-y-auto bg-surface-container-low p-gutter">
@@ -47,58 +61,63 @@ export default async function HomePage({
             <ImportPanel />
           </div>
         </div>
-        <SummaryBar footer={footer} />
+        <SummaryBar footer={footer!} />
       </div>
     );
   }
 
-  // =======================================================================
-  // DEBT-3.9 + Sprint 23 hotfix: Layout con streaming SSR.
-  //
-  // Antes: 13 queries en Promise.all bloqueaban TODO el SSR. Si el GIST index
-  // tardaba, el navegador veía pantalla en blanco.
-  //
-  // Ahora: el home carga en paralelo SOLO los datos que necesita para el shell
-  // inicial (kpis, componentes, footer, intervenciones, series, dbHealth).
-  // Las queries pesadas del mapa (prediosGeoJSON, quebradasMini) y del right
-  // panel (alertas) se cargan dentro de sub-componentes envueltos en
-  // <Suspense> — se streamean en cuanto estén listos, sin bloquear el resto.
-  //
-  // Resultado: el usuario ve header + ribbon + KPI cards en <300ms; el mapa
-  // y los paneles laterales aparecen progresivamente.
-  // =======================================================================
-
   const [
     kpis,
     componentes,
-    intervenciones,
     footerInicial,
     seriesComponentes,
     dbHealth,
     avances,
     resumen,
+    usuario,
+    municipios,
+    veredas,
+    predios,
   ] = await Promise.all([
     componenteFiltro || accionFiltro
       ? getDashboardKpisComponente(componenteFiltro, accionFiltro)
       : getDashboardKpis(),
     getComponentes(),
-    getIntervencionesRecientes(8, componenteFiltro, accionFiltro),
     getFooterKpis(),
     getPropuestasPorComponente(),
     pingDb(),
     getAvancePorComponente(),
     getResumenComponente(componenteFiltro, accionFiltro),
+    getCurrentUser(),
+    listMunicipios(),
+    listVeredas(),
+    listPredios(),
   ]);
+
+  const opcionesTerritorio = {
+    municipios: municipios.map((m) => ({ idMunicipio: m.idMunicipio, nombre: m.nombreMunicipio })),
+    veredas: veredas.map((v) => ({
+      idVereda: v.idVereda,
+      nombre: v.nombreVereda,
+      idMunicipio: v.idMunicipio,
+    })),
+    predios: predios.map((p) => ({
+      idPredio: p.idPredio,
+      nombrePredio: p.nombrePredio,
+      idVereda: p.idVereda,
+    })),
+  };
 
   return (
     <DashboardContent
       componenteFiltro={componenteFiltro}
       accionFiltro={accionFiltro}
-      queryTexto={queryTexto}
+      territorio={territorio}
+      opcionesTerritorio={opcionesTerritorio}
+      usuarioNombre={usuario?.name ?? "usuario"}
       kpis={kpis}
       componentes={componentes}
       footerInicial={footerInicial}
-      intervenciones={intervenciones}
       seriesComponentes={seriesComponentes}
       dbHealth={dbHealth}
       avances={avances}

@@ -1,25 +1,17 @@
 "use client";
 
 // =============================================================================
-// Sidebar — cliente (necesita usePathname para highlight).
-// Acepta un `rol` opcional; si está presente, filtra los items visibles.
-//
-// UX-03/UX-48 (audit 2026-07-24): los selects de "Filtros territoriales" y el
-// botón "Aplicar Filtros" eran CONTROLES PLACEBO. El useState local no se
-// conectaba a nada — clickearlos solo cambiaba la fecha del footer. Era un
-// anti-patrón clásico. Decisión: SACAR todo el bloque. Los filtros de verdad
-// viven en cada vista (predios tiene su search, intervenciones tiene chips
-// por componente, mapa tiene layers panel). El sidebar vuelve a ser solo
-// navegación.
-//
-// UX-02/UX-49: el "Última actualización: 16/05/2025" estaba hardcodeado
-// como initial state. También se va con el bloque. Si el cliente lo pide,
-// en un sprint futuro lo conectamos a `pingDb()` server-side.
+// Sidebar — cliente (usePathname para highlight).
+//   - RETRÁCTIL: colapsado muestra solo íconos; estado persistido en localStorage.
+//   - Verde oscuro institucional (mismo degradado del login).
+//   - Ilustración botánica (con transparencia) al pie: se oculta si falta el
+//     archivo o si el panel está colapsado.
 // =============================================================================
 
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SigTerritorioLogo } from "@/components/icons";
 import { itemsParaRol, esActivo } from "./nav-items";
@@ -28,34 +20,78 @@ import type { RolSistema } from "@/lib/auth";
 export function Sidebar({ rol }: { rol?: RolSistema | null }) {
   const pathname = usePathname();
   const navItems = React.useMemo(() => itemsParaRol(rol), [rol]);
+  const [collapsed, setCollapsed] = React.useState(false);
+  const [showArt, setShowArt] = React.useState(true);
+
+  React.useEffect(() => {
+    try {
+      if (localStorage.getItem("inicio.sidebar.collapsed") === "1") setCollapsed(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function toggle() {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("inicio.sidebar.collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   return (
-    // UX-34/UX-36 (audit 2026-07-24): en mobile (< lg) el sidebar se esconde.
-    // El siguiente sprint deberia implementar un drawer mobile (UX-36) — por
-    // ahora el usuario en mobile solo ve el main full-width. En desktop se
-    // mantiene como columna lateral de 256px fija.
     <aside
       className={cn(
-        "hidden w-64 flex-shrink-0 flex-col overflow-y-auto",
-        "border-r border-outline-variant/50 bg-surface-container-low py-md transition-[background-color,border-color]",
-        "lg:flex lg:h-screen",
+        "hidden flex-shrink-0 flex-col overflow-hidden text-white lg:flex lg:h-screen",
+        "bg-gradient-to-b from-[#0b3d24] via-[#0a5c30] to-[#06281a]",
+        "transition-[width] duration-200",
+        collapsed ? "w-[72px]" : "w-64",
       )}
     >
-      <div className="mb-lg px-md">
-        <Link href="/" className="flex items-center gap-3">
-          <SigTerritorioLogo className="h-10 w-10 rounded-lg" />
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold leading-tight text-secondary">
-              SIG Territorio
-            </p>
-            <p className="truncate text-body-sm text-on-surface-variant">
-              Gestión Territorial
-            </p>
-          </div>
+      {/* Marca */}
+      <div className={cn("flex items-center px-md pt-md", collapsed && "justify-center px-2")}>
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <SigTerritorioLogo
+            className={cn("shrink-0 rounded-lg", collapsed ? "h-9 w-9" : "h-10 w-10")}
+          />
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold leading-tight text-white">
+                SIG Territorio
+              </p>
+              <p className="truncate text-[11px] text-white/70">Gestión Territorial</p>
+            </div>
+          )}
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 px-2" aria-label="Navegación principal">
+      {/* Botón colapsar/expandir */}
+      <button
+        type="button"
+        onClick={toggle}
+        title={collapsed ? "Expandir menú" : "Colapsar menú"}
+        aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+        aria-pressed={collapsed}
+        className={cn(
+          "mx-md mt-md flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+          collapsed && "mx-2 justify-center px-2",
+        )}
+      >
+        {collapsed ? (
+          <PanelLeftOpen className="size-5" />
+        ) : (
+          <>
+            <PanelLeftClose className="size-5" />
+            <span>Colapsar</span>
+          </>
+        )}
+      </button>
+
+      <nav className="mt-md flex-1 space-y-1 overflow-y-auto px-2" aria-label="Navegación principal">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = esActivo(pathname, item.href);
@@ -63,35 +99,48 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
             <Link
               key={item.href}
               href={item.href}
+              title={collapsed ? item.label : undefined}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "mx-2 my-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-label-lg transition-colors",
+                "mx-1 my-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-label-lg transition-colors",
+                collapsed && "justify-center px-2",
                 isActive
-                  ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface",
+                  ? "bg-white font-bold text-[#0b3d24] shadow-sm"
+                  : "text-white/80 hover:bg-white/10 hover:text-white",
               )}
             >
-              <Icon className="size-5" aria-hidden="true" />
-              <span>{item.label}</span>
+              <Icon className="size-5 shrink-0" aria-hidden="true" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer: convención del convenio. UX-03/48 — antes había selects
-          placebo + botón "Aplicar Filtros" + "Última actualización" hardcodeada.
-          Sacado en audit 2026-07-24. Si en el futuro se quieren filtros
-          globales, van en un store y se leen en cada vista server-side. */}
-      {/* UX-70 (audit 2026-07-24): /30 era muy sutil, se perdia contra el
-          surface-container-low. /50 da mejor contraste sin romper la
-          jerarquía. */}
-      <div className="mt-auto border-t border-outline-variant/50 px-md pt-lg">
-        <p className="px-2 text-[11px] leading-relaxed text-on-surface-variant/70">
-          Convenio CAR · WWF · Fundación Natura
-        </p>
-        <p className="mt-1 px-2 text-[10px] text-on-surface-variant/60">
-          Plataforma SIG integrada
-        </p>
+      {/* Ilustración botánica (PNG con transparencia). Se oculta si falta. */}
+      {!collapsed && showArt && (
+        <div className="px-md pt-md">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/sidebar-illustration.png"
+            alt=""
+            aria-hidden="true"
+            className="mx-auto w-40 opacity-70"
+            onError={() => setShowArt(false)}
+          />
+        </div>
+      )}
+
+      <div className={cn("border-t border-white/15 px-md py-md", collapsed && "px-2")}>
+        {collapsed ? (
+          <p className="text-center text-[10px] font-bold text-white/50">SIG</p>
+        ) : (
+          <>
+            <p className="px-2 text-[11px] leading-relaxed text-white/70">
+              Convenio CAR · WWF · Fundación Natura
+            </p>
+            <p className="mt-1 px-2 text-[10px] text-white/50">Plataforma SIG integrada</p>
+          </>
+        )}
       </div>
     </aside>
   );

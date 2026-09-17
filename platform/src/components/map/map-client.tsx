@@ -38,6 +38,7 @@ import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
 import { MapComponenteFocusLayer } from "./map-componente-focus-layer";
+import { lineColor, polygonColor, pointIcon } from "./map-symbology";
 import type { AccionCode } from "@/lib/acciones";
 import { MapLayerDataPanel } from "./map-layer-data-panel";
 import { MapFeaturePanel } from "./map-feature-panel";
@@ -84,6 +85,7 @@ export default function MapClient({
   const center: [number, number] = [4.92, -73.93];
 
   const [basemap, setBasemap] = React.useState<BasemapKey>("osm");
+  const [printOpen, setPrintOpen] = React.useState(false);
   // UX-13/UX-50 (audit 2026-07-24): `municipios` ahora prende por default
   // junto con predios y quebradas. La capa está implementada desde DEBT-3.8
   // y quitar el "próx." stale en el panel.
@@ -384,6 +386,11 @@ export default function MapClient({
             weight={3}
             fillOpacity={0}
             onClick={setSelectedFeature}
+            styleForFeature={(f) => {
+              const p = (f.properties as Record<string, unknown>) ?? {};
+              const act = String(p.actividad ?? p.nombre ?? "");
+              return { color: lineColor(act), weight: 3, fillOpacity: 0 };
+            }}
           />
         )}
         {layers.propuestas_poligono && (
@@ -394,6 +401,12 @@ export default function MapClient({
             fillColor="#f0b24a"
             fillOpacity={0.25}
             onClick={setSelectedFeature}
+            styleForFeature={(f) => {
+              const p = (f.properties as Record<string, unknown>) ?? {};
+              const act = String(p.actividad ?? p.nombre ?? "");
+              const c = polygonColor(act);
+              return { color: c, weight: 2, fillColor: c, fillOpacity: 0.3 };
+            }}
           />
         )}
         {layers.propuestas_punto && (
@@ -404,6 +417,11 @@ export default function MapClient({
             fillColor="#f0b24a"
             fillOpacity={0.8}
             onClick={setSelectedFeature}
+            pointToLayer={(f, latlng) => {
+              const p = (f.properties as Record<string, unknown>) ?? {};
+              const act = String(p.actividad ?? p.nombre ?? "");
+              return L.marker(latlng, { icon: pointIcon(act) });
+            }}
           />
         )}
         {layers.biomas && (
@@ -500,6 +518,7 @@ export default function MapClient({
         activeTool={activeTool}
         onSelect={onSelectTool}
         onRecenter={onRecenter}
+        onPrint={() => setPrintOpen(true)}
       />
 
       {/* UX-11: feedback inline cuando un tool no-implementado se selecciona.
@@ -545,6 +564,8 @@ export default function MapClient({
         basemap={basemap}
         componente={activeComponente}
         accion={activeAccion}
+        open={printOpen}
+        onClose={() => setPrintOpen(false)}
       />
     </div>
   );
