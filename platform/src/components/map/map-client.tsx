@@ -508,12 +508,11 @@ export default function MapClient({
 
         <MapRegionLabels />
 
-        {/* Zoom a componente (DEEPSEEK-76): resalta la huella del componente
-           activo y hace fitBounds para que se vea completa. */}
+        {/* Zoom a componente (DEEPSEEK-76): centra la extensión de la acción
+           activa (fitBounds) sin tapar la simbología de las propuestas. */}
         <MapComponenteFocusLayer
           componente={activeComponente}
           accion={activeAccion}
-          onClick={setSelectedFeature}
         />
 
         <TerritorioFocusLayer

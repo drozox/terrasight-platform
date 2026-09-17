@@ -1,16 +1,16 @@
 "use client";
 
 // =============================================================================
-// MapComponenteFocusLayer (DEEPSEEK-76) + T1 filtro-accion
+// MapComponenteFocusLayer (DEEPSEEK-76 + filtro por acción)
 //
-// Cuando el usuario elige un componente (C1/C2/C3) — y opcionalmente una
-// acción (C1A1..C3AU) — en el ribbon del dashboard, este layer:
-//   1. pide la "huella" del componente/acción (punto + polígono + línea) a
+// Cuando el usuario elige un componente/acción, este layer:
+//   1. pide la "huella" (punto + polígono + línea) de las propuestas a
 //      /api/geo?layer=componente&componente=Cx[&accion=CxAy]
-//   2. la pinta resaltada por encima de las capas base
-//   3. hace map.fitBounds → pan & zoom automático a la extensión seleccionada
+//   2. hace fitBounds → centra y muestra TODA la extensión seleccionada
 //
-// Sin componente activo no renderiza nada.
+// NO pinta overlay propio: las capas de propuestas ya se muestran con su
+// simbología por actividad (líneas por color, puntos por ícono, polígonos por
+// grupo). Así el zoom no tapa lo filtrado.
 // =============================================================================
 
 import * as React from "react";
@@ -21,15 +21,10 @@ import type { AccionCode } from "@/lib/acciones";
 interface Props {
   componente: string | null;
   accion?: AccionCode | null;
-  onClick?: (feature: GeoJSON.Feature) => void;
 }
 
-const FOCUS_COLOR = "#d9480f";
-const FOCUS_FILL = "#ff922b";
-
-export function MapComponenteFocusLayer({ componente, accion = null, onClick }: Props) {
+export function MapComponenteFocusLayer({ componente, accion = null }: Props) {
   const map = useMap();
-  const layerRef = React.useRef<L.GeoJSON | null>(null);
 
   React.useEffect(() => {
     if (!componente || !/^C[123]$/.test(componente)) return;
@@ -47,38 +42,13 @@ export function MapComponenteFocusLayer({ componente, accion = null, onClick }: 
         );
         if (!res.ok) return;
         const data = (await res.json()) as GeoJSON.FeatureCollection;
-        if (cancelled) return;
+        if (cancelled || !data.features?.length) return;
 
-        const gj = L.geoJSON(data, {
-          style: () => ({
-            color: FOCUS_COLOR,
-            weight: 3,
-            fillColor: FOCUS_FILL,
-            fillOpacity: 0.35,
-          }),
-          pointToLayer: (_feature, latlng) =>
-            L.circleMarker(latlng, {
-              radius: 5,
-              color: FOCUS_COLOR,
-              weight: 2,
-              fillColor: FOCUS_FILL,
-              fillOpacity: 0.9,
-            }),
-          onEachFeature: (feature, layer) => {
-            const props = (feature.properties ?? {}) as Record<string, unknown>;
-            const nombre = (props.nombre as string) ?? "Intervención";
-            layer.bindPopup(
-              `<div class="font-sans text-xs"><strong>${nombre}</strong></div>`,
-            );
-            if (onClick) layer.on("click", () => onClick(feature));
-          },
-        }).addTo(map);
-
-        layerRef.current = gj;
-
-        const bounds = gj.getBounds();
+        // Solo calculamos los límites (sin agregar capa visible).
+        const bounds = L.geoJSON(data).getBounds();
         if (bounds.isValid()) {
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15, animate: true });
+          // padding generoso para que nada quede pegado al borde.
+          map.fitBounds(bounds, { padding: [80, 80], maxZoom: 14, animate: true });
         }
       } catch (e) {
         if (process.env.NODE_ENV !== "production") {
@@ -90,12 +60,8 @@ export function MapComponenteFocusLayer({ componente, accion = null, onClick }: 
     return () => {
       cancelled = true;
       ctrl.abort();
-      if (layerRef.current) {
-        layerRef.current.remove();
-        layerRef.current = null;
-      }
     };
-  }, [componente, accion, map, onClick]);
+  }, [componente, accion, map]);
 
   return null;
 }

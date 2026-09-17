@@ -291,7 +291,7 @@ function Fase6Card({
         {title}
       </p>
       {rows.length === 0 ? (
-        <p className="text-body-sm text-on-surface-variant">Sin solapamiento.</p>
+        <p className="text-body-sm text-on-surface-variant">Sin información.</p>
       ) : (
         <ul className="space-y-1">
           {rows.map((r, i) => (

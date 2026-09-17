@@ -57,11 +57,11 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
       <div className={cn("flex items-center px-md pt-md", collapsed && "justify-center px-2")}>
         <Link href="/" className="flex min-w-0 items-center gap-3">
           <SigTerritorioLogo
-            className={cn("shrink-0 rounded-lg", collapsed ? "h-9 w-9" : "h-10 w-10")}
+            className={cn("shrink-0 rounded-lg", collapsed ? "h-11 w-11" : "h-12 w-12")}
           />
           {!collapsed && (
             <div className="min-w-0">
-              <p className="truncate text-lg font-bold leading-tight text-white">
+              <p className="truncate text-xl font-extrabold leading-tight text-white">
                 SIG Territorio
               </p>
               <p className="truncate text-[11px] text-white/70">Gestión Territorial</p>

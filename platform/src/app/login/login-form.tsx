@@ -102,7 +102,7 @@ export function LoginForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@sig-territorio.local"
+            placeholder="usuario@ejemplo.com"
             disabled={submitting}
             className="pl-10"
           />

@@ -229,9 +229,9 @@ export function MapPrintPanel({ layers, componente, accion, open, onClose }: Pro
             <div className="print-area p-6">
               <div className="mb-3 flex items-start justify-between gap-4 border-b border-outline-variant pb-3">
                 <div className="flex items-center gap-3">
-                  <SigTerritorioLogo className="h-12 w-12" />
+                  <SigTerritorioLogo className="h-16 w-16" />
                   <div>
-                    <p className="text-xl font-bold leading-none text-secondary">
+                    <p className="text-2xl font-extrabold leading-none text-primary">
                       SIG Territorio
                     </p>
                     <p className="text-[11px] text-on-surface-variant">

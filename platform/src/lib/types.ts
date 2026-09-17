@@ -44,6 +44,7 @@ export type IntervencionReciente = {
   nombrePredio: string;
   codigoPredio: string;
   municipio: string;
+  vereda?: string | null;
   componente: string;
   accion: string;
   idAccion?: number | null;

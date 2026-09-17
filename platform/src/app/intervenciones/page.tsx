@@ -317,6 +317,7 @@ export default async function IntervencionesPage({
                   <th className="px-4 py-3">
                     <SortableHeader field="municipio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Municipio</SortableHeader>
                   </th>
+                  <th className="px-4 py-3">Vereda</th>
                   <th className="px-4 py-3">
                     <SortableHeader field="componente" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Componente</SortableHeader>
                   </th>
@@ -337,7 +338,7 @@ export default async function IntervencionesPage({
                    Antes <td colSpan> con texto plano. */}
                 {intervenciones.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="p-0">
+                    <td colSpan={10} className="p-0">
                       <EmptyState
                         icon={Inbox}
                         eyebrow={componente ?? "Convenio CAR · WWF · Natura"}
@@ -367,7 +368,8 @@ export default async function IntervencionesPage({
                     <td className="px-4 py-3 font-mono text-on-surface">
                       {i.codigoPredio}
                     </td>
-                    <td className="px-4 py-3">{i.municipio || "—"}</td>
+                    <td className="px-4 py-3">{i.municipio || "Sin información"}</td>
+                    <td className="px-4 py-3">{i.vereda || "Sin información"}</td>
                     <td className="px-4 py-3">
                       {i.componente && COMPONENT_COLOR[i.componente] ? (
                         <Badge variant={COMPONENT_COLOR[i.componente]}>

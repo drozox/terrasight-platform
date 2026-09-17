@@ -317,7 +317,10 @@ const getIntervencionesRecientesImpl = async (
         actividad: string;
         nombre_predio: string;
         codigo_predio: string;
-        nombre_municipio: string;
+        nombre_municipio_predio: string | null;
+        nombre_municipio_geo: string | null;
+        nombre_vereda_predio: string | null;
+        nombre_vereda_geo: string | null;
         nombre_componente: string;
         nombre_accion: string;
         id_accion: number | string;
@@ -338,7 +341,10 @@ const getIntervencionesRecientesImpl = async (
         CASE WHEN pr.id_predio IS NOT NULL
              THEN ('PR-' || LPAD(pr.id_predio::text, GREATEST(5, length(pr.id_predio::text)), '0'))
              ELSE NULL END                                           AS codigo_predio,
-        m.nombre_municipio,
+        m.nombre_municipio                                             AS nombre_municipio_predio,
+        v.nombre_vereda                                               AS nombre_vereda_predio,
+        sx.nombre_municipio                                           AS nombre_municipio_geo,
+        sx.nombre_vereda                                              AS nombre_vereda_geo,
         c.nombre                                                     AS nombre_componente,
         a.nombre                                                     AS nombre_accion,
         a.id_accion                                                  AS id_accion,
@@ -381,6 +387,22 @@ const getIntervencionesRecientesImpl = async (
         WHERE  id_propuesta = pp.id_propuesta
           AND  resuelta = FALSE
       ) al ON true
+      -- Fallback espacial: municipio/vereda por intersección de la geometría
+      -- (para propuestas sin predio, ej. puntos C2).
+      LEFT JOIN LATERAL (
+        SELECT mm.nombre_municipio, vv.nombre_vereda
+        FROM (
+          SELECT pl2.geom AS g FROM sgs_pro_propuesta_linea pl2 WHERE pl2.id_propuesta = pp.id_propuesta
+          UNION ALL
+          SELECT pq2.geom FROM sgs_pro_propuesta_poligono pq2 WHERE pq2.id_propuesta = pp.id_propuesta
+          UNION ALL
+          SELECT pt2.geom FROM sgs_pro_propuesta_punto pt2 WHERE pt2.id_propuesta = pp.id_propuesta
+        ) gx
+        JOIN bcs_lpa_municipio mm ON ST_Intersects(mm.geom, gx.g)
+        LEFT JOIN bcs_lpa_vereda vv ON ST_Intersects(vv.geom, gx.g)
+        WHERE gx.g IS NOT NULL
+        LIMIT 1
+      ) sx ON true
       ${whereClause}
       ORDER BY pp.id_propuesta ASC
       LIMIT ${limit};
@@ -409,7 +431,8 @@ const getIntervencionesRecientesImpl = async (
         actividad: pgText(r.actividad),
         nombrePredio: pgText(r.nombre_predio),
         codigoPredio: pgText(r.codigo_predio),
-        municipio: pgText(r.nombre_municipio),
+        municipio: pgText(r.nombre_municipio_predio ?? r.nombre_municipio_geo),
+        vereda: pgText(r.nombre_vereda_predio ?? r.nombre_vereda_geo),
         componente: pgText(r.nombre_componente),
         accion: pgText(r.nombre_accion),
         componenteAccion: codigo,
