@@ -95,11 +95,6 @@ async function MapSection({
         height="100%"
       />
 
-      {/* Barra de comando de paneles (derecha, solo íconos) */}
-      <div className="absolute right-6 top-6 z-[600]">
-        <PanelToggles />
-      </div>
-
       <div className="absolute bottom-6 left-6 z-[600] rounded-full bg-surface-container-lowest/95 px-4 py-2 text-[12px] shadow-md backdrop-blur">
         <span
           className="mr-1.5 inline-block size-2 rounded-full align-middle"
@@ -182,11 +177,6 @@ export function DashboardContent({
 }) {
   return (
     <div className="flex h-full flex-1 overflow-hidden">
-      {/* Barra de control de paneles (izquierda, fija, fuera del mapa) */}
-      <div className="hidden w-[64px] shrink-0 flex-col items-center border-r border-outline-variant bg-surface-container-lowest py-6 lg:flex">
-        <PanelToggles />
-      </div>
-
       {/* Contenido */}
       <div className="flex-1 overflow-y-auto bg-surface-container-low">
         <div className="mx-auto w-full max-w-[1600px] px-8 py-8">
@@ -221,45 +211,50 @@ export function DashboardContent({
               </Suspense>
             </div>
 
-            <Suspense
-              fallback={
-                <div className="flex w-full flex-col gap-6 rounded-[20px] border border-outline-variant bg-surface p-6">
-                  <Skeleton className="h-40 w-full rounded-xl" />
-                  <Skeleton className="h-52 w-full rounded-xl" />
-                  <Skeleton className="h-40 w-full rounded-xl" />
-                </div>
-              }
-            >
-              <RightPanelSection
-                kpis={kpis}
-                footer={footerInicial}
-                resumen={resumen}
-                componenteFiltro={componenteFiltro}
-                accionFiltro={accionFiltro}
-                filtrosSlot={
-                  <PanelGate id="filtros">
-                    <FiltroTerritorial
-                      municipios={opcionesTerritorio.municipios}
-                      veredas={opcionesTerritorio.veredas}
-                      predios={opcionesTerritorio.predios}
-                      municipio={territorio.municipio}
-                      vereda={territorio.vereda}
-                      predio={territorio.predio}
-                    />
-                  </PanelGate>
+            <div className="flex flex-col gap-6 xl:items-end">
+              <Suspense
+                fallback={
+                  <div className="flex w-full flex-col gap-6 rounded-[20px] border border-outline-variant bg-surface p-6">
+                    <Skeleton className="h-40 w-full rounded-xl" />
+                    <Skeleton className="h-52 w-full rounded-xl" />
+                    <Skeleton className="h-40 w-full rounded-xl" />
+                  </div>
                 }
-                comparativaSlot={
-                  <PanelGate id="comparativa">
-                    <ComparativaComponentes componentes={componentes} avances={avances} />
-                  </PanelGate>
-                }
-                atencionSlot={
-                  <PanelGate id="atencion">
-                    <AlertasMetas indicadores={resumen.indicadores} />
-                  </PanelGate>
-                }
-              />
-            </Suspense>
+              >
+                <RightPanelSection
+                  kpis={kpis}
+                  footer={footerInicial}
+                  resumen={resumen}
+                  componenteFiltro={componenteFiltro}
+                  accionFiltro={accionFiltro}
+                  filtrosSlot={
+                    <PanelGate id="filtros">
+                      <FiltroTerritorial
+                        municipios={opcionesTerritorio.municipios}
+                        veredas={opcionesTerritorio.veredas}
+                        predios={opcionesTerritorio.predios}
+                        municipio={territorio.municipio}
+                        vereda={territorio.vereda}
+                        predio={territorio.predio}
+                      />
+                    </PanelGate>
+                  }
+                  comparativaSlot={
+                    <PanelGate id="comparativa">
+                      <ComparativaComponentes componentes={componentes} avances={avances} />
+                    </PanelGate>
+                  }
+                  atencionSlot={
+                    <PanelGate id="atencion">
+                      <AlertasMetas indicadores={resumen.indicadores} />
+                    </PanelGate>
+                  }
+                />
+              </Suspense>
+
+              {/* Barra de paneles (íconos) — abajo del panel derecho, al borde. */}
+              <PanelToggles />
+            </div>
           </div>
         </div>
       </div>
