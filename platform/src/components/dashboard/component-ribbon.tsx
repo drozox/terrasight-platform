@@ -1,12 +1,11 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Layers } from "lucide-react";
+import { Layers } from "lucide-react";
 import { IconLeaf, IconDrop, IconForest, IconUpload } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import type { AvanceComponente, ComponenteKey } from "@/lib/repos";
+import type { ComponenteKey } from "@/lib/repos";
 import { accionesDeComponente, normalizarAccion, type AccionCode } from "@/lib/acciones";
 
 type Key = ComponenteKey | "TODOS" | "IMPORT";
@@ -78,11 +77,9 @@ const ORDER: Key[] = ["TODOS", "C1", "C2", "C3"];
 export function ComponentRibbon({
   active,
   activeAccion,
-  avances,
 }: {
   active?: string | null;
   activeAccion?: AccionCode | null;
-  avances?: Record<ComponenteKey, AvanceComponente>;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -120,7 +117,6 @@ export function ComponentRibbon({
       {ORDER.map((k) => {
         const c = CONFIG[k];
         const isActive = k === "TODOS" ? !active || active === "TODOS" : active === k;
-        const av = k !== "TODOS" && k !== "IMPORT" ? avances?.[k] : undefined;
         return (
           <button
             key={k}
@@ -160,40 +156,6 @@ export function ComponentRibbon({
                 <p className="line-clamp-2 text-[13px] leading-snug text-on-surface-variant">
                   {c.desc}
                 </p>
-
-                {av && (
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-variant/50">
-                      <div
-                        className={cn("h-full", c.borderClass)}
-                        style={{ width: `${av.pct}%` }}
-                      />
-                    </div>
-                    <span className={cn("text-[10px] font-bold", c.textClass)}>
-                      {av.pct}%
-                    </span>
-                  </div>
-                )}
-                {av && (
-                  <p className="mt-0.5 text-[10px] text-on-surface-variant">
-                    {av.cumplidas}/{av.total} metas cumplidas
-                  </p>
-                )}
-
-                {k !== "TODOS" && k !== "IMPORT" && (
-                  <Link
-                    href={`/intervenciones?componente=${k}`}
-                    aria-label={`Ver intervenciones de ${c.label}`}
-                    className={cn(
-                      "mt-1 inline-flex items-center gap-1 text-[11px] font-bold opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest",
-                      c.textClass,
-                    )}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Ver intervenciones
-                    <ArrowRight className="size-3" />
-                  </Link>
-                )}
               </div>
               {isActive && (
                 <span

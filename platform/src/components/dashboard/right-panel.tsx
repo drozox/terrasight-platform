@@ -2,16 +2,9 @@
 
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { DonutChart } from "./donut-chart";
-import { LineChart, type LineSeries } from "./line-chart";
 import { formatInt, formatHa, cn } from "@/lib/utils";
-import { TrendingUp, Building2, Activity, Map as MapIcon, Route } from "lucide-react";
-import type {
-  DashboardKpis,
-  ComponenteTotal,
-  FooterKpis,
-  SerieTemporal,
-} from "@/lib/types";
+import { Building2, Activity, Map as MapIcon, Route } from "lucide-react";
+import type { DashboardKpis, FooterKpis } from "@/lib/types";
 import type { ResumenComponente } from "@/lib/repos";
 import { ESTADO_BAR } from "@/lib/estado-indicador";
 import { PanelGate } from "./panel-toggles";
@@ -21,32 +14,18 @@ import type { ReactNode } from "react";
  * RightPanel — columna derecha del dashboard, componente-céntrica.
  *  1. Avance del componente (gauge + indicadores)
  *  2. Indicadores del componente (KPIs)
- *  3. Intervenciones por componente (donut)
- *  4. Tendencia por componente
  */
 export function RightPanel({
   kpis,
-  componentes,
   footer,
-  seriesComponentes,
   resumen,
   metasSlot,
 }: {
   kpis: DashboardKpis;
-  componentes: ComponenteTotal[];
   footer: FooterKpis;
-  seriesComponentes?: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
   resumen?: ResumenComponente;
   metasSlot?: ReactNode;
 }) {
-  const totalPropuestas = componentes.reduce((acc, c) => acc + c.total, 0) || 1;
-
-  const donutPorComponente = [
-    { label: "Componente 1", value: componentes.find((c) => c.nombre === "C1")?.total ?? 0, color: "primary" as const },
-    { label: "Componente 2", value: componentes.find((c) => c.nombre === "C2")?.total ?? 0, color: "secondary" as const },
-    { label: "Componente 3", value: componentes.find((c) => c.nombre === "C3")?.total ?? 0, color: "tertiary" as const },
-  ];
-
   const c = resumen?.conteos;
   const indicadores = [
     { label: "Predios", valor: formatInt(c?.predios ?? kpis.predios), icon: Building2, tint: "primary" as const, delta: `${formatInt(c?.municipios ?? footer.municipios)} municipios`, href: "/predios" },
@@ -60,14 +39,6 @@ export function RightPanel({
     secondary: "bg-secondary/10 text-secondary",
     tertiary: "bg-tertiary/10 text-tertiary",
   };
-
-  const lineSeries: LineSeries[] = seriesComponentes
-    ? [
-        { label: "C1", color: "primary", data: seriesComponentes.C1 },
-        { label: "C2", color: "secondary", data: seriesComponentes.C2 },
-        { label: "C3", color: "tertiary", data: seriesComponentes.C3 },
-      ]
-    : [];
 
   return (
     <aside className="flex w-full flex-col gap-5 rounded-[20px] border border-outline-variant bg-surface p-6">
@@ -167,64 +138,6 @@ export function RightPanel({
         </div>
       </Card>
       </PanelGate>
-
-      {/* SECCIÓN 3 — Intervenciones por componente */}
-      <Card className="p-3">
-        <div className="mb-2.5 flex items-center justify-between">
-          <h3 className="text-title-md font-bold text-on-surface">Intervenciones por componente</h3>
-        </div>
-        <div className="flex items-center gap-3">
-          <DonutChart
-            size={120}
-            segments={donutPorComponente}
-            centerLabel={formatInt(totalPropuestas)}
-            centerSubLabel="TOTAL"
-          />
-          <ul className="flex-1 space-y-1.5">
-            {donutPorComponente.map((s) => {
-              const code = s.label.replace(/\s+/g, "").replace("Componente", "C");
-              return (
-                <li key={s.label}>
-                  <Link
-                    href={`/intervenciones?componente=${code}`}
-                    className="flex items-center justify-between rounded-md px-1.5 py-0.5 text-[11px] transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={cn("h-2.5 w-2.5 rounded-sm", {
-                          "bg-primary": s.color === "primary",
-                          "bg-secondary": s.color === "secondary",
-                          "bg-tertiary": s.color === "tertiary",
-                        })}
-                      />
-                      <span className="text-on-surface-variant">{s.label}</span>
-                    </div>
-                    <span className="font-bold text-on-surface">
-                      {Math.round((s.value / totalPropuestas) * 100)}%{" "}
-                      <span className="font-normal text-on-surface-variant">({formatInt(s.value)})</span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </Card>
-
-      {/* SECCIÓN 4 — Tendencia por componente */}
-      <Card className="p-3">
-        <div className="mb-2.5 flex items-center justify-between">
-          <h3 className="text-title-md font-bold text-on-surface">Tendencia por componente</h3>
-          <span className="flex items-center gap-1 text-[11px] font-bold text-success">
-            <TrendingUp className="size-3" />
-            Acumulado
-          </span>
-        </div>
-        <LineChart series={lineSeries} height={170} />
-        <p className="mt-1 text-[10px] text-on-surface-variant">
-          Acumulado trimestral de propuestas por componente.
-        </p>
-      </Card>
     </aside>
   );
 }

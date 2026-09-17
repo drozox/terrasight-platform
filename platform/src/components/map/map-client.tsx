@@ -38,6 +38,7 @@ import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
 import { MapComponenteFocusLayer } from "./map-componente-focus-layer";
+import { TerritorioFocusLayer } from "./map-territorio-focus-layer";
 import { lineColor, polygonColor, pointIcon } from "./map-symbology";
 import type { AccionCode } from "@/lib/acciones";
 import { MapLayerDataPanel } from "./map-layer-data-panel";
@@ -65,6 +66,10 @@ interface Props {
   geojson?: unknown;
   activeComponente?: string | null;
   activeAccion?: AccionCode | null;
+  /** Filtro territorial activo (ids). */
+  territorio?: { municipio: number | null; vereda: number | null; predio: number | null };
+  /** Si es true, enfoca/zoomea y resalta el territorio seleccionado. */
+  focusTerritorio?: boolean;
   height?: string;
   showLayersPanel?: boolean;
 }
@@ -78,6 +83,8 @@ const BASEMAPS: Record<BasemapKey, { url: string; maxZoom?: number; attribution:
 export default function MapClient({
   activeComponente = null,
   activeAccion = null,
+  territorio = { municipio: null, vereda: null, predio: null },
+  focusTerritorio = false,
   height = "100%",
   showLayersPanel = true,
 }: Props) {
@@ -479,6 +486,13 @@ export default function MapClient({
           componente={activeComponente}
           accion={activeAccion}
           onClick={setSelectedFeature}
+        />
+
+        <TerritorioFocusLayer
+          municipio={territorio.municipio}
+          vereda={territorio.vereda}
+          predio={territorio.predio}
+          focus={focusTerritorio}
         />
 
         {/* P0-CRÍTICO: estos 3 layers usan useMap() y DEBEN estar dentro

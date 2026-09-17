@@ -8,7 +8,7 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, FilterX } from "lucide-react";
+import { ChevronDown, FilterX, Search } from "lucide-react";
 import { type AccionCode } from "@/lib/acciones";
 
 export type MunOption = { idMunicipio: number; nombre: string };
@@ -46,6 +46,7 @@ export function FiltroTerritorial({
 }) {
   const router = useRouter();
   const search = useSearchParams();
+  const [error, setError] = React.useState<string | null>(null);
 
   function push(next: {
     municipio?: string | null;
@@ -53,9 +54,10 @@ export function FiltroTerritorial({
     predio?: string | null;
     componente?: string | null;
     accion?: string | null;
+    focus?: string | null;
   }) {
     const p = new URLSearchParams(search?.toString() ?? "");
-    for (const k of ["municipio", "vereda", "predio", "componente", "accion"]) p.delete(k);
+    for (const k of ["municipio", "vereda", "predio", "componente", "accion", "focus"]) p.delete(k);
     const put = (k: string, v?: string | null) => {
       if (v) p.set(k, v);
     };
@@ -64,34 +66,54 @@ export function FiltroTerritorial({
     put("predio", next.predio);
     put("componente", next.componente);
     put("accion", next.accion);
+    put("focus", next.focus);
     const qs = p.toString();
     router.push(qs ? `/?${qs}` : "/");
+  }
+
+  function onBuscar() {
+    if (!municipio && !vereda && !predio) {
+      setError("Seleccioná al menos municipio, vereda o predio para buscar.");
+      return;
+    }
+    setError(null);
+    push({ municipio, vereda, predio, componente, accion, focus: "1" });
   }
 
   const veredasFiltradas = municipio ? veredas.filter((v) => String(v.idMunicipio) === municipio) : [];
   const prediosFiltrados = vereda ? predios.filter((p) => String(p.idVereda) === vereda) : [];
   const accionesDisponibles = componente ? ACCIONES_POR[componente] ?? [] : [];
-  const hayFiltro = !!(municipio || vereda || predio || componente || accion);
 
   return (
     <section className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-6">
       <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-semibold text-on-surface">Filtros</h2>
+          <h2 className="text-[18px] font-semibold text-on-surface">Filtros territoriales</h2>
           <p className="mt-1 text-[13px] text-on-surface-variant">
-            Acotá la vista por territorio y por componente/acción del convenio.
+            Elegí municipio, vereda y/o predio y presioná <strong>Buscar</strong> para acercar el mapa.
           </p>
         </div>
-        {hayFiltro && (
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => push({})}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-outline-variant px-4 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            onClick={onBuscar}
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-[13px] font-semibold text-on-primary transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <Search className="size-4" />
+            Buscar
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              push({});
+            }}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-outline-variant px-4 text-[13px] font-semibold text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <FilterX className="size-4" />
-            Limpiar filtros
+            Limpiar
           </button>
-        )}
+        </div>
       </header>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
@@ -193,6 +215,8 @@ export function FiltroTerritorial({
           </div>
         </label>
       </div>
+
+      {error && <p className="mt-4 text-[13px] font-medium text-error">{error}</p>}
     </section>
   );
 }

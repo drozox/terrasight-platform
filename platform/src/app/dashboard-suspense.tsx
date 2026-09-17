@@ -10,7 +10,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
-import { CoberturaChart } from "@/components/dashboard/cobertura-chart";
 import { SummaryBar } from "@/components/dashboard/bottom-sections";
 import { MetasStrip } from "@/components/dashboard/metas-strip";
 import { ComparativaComponentes } from "@/components/dashboard/comparativa-componentes";
@@ -30,18 +29,14 @@ import {
   getPrediosMini,
   getQuebradasMini,
   getPrediosGeoJSON,
-  getPrediosPorMunicipio,
 } from "@/lib/repos";
 import type { AvanceComponente, ComponenteKey, ResumenComponente } from "@/lib/repos";
 import type {
   DashboardKpis,
   ComponenteTotal,
   FooterKpis,
-  SerieTemporal,
   PredioMini,
-  CoberturaTotal,
 } from "@/lib/types";
-import { formatInt } from "@/lib/utils";
 import type { FeatureCollection as GeoJSONFeatureCollection } from "geojson";
 
 export type TerritorioFiltro = {
@@ -73,11 +68,13 @@ async function MapSection({
   componenteFiltro,
   accionFiltro,
   territorio,
+  focusTerritorio,
   dbHealth,
 }: {
   componenteFiltro: string | null;
   accionFiltro: AccionCode | null;
   territorio: TerritorioFiltro;
+  focusTerritorio: boolean;
   dbHealth: { ok: boolean; latencyMs: number; server?: string };
 }) {
   const terr = toTerritorioNum(territorio);
@@ -95,8 +92,15 @@ async function MapSection({
         geojson={geojson as unknown as GeoJSONFeatureCollection}
         activeComponente={componenteFiltro}
         activeAccion={accionFiltro}
+        territorio={terr}
+        focusTerritorio={focusTerritorio}
         height="100%"
       />
+
+      {/* Barra de comando de paneles (derecha, solo íconos) */}
+      <div className="absolute right-6 top-6 z-[600]">
+        <PanelToggles />
+      </div>
 
       <div className="absolute bottom-6 left-6 z-[600] rounded-full bg-surface-container-lowest/95 px-4 py-2 text-[12px] shadow-md backdrop-blur">
         <span
@@ -115,41 +119,15 @@ async function MapSection({
   );
 }
 
-async function TopMunicipiosSection({ resumen }: { resumen?: ResumenComponente }) {
-  const topMunicipios = await getPrediosPorMunicipio(6);
-  const muniSource = resumen?.topMunicipios?.length
-    ? resumen.topMunicipios.map((m) => ({ nombre_municipio: m.nombre, predios: m.propuestas }))
-    : topMunicipios;
-  const total = muniSource.reduce((a, m) => a + m.predios, 0) || 1;
-  const items: CoberturaTotal[] = muniSource.map((m, i) => ({
-    nombre: m.nombre_municipio,
-    area: m.predios,
-    porcentaje: Math.round((m.predios / total) * 100),
-    color: i === 0 ? "primary" : i === 1 ? "secondary" : i === 2 ? "tertiary" : "outline",
-  }));
-  return (
-    <CoberturaChart
-      title="Top Municipios por Predios"
-      items={items}
-      totalValue={formatInt(total)}
-      totalLabel="predios"
-    />
-  );
-}
-
 async function RightPanelSection({
   kpis,
-  componentes,
   footer,
-  seriesComponentes,
   resumen,
   componenteFiltro,
   accionFiltro,
 }: {
   kpis: DashboardKpis;
-  componentes: ComponenteTotal[];
   footer: FooterKpis;
-  seriesComponentes: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
   resumen?: ResumenComponente;
   componenteFiltro: string | null;
   accionFiltro: AccionCode | null;
@@ -157,9 +135,7 @@ async function RightPanelSection({
   return (
     <RightPanel
       kpis={kpis}
-      componentes={componentes}
       footer={footer}
-      seriesComponentes={seriesComponentes}
       resumen={resumen}
       metasSlot={
         <PanelGate id="metas">
@@ -176,10 +152,10 @@ export function DashboardContent({
   territorio,
   opcionesTerritorio,
   usuarioNombre,
+  focusTerritorio,
   kpis,
   componentes,
   footerInicial,
-  seriesComponentes,
   dbHealth,
   avances,
   resumen,
@@ -189,10 +165,10 @@ export function DashboardContent({
   territorio: TerritorioFiltro;
   opcionesTerritorio: { municipios: MunOption[]; veredas: VerOption[]; predios: PreOption[] };
   usuarioNombre: string;
+  focusTerritorio: boolean;
   kpis: DashboardKpis;
   componentes: ComponenteTotal[];
   footerInicial: FooterKpis;
-  seriesComponentes: Record<"C1" | "C2" | "C3", SerieTemporal[]>;
   dbHealth: { ok: boolean; latencyMs: number; server?: string };
   avances: Record<ComponenteKey, AvanceComponente>;
   resumen: ResumenComponente;
@@ -224,7 +200,7 @@ export function DashboardContent({
       <div className="flex-1 overflow-y-auto bg-surface-container-low">
         <div className="mx-auto w-full max-w-[1600px] px-8 py-8">
           {/* 1. Componentes */}
-          <ComponentRibbon active={componenteFiltro} avances={avances} activeAccion={accionFiltro} />
+          <ComponentRibbon active={componenteFiltro} activeAccion={accionFiltro} />
 
           {/* 2. Bienvenida */}
           <div className="mt-8">
@@ -245,12 +221,7 @@ export function DashboardContent({
             />
           </div>
 
-          {/* 4. Segmentado de paneles */}
-          <div className="mt-6">
-            <PanelToggles />
-          </div>
-
-          {/* 5. Requiere atención */}
+          {/* 4. Requiere atención */}
           <div className="mt-8">
             <PanelGate id="atencion">
               <AlertasMetas indicadores={resumen.indicadores} />
@@ -273,6 +244,7 @@ export function DashboardContent({
                 componenteFiltro={componenteFiltro}
                 accionFiltro={accionFiltro}
                 territorio={territorio}
+                focusTerritorio={focusTerritorio}
                 dbHealth={dbHealth}
               />
             </Suspense>
@@ -288,9 +260,7 @@ export function DashboardContent({
             >
               <RightPanelSection
                 kpis={kpis}
-                componentes={componentes}
                 footer={footerInicial}
-                seriesComponentes={seriesComponentes}
                 resumen={resumen}
                 componenteFiltro={componenteFiltro}
                 accionFiltro={accionFiltro}
@@ -304,10 +274,7 @@ export function DashboardContent({
           </div>
 
           {/* 8. Indicadores inferiores */}
-          <div className="mt-8 flex flex-col gap-8">
-            <Suspense fallback={<Skeleton className="h-64 w-full rounded-[20px]" />}>
-              <TopMunicipiosSection resumen={resumen} />
-            </Suspense>
+          <div className="mt-8">
             <PanelGate id="franja">
               <SummaryBar footer={footerInicial} resumen={resumen} />
             </PanelGate>

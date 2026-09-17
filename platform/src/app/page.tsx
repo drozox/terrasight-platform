@@ -6,7 +6,6 @@ import {
   getDashboardKpisComponente,
   getComponentes,
   getFooterKpis,
-  getPropuestasPorComponente,
   getAvancePorComponente,
   getResumenComponente,
   listMunicipios,
@@ -27,6 +26,7 @@ type SearchParams = Promise<{
   municipio?: string;
   vereda?: string;
   predio?: string;
+  focus?: string;
 }>;
 
 export default async function HomePage({
@@ -78,7 +78,6 @@ export default async function HomePage({
     kpis,
     componentes,
     footerInicial,
-    seriesComponentes,
     dbHealth,
     avances,
     resumen,
@@ -92,7 +91,6 @@ export default async function HomePage({
       : getDashboardKpis(),
     getComponentes(),
     getFooterKpis(),
-    getPropuestasPorComponente(),
     pingDb(),
     getAvancePorComponente(),
     getResumenComponente(componenteFiltro, accionFiltro),
@@ -123,10 +121,10 @@ export default async function HomePage({
       territorio={territorio}
       opcionesTerritorio={opcionesTerritorio}
       usuarioNombre={usuario?.name ?? "usuario"}
+      focusTerritorio={params.focus === "1"}
       kpis={kpis}
       componentes={componentes}
       footerInicial={footerInicial}
-      seriesComponentes={seriesComponentes}
       dbHealth={dbHealth}
       avances={avances}
       resumen={resumen}

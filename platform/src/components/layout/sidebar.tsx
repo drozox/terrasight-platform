@@ -11,7 +11,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SigTerritorioLogo } from "@/components/icons";
 import { SidebarIllustration } from "./sidebar-illustration";
@@ -70,27 +70,7 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
         </Link>
       </div>
 
-      {/* Botón colapsar/expandir */}
-      <button
-        type="button"
-        onClick={toggle}
-        title={collapsed ? "Expandir menú" : "Colapsar menú"}
-        aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
-        aria-pressed={collapsed}
-        className={cn(
-          "mx-md mt-md flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
-          collapsed && "mx-2 justify-center px-2",
-        )}
-      >
-        {collapsed ? (
-          <PanelLeftOpen className="size-5" />
-        ) : (
-          <>
-            <PanelLeftClose className="size-5" />
-            <span>Colapsar</span>
-          </>
-        )}
-      </button>
+      {/* Botón colapsar/expandir (discreto, al pie) */}
 
       <nav className="mt-md flex-1 space-y-1 overflow-y-auto px-2" aria-label="Navegación principal">
         {navItems.map((item) => {
@@ -135,10 +115,8 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
         </div>
       )}
 
-      <div className={cn("border-t border-white/15 px-md py-md", collapsed && "px-2")}>
-        {collapsed ? (
-          <p className="text-center text-[10px] font-bold text-white/50">SIG</p>
-        ) : (
+      <div className={cn("mt-auto border-t border-white/15 px-md py-md", collapsed && "px-2")}>
+        {!collapsed && (
           <>
             <p className="px-2 text-[11px] leading-relaxed text-white/70">
               Convenio CAR · WWF · Fundación Natura
@@ -146,6 +124,18 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
             <p className="mt-1 px-2 text-[10px] text-white/50">Plataforma SIG integrada</p>
           </>
         )}
+        <div className={cn("mt-3 flex", collapsed ? "justify-center" : "justify-end")}>
+          <button
+            type="button"
+            onClick={toggle}
+            title={collapsed ? "Expandir menú" : "Colapsar menú"}
+            aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+            aria-pressed={collapsed}
+            className="flex size-7 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          </button>
+        </div>
       </div>
     </aside>
   );
