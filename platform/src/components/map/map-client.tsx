@@ -75,10 +75,9 @@ interface Props {
 }
 
 const BASEMAPS: Record<BasemapKey, { url: string; maxZoom?: number; attribution: string }> = {
-  // Base "clara" SIN etiquetas de lugares y SIN API key (CartoDB ahora exige
-  // key → mostraba la marca de agua "API KEY REQUIRED"). Esri Light Gray
-  // Canvas Base es libre con atribución.
-  osm:       { url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", maxZoom: 16, attribution: "Tiles © Esri" },
+  // Base "limpia": CartoDB Positron SIN etiquetas de lugares (no tapa las
+  // capas del convenio con textos como "RÍO BOGOTÁ" o "SABANA OCCIDENTE").
+  osm:       { url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", maxZoom: 20, attribution: "© OpenStreetMap · © CARTO" },
   topo:      { url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",  maxZoom: 17, attribution: "© OpenTopoMap" },
   satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxZoom: 20, attribution: "Tiles © Esri" },
 };
@@ -364,7 +363,7 @@ export default function MapClient({
         }}
       >
         <TileLayer
-          key={BASEMAPS[basemap].url}
+          key={basemap}
           url={BASEMAPS[basemap].url}
           maxZoom={BASEMAPS[basemap].maxZoom}
           attribution={BASEMAPS[basemap].attribution}
