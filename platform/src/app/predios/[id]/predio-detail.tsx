@@ -231,7 +231,7 @@ export function PredioDetail({
           <Fase6Card
             title="POMCA"
             rows={(analisis.pomcas ?? []).map((r) => ({
-              key: r.categoria_zonificacion ?? "—",
+              key: r.descripcion ?? r.nomenclatura ?? r.categoria_zonificacion ?? "—",
               area: r.area_interseccion_ha,
               pct: r.porcentaje_predio,
             }))}
@@ -239,7 +239,7 @@ export function PredioDetail({
           <Fase6Card
             title="Reservas Forestales (RFP)"
             rows={(analisis.rfps ?? []).map((r) => ({
-              key: r.categoria_zonificacion ?? r.nombre ?? "—",
+              key: r.nombre ?? r.categoria_zonificacion ?? "—",
               area: r.area_interseccion_ha,
               pct: r.porcentaje_predio,
             }))}

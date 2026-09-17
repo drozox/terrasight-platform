@@ -105,7 +105,7 @@ export async function GET(req: Request) {
     // Capas que aceptan filtro por componente/acción (propuestas + base).
     const CON_FILTRO = new Set([
       "propuestas", "propuestas_punto", "propuestas_poligono",
-      "municipios", "veredas", "drenajes", "drenajes_dobles", "vias",
+      "municipios", "veredas", "drenajes", "drenajes_dobles", "vias", "predios",
     ]);
     let data: FeatureCollection;
     if (CON_FILTRO.has(layer)) {
