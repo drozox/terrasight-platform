@@ -3,14 +3,15 @@
 // =============================================================================
 // MapComponenteFocusLayer (DEEPSEEK-76 + filtro por acción)
 //
-// Cuando el usuario elige un componente/acción, este layer:
-//   1. pide la "huella" (punto + polígono + línea) de las propuestas a
-//      /api/geo?layer=componente&componente=Cx[&accion=CxAy]
-//   2. hace fitBounds → centra y muestra TODA la extensión seleccionada
+// Cuando el usuario elige un componente/acción, este layer centra el mapa en
+// los elementos filtrados:
+//   1. Pide los MUNICIPIOS de la acción (/api/geo?layer=municipios&...).
+//      Ese es el encuadre de referencia ("los municipios y lo que haya dentro").
+//   2. Si no hay municipios, cae a la "huella" de las propuestas
+//      (/api/geo?layer=componente&...).
 //
 // NO pinta overlay propio: las capas de propuestas ya se muestran con su
-// simbología por actividad (líneas por color, puntos por ícono, polígonos por
-// grupo). Así el zoom no tapa lo filtrado.
+// simbología por actividad. Solo hace fitBounds con padding generoso.
 // =============================================================================
 
 import * as React from "react";
@@ -23,6 +24,22 @@ interface Props {
   accion?: AccionCode | null;
 }
 
+async function fetchBounds(
+  url: string,
+  signal: AbortSignal,
+): Promise<L.LatLngBounds | null> {
+  try {
+    const res = await fetch(url, { signal, cache: "no-store" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as GeoJSON.FeatureCollection;
+    if (!data.features?.length) return null;
+    const bounds = L.geoJSON(data).getBounds();
+    return bounds.isValid() ? bounds : null;
+  } catch {
+    return null;
+  }
+}
+
 export function MapComponenteFocusLayer({ componente, accion = null }: Props) {
   const map = useMap();
 
@@ -31,30 +48,18 @@ export function MapComponenteFocusLayer({ componente, accion = null }: Props) {
 
     let cancelled = false;
     const ctrl = new AbortController();
+    const qs =
+      `componente=${encodeURIComponent(componente)}` +
+      (accion ? `&accion=${encodeURIComponent(accion)}` : "");
 
     (async () => {
-      try {
-        const res = await fetch(
-          `/api/geo?layer=componente&componente=${encodeURIComponent(componente)}${
-            accion ? `&accion=${encodeURIComponent(accion)}` : ""
-          }`,
-          { signal: ctrl.signal },
-        );
-        if (!res.ok) return;
-        const data = (await res.json()) as GeoJSON.FeatureCollection;
-        if (cancelled || !data.features?.length) return;
+      // Preferimos los municipios de la acción; si no, la huella de propuestas.
+      const bounds =
+        (await fetchBounds(`/api/geo?layer=municipios&${qs}`, ctrl.signal)) ??
+        (await fetchBounds(`/api/geo?layer=componente&${qs}`, ctrl.signal));
 
-        // Solo calculamos los límites (sin agregar capa visible).
-        const bounds = L.geoJSON(data).getBounds();
-        if (bounds.isValid()) {
-          // padding generoso para que nada quede pegado al borde.
-          map.fitBounds(bounds, { padding: [80, 80], maxZoom: 14, animate: true });
-        }
-      } catch (e) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("[MapComponenteFocusLayer] error:", e);
-        }
-      }
+      if (cancelled || !bounds) return;
+      map.fitBounds(bounds, { padding: [80, 80], maxZoom: 13, animate: true });
     })();
 
     return () => {

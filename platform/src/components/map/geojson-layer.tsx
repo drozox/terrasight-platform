@@ -44,7 +44,7 @@ export function GeoJsonLayer({
 
     (async () => {
       try {
-        const res = await fetch(url, { signal: ctrl.signal });
+        const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as GeoJSON.FeatureCollection;
         if (cancelled) return;

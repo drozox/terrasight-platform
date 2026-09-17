@@ -113,11 +113,22 @@ export const getPrediosGeoJSON = unstable_cache(
     let filtro = sql``;
     if (componente || accion) {
       const { compCond, accionCond } = filtroProps(componente, accion);
+      // Un predio pertenece a la acción si tiene una propuesta vinculada
+      // (pp.id_predio = p.id_predio) O si alguna de sus geometrías (línea,
+      // polígono o punto) intersecta el predio. El segundo caso es clave para
+      // acciones cuyas propuestas son puntos sin predio (ej. C2A2: Obras de
+      // captación / Estación limnimétrica).
       filtro = sql`AND EXISTS (
         SELECT 1 FROM sgs_pro_propuesta pp
         JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
         JOIN sgs_com_componente c ON c.id_componente = a.id_componente
-        WHERE pp.id_predio = p.id_predio ${compCond} ${accionCond}
+        WHERE TRUE ${compCond} ${accionCond}
+          AND (
+            pp.id_predio = p.id_predio
+            OR EXISTS (SELECT 1 FROM sgs_pro_propuesta_linea    pl WHERE pl.id_propuesta = pp.id_propuesta AND pl.geom IS NOT NULL AND ST_Intersects(pl.geom, p.geom))
+            OR EXISTS (SELECT 1 FROM sgs_pro_propuesta_poligono pq WHERE pq.id_propuesta = pp.id_propuesta AND pq.geom IS NOT NULL AND ST_Intersects(pq.geom, p.geom))
+            OR EXISTS (SELECT 1 FROM sgs_pro_propuesta_punto    pt WHERE pt.id_propuesta = pp.id_propuesta AND pt.geom IS NOT NULL AND ST_Intersects(pt.geom, p.geom))
+          )
       )`;
     }
     const rows = await sql<{ id: number; nombre: string; area_ha: number; geom: string }[]>`

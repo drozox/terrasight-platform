@@ -108,14 +108,22 @@ export async function GET(req: Request) {
       "municipios", "veredas", "drenajes", "drenajes_dobles", "vias", "predios",
     ]);
     let data: FeatureCollection;
+    let filtered = false;
     if (CON_FILTRO.has(layer)) {
+      const comp = sp.get("componente");
+      const acc = sp.get("accion");
+      filtered = !!(comp || acc);
       const fn = LAYERS[layer as LayerKey] as (c: string | null, a: string | null) => Promise<FeatureCollection>;
-      data = await fn(sp.get("componente"), sp.get("accion"));
+      data = await fn(comp, acc);
     } else {
       data = await LAYERS[layer as LayerKey]();
     }
     return NextResponse.json(data, {
-      headers: { "Cache-Control": "public, max-age=300" },
+      // Con filtro: nunca cachear (así el cambio de componente/acción siempre
+      // refleja el subconjunto correcto). Sin filtro: cache corto.
+      headers: {
+        "Cache-Control": filtered ? "private, no-store" : "public, max-age=300",
+      },
     });
   } catch (err) {
     return NextResponse.json(
