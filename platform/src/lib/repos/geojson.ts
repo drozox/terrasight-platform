@@ -191,15 +191,38 @@ export const getViasGeoJSON = unstable_cache(
   { revalidate: 300, tags: ["mapa"] },
 );
 
+/** Filtro reutilizable de propuestas por (componente, accion) sobre alias pp/a/c. */
+function filtroProps(componente: string | null, accion: string | null) {
+  let comp: string | null = componente;
+  let nombres: string[] | null = null;
+  const code = accion ? normalizarAccion(accion) : null;
+  if (code) {
+    const def = accionDef(code);
+    if (!comp) comp = def.componente;
+    nombres = def.nombres;
+  }
+  const compCond = comp ? sql`AND c.nombre = ${comp}` : sql``;
+  const accionCond = !nombres
+    ? sql``
+    : nombres.length === 1
+    ? sql`AND a.nombre = ${nombres[0]}`
+    : sql`AND a.nombre IN ${sql(nombres)}`;
+  return { compCond, accionCond };
+}
+
 /** Propuestas línea — polilíneas de propuestas de aislamiento. */
 export const getPropuestasLineaGeoJSON = unstable_cache(
-  async (): Promise<FeatureCollection> => {
+  async (componente: string | null = null, accion: string | null = null): Promise<FeatureCollection> => {
+    const { compCond, accionCond } = filtroProps(componente, accion);
     const rows = await sql<{ id: number; actividad: string; longitud_km: number; geom: string }[]>`
-      SELECT id_propuesta AS id, actividad, longitud_km,
-             ST_AsGeoJSON(geom) AS geom
-      FROM sgs_pro_propuesta_linea
-      WHERE geom IS NOT NULL
-      ORDER BY id_propuesta;
+      SELECT pl.id_propuesta AS id, pl.actividad, pl.longitud_km,
+             ST_AsGeoJSON(pl.geom) AS geom
+      FROM sgs_pro_propuesta_linea pl
+      JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pl.id_propuesta
+      JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
+      WHERE pl.geom IS NOT NULL ${compCond} ${accionCond}
+      ORDER BY pl.id_propuesta;
     `;
     return {
       type: "FeatureCollection",
@@ -217,12 +240,16 @@ export const getPropuestasLineaGeoJSON = unstable_cache(
 
 /** Propuestas punto — puntos de intervención (cosecha, compostaje, estaciones, obras). */
 export const getPropuestasPuntoGeoJSON = unstable_cache(
-  async (): Promise<FeatureCollection> => {
+  async (componente: string | null = null, accion: string | null = null): Promise<FeatureCollection> => {
+    const { compCond, accionCond } = filtroProps(componente, accion);
     const rows = await sql<{ id: number; nombre: string | null; tipo: string | null; geom: string }[]>`
       SELECT pt.id_prop_punto AS id, pt.actividad AS nombre, pt.tipo_punto AS tipo,
              ST_AsGeoJSON(pt.geom) AS geom
       FROM sgs_pro_propuesta_punto pt
-      WHERE pt.geom IS NOT NULL
+      JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pt.id_propuesta
+      JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
+      WHERE pt.geom IS NOT NULL ${compCond} ${accionCond}
       ORDER BY pt.id_prop_punto;
     `;
     return {
@@ -241,12 +268,16 @@ export const getPropuestasPuntoGeoJSON = unstable_cache(
 
 /** Propuestas polígono — áreas de intervención. */
 export const getPropuestasPoligonoGeoJSON = unstable_cache(
-  async (): Promise<FeatureCollection> => {
+  async (componente: string | null = null, accion: string | null = null): Promise<FeatureCollection> => {
+    const { compCond, accionCond } = filtroProps(componente, accion);
     const rows = await sql<{ id: number; nombre: string | null; area_ha: number; geom: string }[]>`
       SELECT pq.id_propuesta AS id, pq.actividad AS nombre, pq.area_ha,
              ST_AsGeoJSON(pq.geom) AS geom
       FROM sgs_pro_propuesta_poligono pq
-      WHERE pq.geom IS NOT NULL
+      JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pq.id_propuesta
+      JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
+      JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
+      WHERE pq.geom IS NOT NULL ${compCond} ${accionCond}
       ORDER BY pq.id_propuesta;
     `;
     return {

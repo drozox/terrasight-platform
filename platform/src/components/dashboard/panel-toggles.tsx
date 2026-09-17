@@ -13,16 +13,18 @@ import {
   Target,
   TrendingUp,
   AlertTriangle,
+  LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type PanelId = "filtros" | "indicadores" | "metas" | "avance" | "atencion";
+export type PanelId = "filtros" | "indicadores" | "metas" | "avance" | "comparativa" | "atencion";
 
 const PANELS: { id: PanelId; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "filtros", label: "Filtros territoriales", Icon: SlidersHorizontal },
   { id: "indicadores", label: "Indicadores generales", Icon: BarChart3 },
   { id: "metas", label: "Metas del convenio", Icon: Target },
   { id: "avance", label: "Avance del proyecto", Icon: TrendingUp },
+  { id: "comparativa", label: "Comparativa por componente", Icon: LayoutGrid },
   { id: "atencion", label: "Requiere atención", Icon: AlertTriangle },
 ];
 

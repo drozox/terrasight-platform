@@ -17,6 +17,7 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth-guard";
+import type { FeatureCollection } from "geojson";
 import {
   getMunicipiosGeoJSON,
   getVeredasGeoJSON,
@@ -101,7 +102,14 @@ export async function GET(req: Request) {
   }
 
   try {
-    const data = await LAYERS[layer as LayerKey]();
+    // Propuestas: aceptan filtro por componente/acción.
+    let data: FeatureCollection;
+    if (layer === "propuestas" || layer === "propuestas_punto" || layer === "propuestas_poligono") {
+      const fn = LAYERS[layer] as (c: string | null, a: string | null) => Promise<FeatureCollection>;
+      data = await fn(sp.get("componente"), sp.get("accion"));
+    } else {
+      data = await LAYERS[layer as LayerKey]();
+    }
     return NextResponse.json(data, {
       headers: { "Cache-Control": "public, max-age=300" },
     });

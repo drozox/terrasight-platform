@@ -17,6 +17,7 @@ const COLUMNAS: Record<ReporteTipo, Column[]> = {
     { key: "areaHa",              label: "Área (ha)",       align: "right" },
     { key: "propietario",         label: "Propietario" },
     { key: "telefonoPropietario", label: "Teléfono" },
+    { key: "nucleoPredial",       label: "Núcleo predial" },
     { key: "nombreVereda",        label: "Vereda" },
     { key: "nombreMunicipio",     label: "Municipio" },
     { key: "departamento",        label: "Departamento" },
@@ -33,9 +34,12 @@ const COLUMNAS: Record<ReporteTipo, Column[]> = {
     { key: "totalBiomas",     label: "# Biom.",      align: "right" },
   ],
   R4: [
-    { key: "codigo",       label: "Código" },
-    { key: "nombrePredio", label: "Nombre" },
-    { key: "propietario",  label: "Propietario" },
+    { key: "codigo",          label: "Código" },
+    { key: "nombrePredio",    label: "Nombre" },
+    { key: "propietario",     label: "Propietario" },
+    { key: "nombreMunicipio", label: "Municipio" },
+    { key: "nombreVereda",    label: "Vereda" },
+    { key: "nucleoPredial",   label: "Núcleo predial" },
   ],
   R6: [
     { key: "idPredio",          label: "ID" },

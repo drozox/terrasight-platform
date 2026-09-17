@@ -138,6 +138,9 @@ export function ReporteR4Viewer({ filas }: { filas: ReporteR4Fila[] }) {
               <th className="border border-outline-variant px-3 py-2 font-semibold">Código</th>
               <th className="border border-outline-variant px-3 py-2 font-semibold">Nombre</th>
               <th className="border border-outline-variant px-3 py-2 font-semibold">Propietario</th>
+              <th className="border border-outline-variant px-3 py-2 font-semibold">Municipio</th>
+              <th className="border border-outline-variant px-3 py-2 font-semibold">Vereda</th>
+              <th className="border border-outline-variant px-3 py-2 font-semibold">Núcleo predial</th>
               <th className="border border-outline-variant px-3 py-2 font-semibold">Acciones</th>
             </tr>
           </thead>
@@ -152,6 +155,9 @@ export function ReporteR4Viewer({ filas }: { filas: ReporteR4Fila[] }) {
                 <td className="border border-outline-variant/30 px-3 py-2 font-mono text-[12px]">{p.codigo}</td>
                 <td className="border border-outline-variant/30 px-3 py-2 font-bold text-on-surface">{p.nombrePredio}</td>
                 <td className="border border-outline-variant/30 px-3 py-2">{p.propietario || "—"}</td>
+                <td className="border border-outline-variant/30 px-3 py-2">{p.nombreMunicipio || "—"}</td>
+                <td className="border border-outline-variant/30 px-3 py-2">{p.nombreVereda || "—"}</td>
+                <td className="border border-outline-variant/30 px-3 py-2">{p.nucleoPredial || "—"}</td>
                 <td className="border border-outline-variant/30 px-3 py-2">
                   <button
                     type="button"

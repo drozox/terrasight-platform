@@ -261,11 +261,6 @@ export default async function PrediosPage({
                       Componente
                     </SortableHeader>
                   </th>
-                  <th className="px-4 py-3">
-                    <SortableHeader field="accion" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
-                      Acción
-                    </SortableHeader>
-                  </th>
                   <th className="px-4 py-3 text-right">
                     <SortableHeader
                       field="area"
@@ -331,15 +326,6 @@ export default async function PrediosPage({
                         <Badge variant={COMPONENT_COLOR[p.componente]}>
                           {p.codigoAccion}
                         </Badge>
-                      ) : (
-                        <span className="text-on-surface-variant">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.accion ? (
-                        <span className="font-mono text-[12px] text-on-surface-variant">
-                          {p.accionLabel}
-                        </span>
                       ) : (
                         <span className="text-on-surface-variant">—</span>
                       )}

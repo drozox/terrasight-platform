@@ -134,9 +134,8 @@ export default async function ReportesPage({
       </Card>
 
       <footer className="mt-10 border-t border-outline-variant pt-4 text-[11px] text-on-surface-variant print:hidden">
-        6 reportes vivos (R1, R2, R4, R6, R7, R10), basados en las consultas
-        oficiales del modelo BDG del convenio CAR-WWF-Natura. Los reportes sin
-        valor operativo (R3, R5, R8, R9) fueron retirados.
+        6 reportes operativos, basados en las consultas oficiales del modelo BDG
+        del convenio CAR-WWF-Fundación Natura.
       </footer>
     </div>
   );

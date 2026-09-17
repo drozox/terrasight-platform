@@ -16,7 +16,6 @@ import {
 import Link from "next/link";
 import {
   getIntervencionesRecientes,
-  getComponentes,
   getConteoIntervenciones,
   getConteosIntervenciones,
 } from "@/lib/repos";
@@ -99,10 +98,9 @@ export default async function IntervencionesPage({
   // Pedimos 1 fila extra para saber si hay mas paginas sin un COUNT extra.
   // AJUSTE 2: agregar `conteoTotal` (COUNT real por filtro) y `conteosGlobales`
   // para mostrar los numeros reales en los chips.
-  const [intervenciones, componentes, conteoTotal, conteosGlobales] =
+  const [intervenciones, conteoTotal, conteosGlobales] =
     await Promise.all([
       getIntervencionesRecientes(PAGE_SIZE + 1, componente, accion),
-      getComponentes(),
       getConteoIntervenciones(componente, accion),
       getConteosIntervenciones(),
     ]);
@@ -185,19 +183,19 @@ export default async function IntervencionesPage({
           >
             Todas ({formatInt(conteosGlobales.total)})
           </Link>
-          {componentes.map((c) => {
-            const color = COMPONENT_COLOR[c.nombre];
+          {(["C1", "C2", "C3"] as const).map((c) => {
+            const color = COMPONENT_COLOR[c];
             return (
               <Link
-                key={c.nombre}
-                href={`/intervenciones?componente=${c.nombre}`}
+                key={c}
+                href={`/intervenciones?componente=${c}`}
                 className={`rounded-full border px-3 py-1 text-label-lg font-bold transition-colors ${
-                  componente === c.nombre
+                  componente === c
                     ? COMPONENT_ACTIVE_BG[color]
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-variant"
                 }`}
               >
-                {c.nombre} ({formatInt(totalPorComponente[c.nombre] ?? 0)})
+                {c} ({formatInt(totalPorComponente[c] ?? 0)})
               </Link>
             );
           })}

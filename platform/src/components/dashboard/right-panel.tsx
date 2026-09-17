@@ -21,6 +21,7 @@ export function RightPanel({
   resumen,
   filtrosSlot,
   metasSlot,
+  comparativaSlot,
   atencionSlot,
 }: {
   kpis: DashboardKpis;
@@ -28,6 +29,7 @@ export function RightPanel({
   resumen?: ResumenComponente;
   filtrosSlot?: ReactNode;
   metasSlot?: ReactNode;
+  comparativaSlot?: ReactNode;
   atencionSlot?: ReactNode;
 }) {
   const c = resumen?.conteos;
@@ -144,6 +146,8 @@ export function RightPanel({
         </div>
       </Card>
       </PanelGate>
+
+      {comparativaSlot}
 
       {atencionSlot}
     </aside>

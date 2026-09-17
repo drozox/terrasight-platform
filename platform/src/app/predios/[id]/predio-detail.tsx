@@ -19,9 +19,9 @@ import type {
   PropietarioMini,
   VeredaMini,
 } from "@/lib/types";
-import type { MapFeature } from "@/lib/types";
 import type { PredioAnalisisCompleto } from "@/lib/repos/fase6";
 import { PredioForm } from "../predio-form";
+import type { PredioFeature } from "./predio-mapa";
 
 // Lazy: react-leaflet no se ejecuta en SSR.
 const PredioMapa = dynamicImport(
@@ -49,6 +49,7 @@ interface IntervencionMini {
 export function PredioDetail({
   initial,
   featureResumen,
+  infoMapa,
   canEdit,
   propietarios,
   veredas,
@@ -56,7 +57,8 @@ export function PredioDetail({
   analisis,
 }: {
   initial: PredioFull;
-  featureResumen: MapFeature | null;
+  featureResumen: PredioFeature | null;
+  infoMapa?: { nombre: string; codigo: string; municipio: string | null; vereda: string | null };
   canEdit: boolean;
   propietarios: PropietarioMini[];
   veredas: VeredaMini[];
@@ -95,12 +97,12 @@ export function PredioDetail({
     <>
       {/* Mapa del polígono (lazy, react-leaflet). */}
       <div className="mb-6">
-        <PredioMapa feature={featureResumen} />
+        <PredioMapa feature={featureResumen} info={infoMapa} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 text-body-sm sm:grid-cols-3">
         <Field label="Código">
-          {featureResumen?.properties.codigo ??
+          {(featureResumen?.properties as { codigo?: string } | null | undefined)?.codigo ??
             `PR-${String(initial.idPredio).padStart(5, "0")}`}
         </Field>
         {/* F3.2 (5.3): nombre del predio (NomPred) junto al código. */}

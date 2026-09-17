@@ -63,12 +63,12 @@ export const TIPO_PUNTO_COLOR: Record<
 // -----------------------------------------------------------------------------
 
 export const REPORTE_LABELS: Record<ReporteTipo, string> = {
-  R1: "R1 — Listado completo de predios",
-  R2: "R2 — Predios con coberturas y biomas",
-  R4: "R4 — Propuestas por predio",
-  R6: "R6 — Zonificaciones por predio",
-  R7: "R7 — Infraestructura vial",
-  R10: "R10 — Área total de conservación por bioma",
+  R1: "Listado completo de predios",
+  R2: "Predios con coberturas y biomas",
+  R4: "Propuestas por predio",
+  R6: "Zonificaciones por predio",
+  R7: "Infraestructura vial",
+  R10: "Área total de conservación por bioma",
 };
 
 export const REPORTE_DESCRIPCIONES: Record<ReporteTipo, string> = {

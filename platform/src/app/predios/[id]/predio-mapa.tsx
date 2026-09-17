@@ -1,24 +1,25 @@
 "use client";
 
 // =============================================================================
-// PredioMapa — DEEPSEEK-71 (F4) / F3.2-fix
-//
-// Mini-mapa con la geometría del predio.
-//   - El padre (page.tsx) lo carga con `dynamic({ ssr: false })` para evitar el
-//     `window is not defined` de leaflet en SSR.
-//   - El GeoJSON que llega ya viene reproyectado a 4326 (ver getPrediosGeoJSON).
-//   - Polygon/MultiPolygon: polígono resaltado + tooltip + fitBounds.
-//   - Point: marcador + tooltip.
+// PredioMapa — geometría del predio (polígono), fitBounds, tooltip y overlay
+// con nombre + municipio/vereda.
+//   - El GeoJSON llega reproyectado a 4326 (getPrediosGeoJSON de geojson.ts).
+//   - Polygon/MultiPolygon: polígono resaltado + fitBounds.
+//   - Point: marcador.
 // =============================================================================
 
 import * as React from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import type { MapFeature } from "@/lib/types";
 import type { Geometry } from "geojson";
 
 type LngLat = [number, number];
+type InfoMapa = { nombre: string; codigo: string; municipio: string | null; vereda: string | null };
+export type PredioFeature = {
+  geometry: Geometry | null;
+  properties?: Record<string, unknown> | null;
+};
 
 function bboxOf(coords: number[][]): { west: number; south: number; east: number; north: number } {
   let west = Infinity, south = Infinity, east = -Infinity, north = -Infinity;
@@ -52,14 +53,11 @@ function centroidBBox(geom: Geometry): { center: LngLat; zoom: number } | null {
   return { center, zoom };
 }
 
-/** Ajusta el viewport a la geometría (más robusto que center/zoom fijos). */
 function FitBounds({ geometry }: { geometry: Geometry }) {
   const map = useMap();
   React.useEffect(() => {
     const b = L.geoJSON(geometry).getBounds();
-    if (b.isValid()) {
-      map.fitBounds(b, { padding: [30, 30], maxZoom: 16 });
-    }
+    if (b.isValid()) map.fitBounds(b, { padding: [30, 30], maxZoom: 16 });
   }, [geometry, map]);
   return null;
 }
@@ -69,73 +67,97 @@ const OSM = {
   url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 };
 
-export function PredioMapa({ feature }: { feature: MapFeature | null }) {
+function Overlay({ info }: { info?: InfoMapa }) {
+  if (!info) return null;
+  const lugar = [info.vereda, info.municipio].filter(Boolean).join(" · ");
+  return (
+    <div className="pointer-events-none absolute left-3 top-3 z-[500] max-w-[80%] rounded-lg bg-surface-container-lowest/95 px-3 py-2 shadow-md backdrop-blur">
+      <p className="font-mono text-[10px] text-on-surface-variant">{info.codigo}</p>
+      <p className="text-[13px] font-bold text-on-surface">{info.nombre}</p>
+      {lugar && <p className="text-[11px] text-on-surface-variant">{lugar}</p>}
+    </div>
+  );
+}
+
+export function PredioMapa({ feature, info }: { feature: PredioFeature | null; info?: InfoMapa }) {
   if (!feature || !feature.geometry) {
     return (
-      <div className="flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-outline-variant bg-surface-container-low text-body-sm text-on-surface-variant">
-        Sin geometría asociada.
+      <div className="relative">
+        <div className="flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-outline-variant bg-surface-container-low text-body-sm text-on-surface-variant">
+          Sin geometría asociada.
+        </div>
+        <Overlay info={info} />
       </div>
     );
   }
   const geometry = feature.geometry as Geometry;
   const props = (feature.properties ?? {}) as { codigo?: string; nombre?: string };
-  const nombre = props.nombre ?? "Predio";
-  const codigo = props.codigo ?? props.nombre ?? "Predio";
+  const nombre = info?.nombre ?? props.nombre ?? "Predio";
+  const codigo = info?.codigo ?? props.codigo ?? props.nombre ?? "Predio";
 
   if (geometry.type === "Point") {
     const [lng, lat] = geometry.coordinates as number[];
     return (
-      <MapContainer
-        center={[lat, lng] as LngLat}
-        zoom={16}
-        scrollWheelZoom={false}
-        className="h-64 w-full rounded-lg border border-outline-variant"
-      >
-        <TileLayer {...OSM} />
-        <CircleMarker
+      <div className="relative">
+        <MapContainer
           center={[lat, lng] as LngLat}
-          radius={9}
-          pathOptions={{ color: "#d9480f", weight: 2, fillColor: "#ff922b", fillOpacity: 0.9 }}
+          zoom={16}
+          scrollWheelZoom={false}
+          className="h-64 w-full rounded-lg border border-outline-variant"
         >
-          <Tooltip>{nombre}</Tooltip>
-        </CircleMarker>
-      </MapContainer>
+          <TileLayer {...OSM} />
+          <CircleMarker
+            center={[lat, lng] as LngLat}
+            radius={9}
+            pathOptions={{ color: "#d9480f", weight: 2, fillColor: "#ff922b", fillOpacity: 0.9 }}
+          >
+            <Tooltip>{nombre}</Tooltip>
+          </CircleMarker>
+        </MapContainer>
+        <Overlay info={info} />
+      </div>
     );
   }
 
   const cb = centroidBBox(geometry);
   if (!cb) {
     return (
-      <div className="flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-outline-variant bg-surface-container-low text-body-sm text-on-surface-variant">
-        Geometría no soportada ({geometry.type}).
+      <div className="relative">
+        <div className="flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-outline-variant bg-surface-container-low text-body-sm text-on-surface-variant">
+          Geometría no soportada ({geometry.type}).
+        </div>
+        <Overlay info={info} />
       </div>
     );
   }
   return (
-    <MapContainer
-      center={cb.center}
-      zoom={cb.zoom}
-      scrollWheelZoom={false}
-      className="h-64 w-full rounded-lg border border-outline-variant"
-    >
-      <TileLayer {...OSM} />
-      <FitBounds geometry={geometry} />
-      <GeoJSON
-        data={{
-          type: "Feature",
-          geometry,
-          properties: { name: codigo },
-        } as never}
-        style={{
-          color: "#d9480f",
-          weight: 2.5,
-          fillColor: "#ff922b",
-          fillOpacity: 0.28,
-        }}
-        onEachFeature={(_f, layer) => {
-          layer.bindTooltip(nombre, { sticky: true });
-        }}
-      />
-    </MapContainer>
+    <div className="relative">
+      <MapContainer
+        center={cb.center}
+        zoom={cb.zoom}
+        scrollWheelZoom={false}
+        className="h-64 w-full rounded-lg border border-outline-variant"
+      >
+        <TileLayer {...OSM} />
+        <FitBounds geometry={geometry} />
+        <GeoJSON
+          data={{
+            type: "Feature",
+            geometry,
+            properties: { name: codigo },
+          } as never}
+          style={{
+            color: "#d9480f",
+            weight: 2.5,
+            fillColor: "#ff922b",
+            fillOpacity: 0.28,
+          }}
+          onEachFeature={(_f, layer) => {
+            layer.bindTooltip(nombre, { sticky: true });
+          }}
+        />
+      </MapContainer>
+      <Overlay info={info} />
+    </div>
   );
 }

@@ -62,6 +62,7 @@ export async function getReporteR1(f: ReporteFiltros = {}): Promise<ReporteR1Fil
     area_ha: number | string;
     propietario: string;
     telefono_propietario: string;
+    nucleo_predial: string;
     nombre_vereda: string;
     nombre_municipio: string;
     departamento: string;
@@ -71,6 +72,7 @@ export async function getReporteR1(f: ReporteFiltros = {}): Promise<ReporteR1Fil
     SELECT p.id_predio, p.nombre_predio, p.area_ha,
            pr.nombre_razon_social AS propietario,
            pr.telefono             AS telefono_propietario,
+           p.nucleo_predial,
            v.nombre_vereda, m.nombre_municipio,
            m.departamento,
            p.cedula_catastral, p.observaciones
@@ -87,6 +89,7 @@ export async function getReporteR1(f: ReporteFiltros = {}): Promise<ReporteR1Fil
     areaHa: pgNum(r.area_ha),
     propietario: pgText(r.propietario),
     telefonoPropietario: pgText(r.telefono_propietario),
+    nucleoPredial: pgText(r.nucleo_predial),
     nombreVereda: pgText(r.nombre_vereda),
     nombreMunicipio: pgText(r.nombre_municipio),
     departamento: pgText(r.departamento),
@@ -142,13 +145,21 @@ export async function getReporteR4(f: ReporteFiltros = {}): Promise<ReporteR4Fil
     codigo: string;
     nombre_predio: string;
     propietario: string | null;
+    nucleo_predial: string | null;
+    nombre_vereda: string | null;
+    nombre_municipio: string | null;
   }[]>`
     SELECT p.id_predio,
            ('PR-' || LPAD(p.id_predio::text, GREATEST(5, length(p.id_predio::text)), '0')) AS codigo,
            p.nombre_predio,
-           pr.nombre_razon_social AS propietario
+           pr.nombre_razon_social AS propietario,
+           p.nucleo_predial,
+           v.nombre_vereda,
+           m.nombre_municipio
     FROM   sgs_pre_predio p
     LEFT JOIN sgs_pre_propietario pr ON p.id_propietario = pr.id_propietario
+    LEFT JOIN bcs_lpa_vereda       v ON p.id_vereda      = v.id_vereda
+    LEFT JOIN bcs_lpa_municipio    m ON m.id_municipio   = v.id_municipio
     WHERE  TRUE ${filtroPredio(f)}
     ORDER  BY p.nombre_predio;
   `;
@@ -157,6 +168,9 @@ export async function getReporteR4(f: ReporteFiltros = {}): Promise<ReporteR4Fil
     codigo: pgText(r.codigo),
     nombrePredio: pgText(r.nombre_predio),
     propietario: pgText(r.propietario ?? ""),
+    nucleoPredial: pgText(r.nucleo_predial ?? ""),
+    nombreVereda: pgText(r.nombre_vereda ?? ""),
+    nombreMunicipio: pgText(r.nombre_municipio ?? ""),
   }));
 }
 

@@ -11,12 +11,14 @@ import { Card } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth-guard";
 import {
   getPredioById,
-  getPrediosGeoJSON,
   listPropietarios,
   listVeredas,
   getPredioAnalisisCompleto,
   listIntervencionesByPredio,
 } from "@/lib/repos";
+// Import explícito: el barrel expone `getPrediosGeoJSON` de analisis (puntos en
+// el centroide); acá necesitamos los POLÍGONOS reales del predio.
+import { getPrediosGeoJSON } from "@/lib/repos/geojson";
 import { PredioDetail } from "./predio-detail";
 
 export const dynamic = "force-dynamic";
@@ -44,10 +46,21 @@ export default async function PredioDetailPage({
   if (!predio) notFound();
 
   const feature =
-    geojson.features.find((f) => f.properties.id === idNum) ?? null;
+    geojson.features.find(
+      (f) => Number((f.properties as { id?: number } | null)?.id) === idNum,
+    ) ?? null;
 
   // Permiso: ADMIN o GESTOR pueden editar; ANALISTA queda read-only.
   const canEdit = user.rol === "ADMIN" || user.rol === "GESTOR";
+  const veredaObj = veredas.find((v) => v.idVereda === predio.idVereda);
+  const infoMapa = {
+    nombre: predio.nombrePredio,
+    codigo:
+      (feature?.properties as { codigo?: string } | null | undefined)?.codigo ??
+      `PR-${String(idNum).padStart(5, "0")}`,
+    municipio: veredaObj?.nombreMunicipio ?? null,
+    vereda: veredaObj?.nombreVereda ?? null,
+  };
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface-container-low p-gutter">
@@ -67,7 +80,7 @@ export default async function PredioDetailPage({
             </div>
             <div>
               <p className="font-mono text-[11px] text-on-surface-variant">
-                {feature?.properties.codigo ??
+                {(feature?.properties as { codigo?: string } | null | undefined)?.codigo ??
                   `PR-${String(idNum).padStart(5, "0")}`}
               </p>
               <h1 className="text-2xl font-bold text-on-surface">
@@ -88,6 +101,7 @@ export default async function PredioDetailPage({
           <PredioDetail
             initial={predio}
             featureResumen={feature}
+            infoMapa={infoMapa}
             canEdit={canEdit}
             propietarios={propietarios}
             veredas={veredas}

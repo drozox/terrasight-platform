@@ -528,6 +528,7 @@ export type ReporteR1Fila = {
   areaHa: number;
   propietario: string;
   telefonoPropietario: string;
+  nucleoPredial: string;
   nombreVereda: string;
   nombreMunicipio: string;
   departamento: string;
@@ -560,6 +561,9 @@ export type ReporteR4Fila = {
   codigo: string;
   nombrePredio: string;
   propietario: string;
+  nucleoPredial: string;
+  nombreVereda: string;
+  nombreMunicipio: string;
 }
 
 /** R4 — intervención de un predio (subpestaña "Ver intervenciones"). */

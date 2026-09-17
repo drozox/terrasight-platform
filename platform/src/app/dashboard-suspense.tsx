@@ -124,6 +124,7 @@ async function RightPanelSection({
   componenteFiltro,
   accionFiltro,
   filtrosSlot,
+  comparativaSlot,
   atencionSlot,
 }: {
   kpis: DashboardKpis;
@@ -132,6 +133,7 @@ async function RightPanelSection({
   componenteFiltro: string | null;
   accionFiltro: AccionCode | null;
   filtrosSlot?: ReactNode;
+  comparativaSlot?: ReactNode;
   atencionSlot?: ReactNode;
 }) {
   return (
@@ -140,6 +142,7 @@ async function RightPanelSection({
       footer={footer}
       resumen={resumen}
       filtrosSlot={filtrosSlot}
+      comparativaSlot={comparativaSlot}
       atencionSlot={atencionSlot}
       metasSlot={
         <PanelGate id="metas">
@@ -216,8 +219,6 @@ export function DashboardContent({
                   dbHealth={dbHealth}
                 />
               </Suspense>
-
-              <ComparativaComponentes componentes={componentes} avances={avances} />
             </div>
 
             <Suspense
@@ -245,6 +246,11 @@ export function DashboardContent({
                       vereda={territorio.vereda}
                       predio={territorio.predio}
                     />
+                  </PanelGate>
+                }
+                comparativaSlot={
+                  <PanelGate id="comparativa">
+                    <ComparativaComponentes componentes={componentes} avances={avances} />
                   </PanelGate>
                 }
                 atencionSlot={

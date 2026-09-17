@@ -23,7 +23,7 @@ export const ALL_ITEMS: NavItem[] = [
   { href: "/intervenciones", label: "Intervenciones",     icon: Wrench,    roles: null },
   { href: "/metas/convenio", label: "Metas del convenio", icon: Target,    roles: null },
   { href: "/reportes",       label: "Reportes",           icon: FileText,  roles: ["ADMIN", "ANALISTA"] },
-  { href: "/informate",      label: "Infórmate",          icon: Info,      roles: null },
+  { href: "/informate",      label: "Acerca de",         icon: Info,      roles: null },
 ];
 
 export function itemsParaRol(rol?: RolSistema | null): NavItem[] {

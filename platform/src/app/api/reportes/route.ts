@@ -40,6 +40,7 @@ const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
     { key: "areaHa",            header: "Área (ha)" },
     { key: "propietario",       header: "Propietario" },
     { key: "telefonoPropietario",header: "Teléfono" },
+    { key: "nucleoPredial",     header: "Núcleo predial" },
     { key: "nombreVereda",      header: "Vereda" },
     { key: "nombreMunicipio",   header: "Municipio" },
     { key: "departamento",      header: "Departamento" },
@@ -60,6 +61,9 @@ const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
     { key: "codigo",       header: "Código" },
     { key: "nombrePredio", header: "Predio" },
     { key: "propietario",  header: "Propietario" },
+    { key: "nombreMunicipio", header: "Municipio" },
+    { key: "nombreVereda",    header: "Vereda" },
+    { key: "nucleoPredial",   header: "Núcleo predial" },
   ],
   R6: [
     { key: "idPredio",          header: "ID" },

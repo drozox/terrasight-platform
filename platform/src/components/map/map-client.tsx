@@ -114,10 +114,24 @@ export default function MapClient({
 
   // DEEPSEEK-77: al elegir un componente, encender sus capas de propuestas
   // (el MapComponenteFocusLayer además resalta + hace fitBounds).
+  // Query de filtro por componente/acción para las capas de propuestas.
+  const filtroQS =
+    (activeComponente ? `&componente=${activeComponente}` : "") +
+    (activeAccion ? `&accion=${activeAccion}` : "");
+
+  // Al elegir un componente/acción: encender propuestas + capas base de contexto.
   React.useEffect(() => {
-    if (!activeComponente) return;
-    setLayers((prev) => ({ ...prev, propuestas_punto: true, propuestas_poligono: true }));
-  }, [activeComponente]);
+    if (!activeComponente && !activeAccion) return;
+    setLayers((prev) => ({
+      ...prev,
+      propuestas: true,
+      propuestas_punto: true,
+      propuestas_poligono: true,
+      drenaje_simple: true,
+      drenaje_doble: true,
+      municipios: true,
+    }));
+  }, [activeComponente, activeAccion]);
   const [activeTool, setActiveTool] = React.useState<MapToolKey | null>(null);
   // Capa cuyos DATOS (atributos) se muestran en el panel de datos.
   const [dataLayer, setDataLayer] = React.useState<MapLayerKey | null>(null);
@@ -389,7 +403,7 @@ export default function MapClient({
         )}
         {layers.propuestas && (
           <GeoJsonLayer
-            url="/api/geo?layer=propuestas"
+            url={`/api/geo?layer=propuestas${filtroQS}`}
             color="#b26a00"
             weight={3}
             fillOpacity={0}
@@ -403,7 +417,7 @@ export default function MapClient({
         )}
         {layers.propuestas_poligono && (
           <GeoJsonLayer
-            url="/api/geo?layer=propuestas_poligono"
+            url={`/api/geo?layer=propuestas_poligono${filtroQS}`}
             color="#b26a00"
             weight={2}
             fillColor="#f0b24a"
@@ -419,7 +433,7 @@ export default function MapClient({
         )}
         {layers.propuestas_punto && (
           <GeoJsonLayer
-            url="/api/geo?layer=propuestas_punto"
+            url={`/api/geo?layer=propuestas_punto${filtroQS}`}
             color="#b26a00"
             weight={2}
             fillColor="#f0b24a"
