@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SigTerritorioLogo } from "@/components/icons";
+import { SidebarIllustration } from "./sidebar-illustration";
 import { itemsParaRol, esActivo } from "./nav-items";
 import type { RolSistema } from "@/lib/auth";
 
@@ -21,7 +22,7 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
   const pathname = usePathname();
   const navItems = React.useMemo(() => itemsParaRol(rol), [rol]);
   const [collapsed, setCollapsed] = React.useState(false);
-  const [showArt, setShowArt] = React.useState(true);
+  const [artFailed, setArtFailed] = React.useState(false);
 
   React.useEffect(() => {
     try {
@@ -116,17 +117,21 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
         })}
       </nav>
 
-      {/* Ilustración botánica (PNG con transparencia). Se oculta si falta. */}
-      {!collapsed && showArt && (
+      {/* Ilustración botánica al pie. Usa el PNG si está; si no, un SVG inline. */}
+      {!collapsed && (
         <div className="px-md pt-md">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/sidebar-illustration.png"
-            alt=""
-            aria-hidden="true"
-            className="mx-auto w-40 opacity-70"
-            onError={() => setShowArt(false)}
-          />
+          {artFailed ? (
+            <SidebarIllustration className="mx-auto w-40 opacity-70" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src="/images/sidebar-illustration.png"
+              alt=""
+              aria-hidden="true"
+              className="mx-auto w-40 opacity-70"
+              onError={() => setArtFailed(true)}
+            />
+          )}
         </div>
       )}
 
