@@ -20,6 +20,7 @@ import {
   getReporteR6,
   getReporteR7,
   getReporteR10,
+  getReporteCobertura,
   type ReporteFiltros,
 } from "@/lib/repos";
 import { normalizarAccion } from "@/lib/acciones";
@@ -39,13 +40,17 @@ const RENDERERS: Record<ReporteTipo, (f: ReporteFiltros) => Promise<unknown[]>> 
   R6:  (f) => getReporteR6(f) as unknown as Promise<unknown[]>,
   R7:  ()  => getReporteR7()  as unknown as Promise<unknown[]>,
   R10: ()  => getReporteR10() as unknown as Promise<unknown[]>,
+  R11: (f) => getReporteCobertura(f) as unknown as Promise<unknown[]>,
 };
 
 // Reportes que soportan filtro por componente/acción.
-const CON_FILTRO: ReporteTipo[] = ["R1", "R2", "R4", "R6"];
+const CON_FILTRO: ReporteTipo[] = ["R1", "R2", "R4", "R6", "R11"];
 
 function isReporteTipo(s: string | undefined): s is ReporteTipo {
-  return s === "R1" || s === "R2" || s === "R4" || s === "R6" || s === "R7" || s === "R10";
+  return (
+    s === "R1" || s === "R2" || s === "R4" || s === "R6" ||
+    s === "R7" || s === "R10" || s === "R11"
+  );
 }
 
 export default async function ReportesPage({
@@ -134,7 +139,7 @@ export default async function ReportesPage({
       </Card>
 
       <footer className="mt-10 border-t border-outline-variant pt-4 text-[11px] text-on-surface-variant print:hidden">
-        6 reportes operativos, basados en las consultas oficiales del modelo BDG
+        7 reportes operativos, basados en las consultas oficiales del modelo BDG
         del convenio CAR-WWF-Fundación Natura.
       </footer>
     </div>

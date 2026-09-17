@@ -14,6 +14,7 @@ import {
   getReporteR6,
   getReporteR7,
   getReporteR10,
+  getReporteCobertura,
   type ReporteFiltros,
 } from "@/lib/repos";
 import { normalizarAccion } from "@/lib/acciones";
@@ -31,6 +32,7 @@ const REPORTE_FNS: Record<ReporteTipo, (f: ReporteFiltros) => Promise<Record<str
   R6:  (f) => getReporteR6(f)  as unknown as Promise<Record<string, CsvCell>[]>,
   R7:  ()  => getReporteR7()   as unknown as Promise<Record<string, CsvCell>[]>,
   R10: ()  => getReporteR10()  as unknown as Promise<Record<string, CsvCell>[]>,
+  R11: (f) => getReporteCobertura(f) as unknown as Promise<Record<string, CsvCell>[]>,
 };
 
 const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
@@ -87,10 +89,19 @@ const COLUMNAS: Record<ReporteTipo, Array<{ key: string; header: string }>> = {
     { key: "areaPromedioHa",   header: "Área promedio (ha)" },
     { key: "predios",          header: "Predios" },
   ],
+  R11: [
+    { key: "municipio", header: "Municipio" },
+    { key: "vereda",    header: "Vereda" },
+    { key: "predios",   header: "Predios" },
+    { key: "areaHa",    header: "Área (ha)" },
+  ],
 };
 
 function isReporteTipo(s: string | undefined): s is ReporteTipo {
-  return s === "R1" || s === "R2" || s === "R4" || s === "R6" || s === "R7" || s === "R10";
+  return (
+    s === "R1" || s === "R2" || s === "R4" || s === "R6" ||
+    s === "R7" || s === "R10" || s === "R11"
+  );
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {

@@ -69,6 +69,7 @@ export const REPORTE_LABELS: Record<ReporteTipo, string> = {
   R6: "Zonificaciones por predio",
   R7: "Infraestructura vial",
   R10: "Área total de conservación por bioma",
+  R11: "Cobertura territorial por componente y acción",
 };
 
 export const REPORTE_DESCRIPCIONES: Record<ReporteTipo, string> = {
@@ -78,6 +79,7 @@ export const REPORTE_DESCRIPCIONES: Record<ReporteTipo, string> = {
   R6: "Predios con vereda, núcleo predial y sus zonificaciones ambientales (POMCA, RFP y páramos).",
   R7: "Inventario de infraestructura vial (vías) por municipio, con tipos y conteos.",
   R10: "Área total de predios por bioma IAVH, con conteo de predios y área promedio. Para reportes de conservación.",
+  R11: "Cobertura territorial: predios y área por municipio y vereda para el componente/acción seleccionado.",
 };
 
 // -----------------------------------------------------------------------------

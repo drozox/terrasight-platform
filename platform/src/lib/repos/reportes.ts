@@ -21,6 +21,7 @@ import type {
   ReporteR6Fila,
   ReporteR7Fila,
   ReporteR10Fila,
+  ReporteCoberturaFila,
 } from "../types";
 
 export type ReporteFiltros = {
@@ -294,8 +295,35 @@ export async function getReporteR7(): Promise<ReporteR7Fila[]> {
 }
 
 // -----------------------------------------------------------------------------
-// R10 — Área total de conservación por bioma
+// R11 — Cobertura territorial por componente y acción
+//   Predios por municipio/vereda que tienen propuestas del componente/acción.
 // -----------------------------------------------------------------------------
+export async function getReporteCobertura(f: ReporteFiltros = {}): Promise<ReporteCoberturaFila[]> {
+  const rows = await sql<{
+    municipio: string;
+    vereda: string;
+    predios: number | string;
+    area_ha: number | string;
+  }[]>`
+    SELECT m.nombre_municipio AS municipio,
+           v.nombre_vereda    AS vereda,
+           COUNT(DISTINCT p.id_predio)::int AS predios,
+           COALESCE(SUM(p.area_ha), 0)::numeric AS area_ha
+    FROM   sgs_pre_predio p
+    JOIN   bcs_lpa_vereda    v ON v.id_vereda    = p.id_vereda
+    JOIN   bcs_lpa_municipio m ON m.id_municipio = v.id_municipio
+    WHERE  TRUE ${filtroPredio(f)}
+    GROUP  BY m.nombre_municipio, v.nombre_vereda
+    ORDER  BY m.nombre_municipio, v.nombre_vereda;
+  `;
+  return rows.map((r) => ({
+    municipio: pgText(r.municipio),
+    vereda: pgText(r.vereda),
+    predios: pgInt(r.predios),
+    areaHa: pgNum(r.area_ha),
+  }));
+}
+
 export async function getReporteR10(): Promise<ReporteR10Fila[]> {
   const rows = await sql<{
     bioma_iavh:           string;

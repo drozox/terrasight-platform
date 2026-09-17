@@ -520,7 +520,7 @@ export type IntersectionResult = {
 // Reportes (HU-CO-04)
 // -----------------------------------------------------------------------------
 
-export type ReporteTipo = "R1" | "R2" | "R4" | "R6" | "R7" | "R10";
+export type ReporteTipo = "R1" | "R2" | "R4" | "R6" | "R7" | "R10" | "R11";
 
 export type ReporteR1Fila = {
   idPredio: number;
@@ -634,6 +634,14 @@ export type ReporteR10Fila = {
   areaTotalHa: number;
   areaPromedioHa: number;
   predios: string;
+}
+
+/** R11 — Cobertura territorial por componente y acción. */
+export type ReporteCoberturaFila = {
+  municipio: string;
+  vereda: string;
+  predios: number;
+  areaHa: number;
 }
 
 // -----------------------------------------------------------------------------

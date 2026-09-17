@@ -63,6 +63,12 @@ const COLUMNAS: Record<ReporteTipo, Column[]> = {
     { key: "areaPromedioHa",  label: "Área prom.",  align: "right" },
     { key: "predios",         label: "Predios" },
   ],
+  R11: [
+    { key: "municipio", label: "Municipio" },
+    { key: "vereda",    label: "Vereda" },
+    { key: "predios",   label: "Predios",    align: "right" },
+    { key: "areaHa",    label: "Área (ha)",  align: "right" },
+  ],
 };
 
 function formatCell(value: unknown): string {

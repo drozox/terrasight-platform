@@ -71,8 +71,10 @@ export default async function PrediosPage({
       nombre: "nombrePredio",
       propietario: "nombrePropietario",
       componente: "codigoAccion",
-      accion: "accionLabel",
+      vereda: "nombreVereda",
+      municipio: "nombreMunicipio",
       nucleo: "nucleoPredial",
+      accion: "accionLabel",
       area: "areaHa",
     };
     const key = fieldMap[sort] ?? "nombrePredio";
@@ -261,6 +263,21 @@ export default async function PrediosPage({
                       Componente
                     </SortableHeader>
                   </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="vereda" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
+                      Vereda
+                    </SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="municipio" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
+                      Municipio
+                    </SortableHeader>
+                  </th>
+                  <th className="px-4 py-3">
+                    <SortableHeader field="nucleo" currentSort={sort} currentOrder={order} basePath="/predios" searchParams={sortParams}>
+                      Núcleo predial
+                    </SortableHeader>
+                  </th>
                   <th className="px-4 py-3 text-right">
                     <SortableHeader
                       field="area"
@@ -279,7 +296,7 @@ export default async function PrediosPage({
               <tbody>
                 {sorted.length === 0 && kpis.total > 0 && (
                   <tr>
-                    <td colSpan={7} className="p-0">
+                    <td colSpan={9} className="p-0">
                       <EmptyState
                         icon={Search}
                         title="Sin coincidencias"
@@ -292,7 +309,7 @@ export default async function PrediosPage({
                 )}
                 {sorted.length === 0 && kpis.total === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-0">
+                    <td colSpan={9} className="p-0">
                       <EmptyState
                         icon={Building2}
                         title="Sin predios registrados"
@@ -330,6 +347,9 @@ export default async function PrediosPage({
                         <span className="text-on-surface-variant">—</span>
                       )}
                     </td>
+                    <td className="px-4 py-3">{p.nombreVereda || "—"}</td>
+                    <td className="px-4 py-3">{p.nombreMunicipio || "—"}</td>
+                    <td className="px-4 py-3">{p.nucleoPredial || "—"}</td>
                     <td className="px-4 py-3 text-right font-mono">
                       {formatDecimal(p.areaHa, 2)}
                     </td>

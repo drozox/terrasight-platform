@@ -84,6 +84,8 @@ export type PredioFiltrado = {
   codigo: string;
   nombrePredio: string;
   nucleoPredial: string;
+  nombreVereda: string;
+  nombreMunicipio: string;
   componente: string | null;      // "C1" | "C2" | "C3" | null
   accion: string | null;           // "A1" | "A2" | "U" | null (nombre en BD)
   codigoAccion: AccionCode | null; // "C1A1" .. "C3AU"
@@ -156,6 +158,8 @@ export async function listPrediosFiltrados(args: {
       id_propietario: number | string;
       nombre_propietario: string | null;
       id_vereda: number | string;
+      nombre_vereda: string | null;
+      nombre_municipio: string | null;
       nombre_componente: string | null;
       nombre_accion: string | null;
     }[]
@@ -170,10 +174,14 @@ export async function listPrediosFiltrados(args: {
            p.id_propietario,
            pr.nombre_razon_social                          AS nombre_propietario,
            p.id_vereda,
+           v.nombre_vereda,
+           m.nombre_municipio,
            ca.nombre_componente,
            ca.nombre_accion
     FROM   sgs_pre_predio p
     LEFT JOIN sgs_pre_propietario pr ON pr.id_propietario = p.id_propietario
+    LEFT JOIN bcs_lpa_vereda       v ON v.id_vereda      = p.id_vereda
+    LEFT JOIN bcs_lpa_municipio    m ON m.id_municipio   = v.id_municipio
     LEFT JOIN LATERAL (
       SELECT c.nombre AS nombre_componente, a.nombre AS nombre_accion
       FROM   sgs_pro_propuesta pp
@@ -195,6 +203,8 @@ export async function listPrediosFiltrados(args: {
       codigo: r.codigo ?? `PR-${String(pgInt(r.id_predio)).padStart(5, "0")}`,
       nombrePredio: pgText(r.nombre_predio),
       nucleoPredial: pgText(r.nucleo_predial),
+      nombreVereda: pgText(r.nombre_vereda ?? ""),
+      nombreMunicipio: pgText(r.nombre_municipio ?? ""),
       componente,
       accion,
       codigoAccion,
