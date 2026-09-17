@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   title: "SIG TERRITORIO — Plataforma SIG Integrada | Convenio CAR-WWF-Natura",
   description:
     "Plataforma de Sistemas de Información Geográfica para el monitoreo ambiental y la gestión territorial en Cundinamarca.",
+};
+
+// Color de la barra del navegador en móvil (verde institucional).
+export const viewport: Viewport = {
+  themeColor: "#006d37",
 };
 
 export default async function RootLayout({
