@@ -43,7 +43,7 @@ function centroidBBox(geom: Geometry): { center: LngLat; zoom: number } | null {
     const b = bboxOf(ring);
     if (b.west < west) west = b.west;
     if (b.east > east) east = b.east;
-    if (b.south > south) south = b.south;
+    if (b.south < south) south = b.south;
     if (b.north > north) north = b.north;
   }
   if (![west, south, east, north].every(Number.isFinite)) return null;

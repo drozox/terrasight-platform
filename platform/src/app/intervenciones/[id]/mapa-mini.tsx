@@ -32,7 +32,7 @@ import type {
   GeoJSONPolygon,
   GeoJSONMultiPolygon,
 } from "@/lib/types";
-import { centerAndZoomFromCoords, flattenPairs } from "@/lib/geo/centroid";
+import { centerAndZoomFromCoords } from "@/lib/geo/centroid";
 import type { IntervencionContexto, VecinoMini } from "@/lib/repos/propuestas";
 
 // -----------------------------------------------------------------------------
@@ -42,41 +42,11 @@ const CUNDINAMARCA_CENTER: [number, number] = [4.92, -73.93];
 
 function computeCentroid(
   intervencion: IntervencionCompleta,
-  contexto: IntervencionContexto | null = null,
+  _contexto: IntervencionContexto | null = null,
 ): { center: [number, number]; zoom: number } {
-  // AJUSTE 3: fitBounds colectivo cuando hay vecinos (current + todas las
-  // vecinas). Si no hay vecinos, cae al comportamiento de un solo feature.
-  const allPairs: number[][] = [];
-  // Intervencion actual.
-  if (intervencion.tipo === "punto" && intervencion.geom) {
-    allPairs.push([intervencion.geom.lon, intervencion.geom.lat]);
-  } else if (intervencion.tipo === "linea" && intervencion.geom) {
-    const flat = flattenPairs(intervencion.geom.geojson.coordinates);
-    for (const p of flat) allPairs.push(p);
-  } else if (intervencion.tipo === "poligono" && intervencion.geom) {
-    const flat = flattenPairs(intervencion.geom.geojson.coordinates);
-    for (const p of flat) allPairs.push(p);
-  }
-  // Vecinos.
-  if (contexto) {
-    for (const v of contexto.vecinos) {
-      if (v.tipo === "punto" && isGeometryPoint(v.geom)) {
-        const c = (v.geom as GeoJSON.Point).coordinates;
-        allPairs.push([c[0] ?? 0, c[1] ?? 0]);
-      } else if (isGeometryLineOrPolygon(v.geom)) {
-        const flat = flattenPairs(
-          (v.geom as GeoJSON.LineString | GeoJSON.MultiLineString | GeoJSON.Polygon | GeoJSON.MultiPolygon).coordinates,
-        );
-        for (const p of flat) allPairs.push(p);
-      }
-    }
-  }
-  if (allPairs.length > 1) {
-    return centerAndZoomFromCoords(allPairs, {
-      center: CUNDINAMARCA_CENTER,
-      zoom: 13,
-    });
-  }
+  // El encuadre debe mostrar SIEMPRE la intervención actual. Las vecinas se
+  // dibujan como contexto, pero NO entran en el cálculo del centro/zoom: si una
+  // vecina cae lejos, la geometría principal quedaba fuera de vista (o diminuta).
   if (intervencion.tipo === "punto" && intervencion.geom) {
     return {
       center: [intervencion.geom.lat, intervencion.geom.lon],

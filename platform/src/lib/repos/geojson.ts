@@ -292,7 +292,7 @@ export const getPropuestasLineaGeoJSON = unstable_cache(
     const { compCond, accionCond } = filtroProps(componente, accion);
     const rows = await sql<{ id: number; actividad: string; longitud_km: number; geom: string }[]>`
       SELECT pl.id_propuesta AS id, pl.actividad, pl.longitud_km,
-             ST_AsGeoJSON(pl.geom) AS geom
+             ST_AsGeoJSON(CASE WHEN ST_SRID(pl.geom) = 4326 THEN pl.geom ELSE ST_Transform(pl.geom, 4326) END) AS geom
       FROM sgs_pro_propuesta_linea pl
       JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pl.id_propuesta
       JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
@@ -320,7 +320,7 @@ export const getPropuestasPuntoGeoJSON = unstable_cache(
     const { compCond, accionCond } = filtroProps(componente, accion);
     const rows = await sql<{ id: number; nombre: string | null; tipo: string | null; geom: string }[]>`
       SELECT pt.id_prop_punto AS id, pt.actividad AS nombre, pt.tipo_punto AS tipo,
-             ST_AsGeoJSON(pt.geom) AS geom
+             ST_AsGeoJSON(CASE WHEN ST_SRID(pt.geom) = 4326 THEN pt.geom ELSE ST_Transform(pt.geom, 4326) END) AS geom
       FROM sgs_pro_propuesta_punto pt
       JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pt.id_propuesta
       JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
@@ -348,7 +348,7 @@ export const getPropuestasPoligonoGeoJSON = unstable_cache(
     const { compCond, accionCond } = filtroProps(componente, accion);
     const rows = await sql<{ id: number; nombre: string | null; area_ha: number; geom: string }[]>`
       SELECT pq.id_propuesta AS id, pq.actividad AS nombre, pq.area_ha,
-             ST_AsGeoJSON(pq.geom) AS geom
+             ST_AsGeoJSON(CASE WHEN ST_SRID(pq.geom) = 4326 THEN pq.geom ELSE ST_Transform(pq.geom, 4326) END) AS geom
       FROM sgs_pro_propuesta_poligono pq
       JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pq.id_propuesta
       JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
@@ -395,17 +395,20 @@ export async function getComponenteFootprintGeoJSON(
       JOIN sgs_com_componente c ON c.id_componente = a.id_componente
       WHERE c.nombre = ${comp} ${accionSql}
     )
-    SELECT 'punto' AS tipo, pt.id_prop_punto AS id, pt.actividad AS nombre, ST_AsGeoJSON(pt.geom) AS geom
+    SELECT 'punto' AS tipo, pt.id_prop_punto AS id, pt.actividad AS nombre,
+           ST_AsGeoJSON(CASE WHEN ST_SRID(pt.geom) = 4326 THEN pt.geom ELSE ST_Transform(pt.geom, 4326) END) AS geom
     FROM sgs_pro_propuesta_punto pt
     JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pt.id_propuesta
     WHERE pt.geom IS NOT NULL AND pp.id_accion IN (SELECT id_accion FROM comp)
     UNION ALL
-    SELECT 'poligono', pq.id_prop_poligono, pq.actividad, ST_AsGeoJSON(pq.geom)
+    SELECT 'poligono', pq.id_prop_poligono, pq.actividad,
+           ST_AsGeoJSON(CASE WHEN ST_SRID(pq.geom) = 4326 THEN pq.geom ELSE ST_Transform(pq.geom, 4326) END)
     FROM sgs_pro_propuesta_poligono pq
     JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pq.id_propuesta
     WHERE pq.geom IS NOT NULL AND pp.id_accion IN (SELECT id_accion FROM comp)
     UNION ALL
-    SELECT 'linea', pl.id_prop_linea, pl.actividad, ST_AsGeoJSON(pl.geom)
+    SELECT 'linea', pl.id_prop_linea, pl.actividad,
+           ST_AsGeoJSON(CASE WHEN ST_SRID(pl.geom) = 4326 THEN pl.geom ELSE ST_Transform(pl.geom, 4326) END)
     FROM sgs_pro_propuesta_linea pl
     JOIN sgs_pro_propuesta pp ON pp.id_propuesta = pl.id_propuesta
     WHERE pl.geom IS NOT NULL AND pp.id_accion IN (SELECT id_accion FROM comp);

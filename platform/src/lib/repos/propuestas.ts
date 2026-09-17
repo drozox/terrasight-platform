@@ -894,9 +894,9 @@ export async function getIntervencionContexto(
     geom: string | null;
   }[]>`
     SELECT pp.id_propuesta, pp.tipo, pp.actividad,
-           CASE WHEN pp.tipo = 'linea'   THEN ST_AsGeoJSON(pl.geom)
-                WHEN pp.tipo = 'poligono' THEN ST_AsGeoJSON(pq.geom)
-                WHEN pp.tipo = 'punto'    THEN ST_AsGeoJSON(pt.geom)
+           CASE WHEN pp.tipo = 'linea'   THEN ST_AsGeoJSON(CASE WHEN ST_SRID(pl.geom) = 4326 THEN pl.geom ELSE ST_Transform(pl.geom, 4326) END)
+                WHEN pp.tipo = 'poligono' THEN ST_AsGeoJSON(CASE WHEN ST_SRID(pq.geom) = 4326 THEN pq.geom ELSE ST_Transform(pq.geom, 4326) END)
+                WHEN pp.tipo = 'punto'    THEN ST_AsGeoJSON(CASE WHEN ST_SRID(pt.geom) = 4326 THEN pt.geom ELSE ST_Transform(pt.geom, 4326) END)
            END AS geom
     FROM sgs_pro_propuesta pp
     JOIN sgs_com_accion     a ON a.id_accion     = pp.id_accion
@@ -932,7 +932,7 @@ export async function getIntervencionContexto(
   let predioGeom: GeoJSON.Geometry | null = null;
   if (idPredio != null) {
     const preds = await sql<{ geom: string | null }[]>`
-      SELECT ST_AsGeoJSON(geom) AS geom
+      SELECT ST_AsGeoJSON(CASE WHEN ST_SRID(geom) = 4326 THEN geom ELSE ST_Transform(geom, 4326) END) AS geom
       FROM   sgs_pre_predio
       WHERE  id_predio = ${idPredio} AND geom IS NOT NULL
       LIMIT 1;
