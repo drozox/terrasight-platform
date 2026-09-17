@@ -73,7 +73,7 @@ const CONFIG: Record<Key, {
   },
 };
 
-const ORDER: Key[] = ["TODOS", "C1", "C2", "C3", "IMPORT"];
+const ORDER: Key[] = ["TODOS", "C1", "C2", "C3"];
 
 export function ComponentRibbon({
   active,
@@ -115,8 +115,8 @@ export function ComponentRibbon({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {ORDER.map((k) => {
         const c = CONFIG[k];
         const isActive = k === "TODOS" ? !active || active === "TODOS" : active === k;
@@ -128,7 +128,7 @@ export function ComponentRibbon({
             onClick={() => onSelect(k)}
             aria-pressed={isActive}
             className={cn(
-              "group relative cursor-pointer overflow-hidden rounded-xl border p-3 text-left",
+              "group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-[20px] border p-6 text-left",
               "bg-surface-container-lowest shadow-[0px_4px_12px_rgba(0,0,0,0.03)]",
               "transition-all hover:shadow-md",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-low",
@@ -141,23 +141,23 @@ export function ComponentRibbon({
               className={cn("absolute inset-y-0 left-0 w-1.5", c.borderClass)}
               aria-hidden
             />
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-4">
               <div
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-lg transition-transform",
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform",
                   c.bgClass,
                   c.textClass,
                   "transform-gpu group-hover:scale-110",
                   isActive && "scale-110",
                 )}
               >
-                <c.Icon className="size-5" />
+                <c.Icon className="size-6" />
               </div>
               <div className="flex-1">
-                <h3 className={cn("mb-0.5 text-[13px] font-bold", c.textClass)}>
+                <h3 className={cn("mb-1 text-[15px] font-semibold", c.textClass)}>
                   {c.label}
                 </h3>
-                <p className="line-clamp-1 text-[11px] text-on-surface-variant">
+                <p className="line-clamp-2 text-[13px] leading-snug text-on-surface-variant">
                   {c.desc}
                 </p>
 

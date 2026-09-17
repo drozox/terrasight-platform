@@ -6,7 +6,7 @@
 // =============================================================================
 
 import * as React from "react";
-import { X } from "lucide-react";
+import { Info, X } from "lucide-react";
 
 const KEY = "inicio.welcome.shown";
 
@@ -35,10 +35,13 @@ export function WelcomeBanner({ nombre }: { nombre: string }) {
   return (
     <div
       role="status"
-      className="flex items-center justify-between gap-gutter rounded-xl border border-primary/30 bg-primary/5 px-gutter py-md"
+      className="flex items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/[0.04] px-5 py-4"
     >
-      <p className="text-body-md text-on-surface">
-        ¡Hola, <span className="font-bold text-primary">{nombre}</span>! Bienvenido a SIG Territorio
+      <p className="flex items-center gap-2.5 text-[15px] text-on-surface">
+        <Info className="size-4 shrink-0 text-primary" aria-hidden="true" />
+        <span>
+          ¡Hola, <span className="font-semibold text-primary">{nombre}</span>! Bienvenido a SIG Territorio
+        </span>
       </p>
       <button
         type="button"

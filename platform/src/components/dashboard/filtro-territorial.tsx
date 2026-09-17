@@ -1,18 +1,29 @@
 "use client";
 
 // =============================================================================
-// FiltroTerritorial — filtros por MUNICIPIO / VEREDA / PREDIO (dependientes).
-// Al cambiar, actualiza la URL (?municipio&vereda&predio) preservando el filtro
-// de componente/acción; el server re-renderiza mapa e indicadores.
+// FiltroTerritorial — card de filtros: MUNICIPIO / VEREDA / PREDIO (dependientes)
+// + COMPONENTE / ACCIÓN. Actualiza la URL y el server re-renderiza mapa e
+// indicadores. Botón "Limpiar filtros" separado.
 // =============================================================================
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, FilterX } from "lucide-react";
+import { type AccionCode } from "@/lib/acciones";
 
 export type MunOption = { idMunicipio: number; nombre: string };
 export type VerOption = { idVereda: number; nombre: string; idMunicipio: number };
 export type PreOption = { idPredio: number; nombrePredio: string; idVereda: number };
+
+const COMPONENTES = ["C1", "C2", "C3"] as const;
+const ACCIONES_POR: Record<string, AccionCode[]> = {
+  C1: ["C1A1", "C1A2"],
+  C2: ["C2A1", "C2A2"],
+  C3: ["C3AU"],
+};
+
+const selectCls =
+  "h-11 w-full appearance-none rounded-xl border border-outline-variant bg-surface-container-lowest px-4 pr-10 text-[14px] font-medium text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60";
 
 export function FiltroTerritorial({
   municipios,
@@ -21,6 +32,8 @@ export function FiltroTerritorial({
   municipio,
   vereda,
   predio,
+  componente,
+  accion,
 }: {
   municipios: MunOption[];
   veredas: VerOption[];
@@ -28,50 +41,62 @@ export function FiltroTerritorial({
   municipio: string | null;
   vereda: string | null;
   predio: string | null;
+  componente: string | null;
+  accion: AccionCode | null;
 }) {
   const router = useRouter();
   const search = useSearchParams();
 
-  function push(next: { municipio?: string | null; vereda?: string | null; predio?: string | null }) {
+  function push(next: {
+    municipio?: string | null;
+    vereda?: string | null;
+    predio?: string | null;
+    componente?: string | null;
+    accion?: string | null;
+  }) {
     const p = new URLSearchParams(search?.toString() ?? "");
-    for (const k of ["municipio", "vereda", "predio"]) p.delete(k);
-    if (next.municipio) p.set("municipio", next.municipio);
-    if (next.vereda) p.set("vereda", next.vereda);
-    if (next.predio) p.set("predio", next.predio);
+    for (const k of ["municipio", "vereda", "predio", "componente", "accion"]) p.delete(k);
+    const put = (k: string, v?: string | null) => {
+      if (v) p.set(k, v);
+    };
+    put("municipio", next.municipio);
+    put("vereda", next.vereda);
+    put("predio", next.predio);
+    put("componente", next.componente);
+    put("accion", next.accion);
     const qs = p.toString();
     router.push(qs ? `/?${qs}` : "/");
   }
 
-  const veredasFiltradas = municipio
-    ? veredas.filter((v) => String(v.idMunicipio) === municipio)
-    : [];
-  const prediosFiltrados = vereda
-    ? predios.filter((p) => String(p.idVereda) === vereda)
-    : [];
-
-  const hayFiltro = !!(municipio || vereda || predio);
-
-  const selectCls =
-    "h-10 w-full appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest px-3 pr-9 text-body-sm font-bold text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60";
+  const veredasFiltradas = municipio ? veredas.filter((v) => String(v.idMunicipio) === municipio) : [];
+  const prediosFiltrados = vereda ? predios.filter((p) => String(p.idVereda) === vereda) : [];
+  const accionesDisponibles = componente ? ACCIONES_POR[componente] ?? [] : [];
+  const hayFiltro = !!(municipio || vereda || predio || componente || accion);
 
   return (
-    <div className="rounded-xl border border-outline-variant bg-surface-container-lowest px-gutter py-md">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-label-lg font-bold text-on-surface">Filtros territoriales</h2>
+    <section className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-6">
+      <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-[18px] font-semibold text-on-surface">Filtros</h2>
+          <p className="mt-1 text-[13px] text-on-surface-variant">
+            Acotá la vista por territorio y por componente/acción del convenio.
+          </p>
+        </div>
         {hayFiltro && (
           <button
             type="button"
             onClick={() => push({})}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-primary transition-colors hover:bg-primary/10"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-outline-variant px-4 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <FilterX className="size-3.5" />
+            <FilterX className="size-4" />
             Limpiar filtros
           </button>
         )}
-      </div>
-      <div className="grid grid-cols-1 gap-gutter sm:grid-cols-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium text-on-surface-variant">Municipio</span>
+      </header>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="flex flex-col gap-2">
+          <span className="text-[13px] font-medium text-on-surface-variant">Municipio</span>
           <div className="relative">
             <select
               value={municipio ?? ""}
@@ -87,8 +112,8 @@ export function FiltroTerritorial({
           </div>
         </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium text-on-surface-variant">Vereda</span>
+        <label className="flex flex-col gap-2">
+          <span className="text-[13px] font-medium text-on-surface-variant">Vereda</span>
           <div className="relative">
             <select
               value={vereda ?? ""}
@@ -105,8 +130,8 @@ export function FiltroTerritorial({
           </div>
         </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium text-on-surface-variant">Predio</span>
+        <label className="flex flex-col gap-2">
+          <span className="text-[13px] font-medium text-on-surface-variant">Predio</span>
           <div className="relative">
             <select
               value={predio ?? ""}
@@ -122,7 +147,52 @@ export function FiltroTerritorial({
             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" />
           </div>
         </label>
+
+        <label className="flex flex-col gap-2">
+          <span className="text-[13px] font-medium text-on-surface-variant">Componente</span>
+          <div className="relative">
+            <select
+              value={componente ?? ""}
+              onChange={(e) =>
+                push({
+                  municipio,
+                  vereda,
+                  predio,
+                  componente: e.target.value || null,
+                  accion: null,
+                })
+              }
+              className={selectCls}
+            >
+              <option value="">Todos</option>
+              {COMPONENTES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" />
+          </div>
+        </label>
+
+        <label className="flex flex-col gap-2">
+          <span className="text-[13px] font-medium text-on-surface-variant">Acción</span>
+          <div className="relative">
+            <select
+              value={accion ?? ""}
+              disabled={!componente}
+              onChange={(e) =>
+                push({ municipio, vereda, predio, componente, accion: e.target.value || null })
+              }
+              className={selectCls}
+            >
+              <option value="">Todas</option>
+              {accionesDisponibles.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" />
+          </div>
+        </label>
       </div>
-    </div>
+    </section>
   );
 }

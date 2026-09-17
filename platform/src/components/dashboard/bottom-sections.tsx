@@ -94,15 +94,15 @@ export function SummaryBar({
     // UX-68 (audit 2026-07-24): antes el SummaryBar se veia clickeable (card
     // verde solido, sin estado) y no llevaba a ningun lado. Ahora cada KPI
     // es un Link a su vista (DEEPSEEK-72).
-    <div className="rounded-xl bg-primary p-4 text-on-primary">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="rounded-[20px] bg-primary px-8 py-5 text-on-primary">
+      <div className="flex flex-wrap items-center justify-between gap-8">
         {items.map((r) => {
           const Icon = r.icon;
           return (
-            <div key={r.label} className="flex items-center gap-3 px-2 py-1">
-              <Icon className="size-6 shrink-0 opacity-90" />
+            <div key={r.label} className="flex items-center gap-3 px-1 py-1">
+              <Icon className="size-5 shrink-0 opacity-90" />
               <div className="leading-tight">
-                <p className="text-title-lg font-bold">{r.valor}</p>
+                <p className="text-[22px] font-semibold">{r.valor}</p>
                 {/* UX-39: este SI es un LABEL (caption chico bajo un stat),
                    uppercase con tracking queda OK. El numero grande es el
                    dato, el uppercase es la metadata. */}

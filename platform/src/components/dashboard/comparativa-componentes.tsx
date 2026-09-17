@@ -27,21 +27,21 @@ export function ComparativaComponentes({
   const maxTotal = Math.max(1, ...totales);
 
   return (
-    <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
-      <header className="mb-3">
-        <h2 className="text-title-md font-bold text-on-surface">Comparativa por componente</h2>
-        <p className="text-[11px] text-on-surface-variant">
+    <section className="rounded-[20px] border border-outline-variant bg-surface-container-lowest p-6">
+      <header className="mb-6">
+        <h2 className="text-[20px] font-semibold text-on-surface">Comparativa por componente</h2>
+        <p className="mt-1 text-[13px] text-on-surface-variant">
           Avance de metas e intervenciones de los tres componentes en una sola vista.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         {COMPS.map((c, i) => {
           const av = avances[c];
           const total = totales[i];
           const t = TINT[c];
           return (
-            <div key={c} className="rounded-lg border border-outline-variant/60 bg-surface-container-low p-3">
+            <div key={c} className="rounded-2xl border border-outline-variant/60 bg-surface-container-low p-6">
               <div className="flex items-center justify-between">
                 <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-bold", t.bg, t.text)}>
                   {t.label}

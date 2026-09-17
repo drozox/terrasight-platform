@@ -53,8 +53,8 @@ export function PanelToggles() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest px-gutter py-md">
-      <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+    <div className="flex items-center gap-3 overflow-x-auto rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-3">
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">
         Paneles
       </span>
       {PANELS.map((p) => {
@@ -66,10 +66,10 @@ export function PanelToggles() {
             onClick={() => toggle(p.id)}
             aria-pressed={on}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "inline-flex h-[38px] shrink-0 items-center gap-2 rounded-full px-[18px] text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               on
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low",
+                ? "bg-primary text-on-primary"
+                : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container",
             )}
           >
             {on ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}

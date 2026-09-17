@@ -1,6 +1,6 @@
-import { ComponentRibbon } from "@/components/dashboard/component-ribbon";
 import { ImportPanel } from "@/components/dashboard/import-panel";
 import { SummaryBar } from "@/components/dashboard/bottom-sections";
+import Link from "next/link";
 import {
   getDashboardKpis,
   getDashboardKpisComponente,
@@ -53,8 +53,16 @@ export default async function HomePage({
     ]);
     return (
       <div className="flex h-full flex-1 flex-col overflow-hidden">
-        <div className="border-b border-outline-variant bg-surface-container-lowest px-gutter py-md">
-          <ComponentRibbon active="IMPORT" />
+        <div className="border-b border-outline-variant bg-surface-container-lowest px-8 py-5">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-[14px] font-semibold text-primary hover:underline"
+          >
+            ← Volver al panel
+          </Link>
+          <h1 className="mt-2 text-[24px] font-semibold leading-tight text-on-surface">
+            Importar capa
+          </h1>
         </div>
         <div className="flex flex-1 overflow-y-auto bg-surface-container-low p-gutter">
           <div className="mx-auto w-full max-w-5xl">

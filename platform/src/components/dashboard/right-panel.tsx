@@ -70,14 +70,14 @@ export function RightPanel({
     : [];
 
   return (
-    <aside className="flex h-full w-[360px] flex-shrink-0 flex-col gap-3 overflow-y-auto border-l border-outline-variant bg-surface p-3">
+    <aside className="flex w-full flex-col gap-5 rounded-[20px] border border-outline-variant bg-surface p-6">
       {/* Ajuste 6: Metas del convenio vive en la columna derecha (slot). */}
       {metasSlot}
 
       {/* SECCIÓN 1 — Avance del componente */}
       {resumen && (
         <PanelGate id="avance">
-        <Card className="p-3">
+        <Card className="p-5">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-title-md font-bold text-on-surface">Avance del proyecto</h3>
             <span className="rounded-full bg-surface-variant/60 px-2 py-0.5 text-[10px] font-bold text-on-surface-variant">
