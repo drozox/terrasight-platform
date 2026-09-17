@@ -105,10 +105,10 @@ export function Sidebar({ rol }: { rol?: RolSistema | null }) {
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src="/images/sidebar-illustration.png"
+              src="/logos/flores-logo.png"
               alt=""
               aria-hidden="true"
-              className="mx-auto w-40 opacity-70"
+              className="mx-auto w-40 opacity-80"
               onError={() => setArtFailed(true)}
             />
           )}
