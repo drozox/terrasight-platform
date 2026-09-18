@@ -18,19 +18,23 @@ interface LayerStyle {
   label: string;
   color: string;
   kind: Kind;
+  /** Dash pattern (Leaflet style) para líneas; p. ej. "1 4" (punteado). */
+  dash?: string;
+  /** Emoji para capas de puntos (cuando aplica). */
+  emoji?: string;
 }
 
 export const LAYER_SYMBOLOGY: Record<MapLayerKey, LayerStyle> = {
-  municipios:          { label: "Límite municipal",       color: "#1f6feb", kind: "line" },
-  veredas:             { label: "Límite veredal",         color: "#0b7c3a", kind: "line" },
-  predios:             { label: "Predios concertados",    color: "#006d37", kind: "polygon" },
+  municipios:          { label: "Límite municipal",       color: "#1b5e20", kind: "line", dash: "6 4" },
+  veredas:             { label: "Límite veredal",         color: "#43a047", kind: "line", dash: "3 3" },
+  predios:             { label: "Predios concertados",    color: "#a5d6a7", kind: "polygon" },
   biomas:              { label: "Biomas IAVH",            color: "#a3d977", kind: "polygon" },
-  drenaje_simple:      { label: "Drenaje simple",         color: "#1f79b9", kind: "line" },
+  drenaje_simple:      { label: "Drenaje simple",         color: "#1f79b9", kind: "line", dash: "1 4" },
   drenaje_doble:       { label: "Drenaje doble",          color: "#0e4b6e", kind: "line" },
-  vias:                { label: "Vías",                   color: "#7a4a00", kind: "line" },
-  propuestas_poligono: { label: "Intervenciones (áreas)", color: "#f0b24a", kind: "polygon" },
-  propuestas:          { label: "Intervenciones (líneas)", color: "#b26a00", kind: "line" },
-  propuestas_punto:    { label: "Intervenciones (puntos)", color: "#b26a00", kind: "point" },
+  vias:                { label: "Vías",                   color: "#c25e00", kind: "line", dash: "2 3" },
+  propuestas_poligono: { label: "Intervenciones (áreas)", color: "#27ae60", kind: "polygon" },
+  propuestas:          { label: "Intervenciones (líneas)", color: "#006d37", kind: "line" },
+  propuestas_punto:    { label: "Intervenciones (puntos)", color: "#006d37", kind: "point", emoji: "📍" },
   parques:             { label: "Parques naturales",      color: "#2e7d32", kind: "polygon" },
   reservas:            { label: "Reservas forestales",    color: "#558b2f", kind: "polygon" },
   paramos:             { label: "Páramos",                color: "#6d7a6e", kind: "polygon" },
@@ -38,6 +42,16 @@ export const LAYER_SYMBOLOGY: Record<MapLayerKey, LayerStyle> = {
 
 export function Swatch({ style }: { style: LayerStyle }) {
   if (style.kind === "point") {
+    if (style.emoji) {
+      return (
+        <span
+          className="inline-flex size-4 shrink-0 items-center justify-center text-[12px] leading-none"
+          aria-hidden
+        >
+          {style.emoji}
+        </span>
+      );
+    }
     return (
       <span
         className="inline-block size-3 shrink-0 rounded-full ring-2 ring-surface-container-lowest"
@@ -47,10 +61,20 @@ export function Swatch({ style }: { style: LayerStyle }) {
   }
   if (style.kind === "line") {
     return (
-      <span
-        className="inline-block h-[3px] w-4 shrink-0 rounded-full"
-        style={{ background: style.color }}
-      />
+      <span className="inline-flex h-3 w-4 shrink-0 items-center" aria-hidden>
+        <svg width="16" height="8" viewBox="0 0 16 8" className="overflow-visible">
+          <line
+            x1="1"
+            y1="4"
+            x2="15"
+            y2="4"
+            stroke={style.color}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray={style.dash}
+          />
+        </svg>
+      </span>
     );
   }
   return (

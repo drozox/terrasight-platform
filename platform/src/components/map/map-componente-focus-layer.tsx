@@ -3,15 +3,14 @@
 // =============================================================================
 // MapComponenteFocusLayer (DEEPSEEK-76 + filtro por acción)
 //
-// Cuando el usuario elige un componente/acción, este layer centra el mapa en
-// los elementos filtrados:
-//   1. Pide los MUNICIPIOS de la acción (/api/geo?layer=municipios&...).
-//      Ese es el encuadre de referencia ("los municipios y lo que haya dentro").
-//   2. Si no hay municipios, cae a la "huella" de las propuestas
-//      (/api/geo?layer=componente&...).
+// 1. Centra el mapa en los elementos filtrados:
+//    - Pide los MUNICIPIOS de la acción (/api/geo?layer=municipios&...).
+//    - Si no hay, cae a la "huella" de las propuestas.
+// 2. Mantiene el encuadre cuando el contenedor cambia de tamaño (al mostrar/
+//    ocultar paneles laterales): llama `invalidateSize()` y re-hace fitBounds.
 //
 // NO pinta overlay propio: las capas de propuestas ya se muestran con su
-// simbología por actividad. Solo hace fitBounds con padding generoso.
+// simbología por actividad.
 // =============================================================================
 
 import * as React from "react";
@@ -24,10 +23,9 @@ interface Props {
   accion?: AccionCode | null;
 }
 
-async function fetchBounds(
-  url: string,
-  signal: AbortSignal,
-): Promise<L.LatLngBounds | null> {
+const FIT_OPTS: L.FitBoundsOptions = { padding: [80, 80], maxZoom: 13 };
+
+async function fetchBounds(url: string, signal: AbortSignal): Promise<L.LatLngBounds | null> {
   try {
     const res = await fetch(url, { signal, cache: "no-store" });
     if (!res.ok) return null;
@@ -42,7 +40,9 @@ async function fetchBounds(
 
 export function MapComponenteFocusLayer({ componente, accion = null }: Props) {
   const map = useMap();
+  const boundsRef = React.useRef<L.LatLngBounds | null>(null);
 
+  // Encuadre por componente/acción.
   React.useEffect(() => {
     if (!componente || !/^C[123]$/.test(componente)) return;
 
@@ -53,13 +53,13 @@ export function MapComponenteFocusLayer({ componente, accion = null }: Props) {
       (accion ? `&accion=${encodeURIComponent(accion)}` : "");
 
     (async () => {
-      // Preferimos los municipios de la acción; si no, la huella de propuestas.
       const bounds =
         (await fetchBounds(`/api/geo?layer=municipios&${qs}`, ctrl.signal)) ??
         (await fetchBounds(`/api/geo?layer=componente&${qs}`, ctrl.signal));
 
       if (cancelled || !bounds) return;
-      map.fitBounds(bounds, { padding: [80, 80], maxZoom: 13, animate: true });
+      boundsRef.current = bounds;
+      map.fitBounds(bounds, { ...FIT_OPTS, animate: true });
     })();
 
     return () => {
@@ -67,6 +67,21 @@ export function MapComponenteFocusLayer({ componente, accion = null }: Props) {
       ctrl.abort();
     };
   }, [componente, accion, map]);
+
+  // Al cambiar el tamaño del contenedor (paneles on/off), recalcular el mapa y
+  // re-encuadrar en la última extensión filtrada.
+  React.useEffect(() => {
+    const container = map.getContainer();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize({ animate: false });
+      if (boundsRef.current) {
+        map.fitBounds(boundsRef.current, { ...FIT_OPTS, animate: false });
+      }
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [map]);
 
   return null;
 }

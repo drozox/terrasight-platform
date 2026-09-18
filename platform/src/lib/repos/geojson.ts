@@ -184,13 +184,23 @@ export async function getPredioGeoJSONById(id: number): Promise<FeatureCollectio
 /** Biomas — polígonos de cobertura vegetal IAVH. */
 export const getBiomasGeoJSON = unstable_cache(
   async (): Promise<FeatureCollection> => {
-    const rows = await sql<{ id: number; nombre: string; area_ha: number; geom: string }[]>`
-      SELECT id_bioma AS id, bioma_iavh AS nombre, area_ha,
-             ST_AsGeoJSON(geom) AS geom
-      FROM sgs_amb_bioma
-      WHERE geom IS NOT NULL
-      ORDER BY bioma_iavh;
-    `;
+    // La tabla `sgs_amb_bioma` puede no tener columna `geom` (import parcial).
+    // En ese caso devolvemos una colección vacía en vez de romper con 503.
+    let rows: { id: number; nombre: string; area_ha: number; geom: string }[] = [];
+    try {
+      rows = await sql<{ id: number; nombre: string; area_ha: number; geom: string }[]>`
+        SELECT id_bioma AS id, bioma_iavh AS nombre, area_ha,
+               ST_AsGeoJSON(geom) AS geom
+        FROM sgs_amb_bioma
+        WHERE geom IS NOT NULL
+        ORDER BY bioma_iavh;
+      `;
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[geo] biomas sin geometría:", (err as Error).message);
+      }
+      rows = [];
+    }
     return {
       type: "FeatureCollection",
       features: rows.map((r) => ({

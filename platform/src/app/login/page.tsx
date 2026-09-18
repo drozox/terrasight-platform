@@ -10,7 +10,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { LoginForm } from "./login-form";
-import { SigTerritorioLogo, PartnerLogo } from "@/components/icons";
+import { SigTerritorioLogo } from "@/components/icons";
 
 export const metadata = { title: "Iniciar sesión — SIG TERRITORIO" };
 
@@ -56,8 +56,9 @@ export default async function LoginPage({
               <h1 className="text-4xl font-extrabold tracking-tight text-white xl:text-5xl">
                 SIG TERRITORIO
               </h1>
-              <p className="text-body-md text-white/85">
-                Plataforma SIG integrada · CAR · WWF · Natura
+              <p className="text-body-md text-white/85">Plataforma SIG Integrada</p>
+              <p className="mt-1 text-[12px] text-white/70">
+                Convenio 3038-2024 · CAR Cundinamarca · WWF Colombia · Fundación Natura
               </p>
             </div>
           </div>
@@ -66,8 +67,8 @@ export default async function LoginPage({
 
       {/* Panel derecho: tarjeta de login */}
       <section className="flex flex-1 items-center justify-center bg-surface-container-lowest px-4 py-10 sm:px-8">
-        <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-xl">
-          <div className="grid md:grid-cols-[1fr_260px]">
+        <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-xl">
+          <div>
             {/* Formulario */}
             <div className="p-8 sm:p-10">
               {/* Marca compacta (solo móvil, donde no se ve el hero) */}
@@ -96,31 +97,10 @@ export default async function LoginPage({
               </p>
             </div>
 
-            {/* Alianza del convenio */}
-            <aside className="hidden flex-col items-center justify-center border-outline-variant p-6 md:flex md:border-l">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                Alianza del convenio
-              </p>
-              <div className="mt-6 flex w-full flex-col items-center gap-5">
-                <div className="flex h-14 w-full items-center justify-center">
-                  <PartnerLogo name="car" src="/logos/car.png" className="h-10" />
-                </div>
-                <div className="flex h-14 w-full items-center justify-center">
-                  <PartnerLogo name="wwf" src="/logos/wwf.png" className="h-10" />
-                </div>
-                <div className="flex h-14 w-full items-center justify-center">
-                  <PartnerLogo
-                    name="natura"
-                    src="/logos/fundacion-natura.jpg"
-                    className="h-10"
-                  />
-                </div>
-              </div>
-              <p className="mt-8 text-center text-[11px] leading-relaxed text-on-surface-variant">
-                Plataforma desarrollada en el marco del convenio CAR · WWF ·
-                Fundación Natura para el monitoreo ambiental del territorio.
-              </p>
-            </aside>
+            {/* Alianza del convenio — solo texto (no usamos logos de terceros) */}
+            <p className="mt-6 border-t border-outline-variant pt-4 text-center text-[11px] leading-relaxed text-on-surface-variant">
+              Convenio 3038-2024 · CAR Cundinamarca · WWF Colombia · Fundación Natura
+            </p>
           </div>
         </div>
       </section>

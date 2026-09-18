@@ -126,6 +126,27 @@ const LAYER_GROUPS: Array<{
   },
 ];
 
+/** Convenciones de simbología de las intervenciones (deben coincidir con
+ *  `map-symbology.tsx` y con los colores de `map-client.tsx`). */
+const INTERVENCION_CONVENCIONES = {
+  puntos: [
+    { emoji: "💧", label: "Cosecha de agua" },
+    { emoji: "♻️", label: "Compostaje" },
+    { emoji: "📊", label: "Estación limnimétrica" },
+    { emoji: "🔧", label: "Obras de captación" },
+  ],
+  lineas: [
+    { color: "#2e7d32", label: "Cerco vivo" },
+    { color: "#7a4a00", label: "Aislamiento" },
+    { color: "#1f6feb", label: "Conectividad" },
+  ],
+  areas: [
+    { color: "#2f6388", label: "Silvopastoril" },
+    { color: "#006d37", label: "Conectividad" },
+    { color: "#27ae60", label: "Agroforestal" },
+  ],
+};
+
 export function MapLayersPanel({
   basemap,
   onBasemapChange,
@@ -250,6 +271,43 @@ export function MapLayersPanel({
                   </li>
                 ))}
               </ul>
+              {title === "Intervenciones" && (
+                <div className="mt-1.5 rounded-md bg-surface-container-low px-2 py-2">
+                  <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">
+                    Puntos (por actividad)
+                  </p>
+                  <ul className="mb-2 grid grid-cols-2 gap-x-2 gap-y-0.5">
+                    {INTERVENCION_CONVENCIONES.puntos.map((p) => (
+                      <li key={p.label} className="flex items-center gap-1.5 text-[10px] text-on-surface">
+                        <span className="text-[12px] leading-none">{p.emoji}</span>
+                        <span className="truncate">{p.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">
+                    Líneas
+                  </p>
+                  <ul className="mb-2 flex flex-wrap gap-x-3 gap-y-0.5">
+                    {INTERVENCION_CONVENCIONES.lineas.map((l) => (
+                      <li key={l.label} className="flex items-center gap-1.5 text-[10px] text-on-surface">
+                        <span className="inline-block h-[3px] w-4 rounded-full" style={{ background: l.color }} />
+                        <span>{l.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">
+                    Áreas
+                  </p>
+                  <ul className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {INTERVENCION_CONVENCIONES.areas.map((a) => (
+                      <li key={a.label} className="flex items-center gap-1.5 text-[10px] text-on-surface">
+                        <span className="inline-block size-3 rounded-[3px]" style={{ background: a.color, opacity: 0.8 }} />
+                        <span>{a.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ))}
         </div>

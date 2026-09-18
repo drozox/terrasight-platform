@@ -374,10 +374,10 @@ export default function MapClient({
         {layers.municipios && (
           <GeoJsonLayer
             url={`/api/geo?layer=municipios${filtroQS}`}
-            color="#1f6feb"
+            color="#1b5e20"
             weight={2}
-            fillColor="#1f6feb"
-            fillOpacity={0.06}
+            fillColor="#1b5e20"
+            fillOpacity={0.05}
             dashArray="6 4"
             onClick={setSelectedFeature}
           />
@@ -385,10 +385,10 @@ export default function MapClient({
         {layers.veredas && (
           <GeoJsonLayer
             url={`/api/geo?layer=veredas${filtroQS}`}
-            color="#0b7c3a"
-            weight={1}
-            fillColor="#0b7c3a"
-            fillOpacity={0.05}
+            color="#43a047"
+            weight={1.2}
+            fillColor="#43a047"
+            fillOpacity={0.04}
             dashArray="3 3"
             onClick={setSelectedFeature}
           />
@@ -396,10 +396,10 @@ export default function MapClient({
         {layers.predios && (
           <GeoJsonLayer
             url={`/api/geo?layer=predios${filtroQS}`}
-            color="#006d37"
-            weight={2}
-            fillColor="#006d37"
-            fillOpacity={0.35}
+            color="#66bb6a"
+            weight={1.5}
+            fillColor="#a5d6a7"
+            fillOpacity={0.45}
             onClick={setSelectedFeature}
           />
         )}
@@ -462,8 +462,9 @@ export default function MapClient({
           <GeoJsonLayer
             url={`/api/geo?layer=drenajes${filtroQS}`}
             color="#1f79b9"
-            weight={1.5}
+            weight={2}
             fillOpacity={0}
+            dashArray="1 4"
             onClick={setSelectedFeature}
           />
         )}
@@ -471,7 +472,7 @@ export default function MapClient({
           <GeoJsonLayer
             url={`/api/geo?layer=drenajes_dobles${filtroQS}`}
             color="#0e4b6e"
-            weight={2.5}
+            weight={3}
             fillOpacity={0}
             onClick={setSelectedFeature}
           />
@@ -479,8 +480,8 @@ export default function MapClient({
         {layers.vias && (
           <GeoJsonLayer
             url={`/api/geo?layer=vias${filtroQS}`}
-            color="#7a4a00"
-            weight={1.2}
+            color="#c25e00"
+            weight={1.5}
             fillOpacity={0}
             dashArray="2 3"
             onClick={setSelectedFeature}

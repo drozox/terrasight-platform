@@ -12,6 +12,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function GlobalError({
   error,
@@ -20,20 +21,29 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     // Log para diagnóstico (consola del browser / captura del servidor).
     console.error("[APP ERROR]", error);
   }, [error]);
 
+  const retry = () => {
+    // `reset()` re-renderiza el segmento; `router.refresh()` vuelve a pedir los
+    // datos al servidor. Juntos hacen que "Reintentar" funcione de verdad.
+    reset();
+    router.refresh();
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-surface-container-lowest p-6">
       <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-low p-6 text-center shadow-lg">
         <h1 className="mb-2 text-2xl font-bold text-on-surface">
-          Algo salió mal
+          No pudimos cargar esta sección
         </h1>
         <p className="mb-5 text-body-sm text-on-surface-variant">
-          No pudimos cargar esta sección. Podés reintentar o volver al inicio.
-          Si el problema persiste, contactá al administrador.
+          Puede ser un problema temporal de conexión con los datos. Probá{" "}
+          <strong>Reintentar</strong>; si sigue igual, volvé al inicio.
         </p>
         {error.digest && (
           <p className="mb-5 font-mono text-[11px] text-on-surface-variant">
@@ -43,13 +53,14 @@ export default function GlobalError({
         <div className="flex justify-center gap-3">
           <button
             type="button"
-            onClick={() => reset()}
+            onClick={retry}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary hover:bg-primary/90"
           >
             Reintentar
           </button>
           <Link
             href="/"
+            onClick={() => reset()}
             className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-container"
           >
             Volver al inicio
