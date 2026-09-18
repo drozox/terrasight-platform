@@ -34,7 +34,6 @@ import { MapLayersPanel, type MapLayerKey } from "./map-layers-panel";
 import { MapTools, type MapToolKey } from "./map-tools";
 import { MapCompass } from "./map-compass";
 import { MapPrintPanel } from "./map-print-panel";
-import { MapRegionLabels } from "./map-region-labels";
 import { WfsLayer } from "./wfs-layer";
 import { GeoJsonLayer } from "./geojson-layer";
 import { MapComponenteFocusLayer } from "./map-componente-focus-layer";
@@ -506,7 +505,8 @@ export default function MapClient({
           />
         )}
 
-        <MapRegionLabels />
+        {/* Etiquetas de regiones hidrográficas removidas: eran decorativas y
+           hardcodeadas (no provienen de la BD ni del convenio). */}
 
         {/* Zoom a componente (DEEPSEEK-76): centra la extensión de la acción
            activa (fitBounds) sin tapar la simbología de las propuestas. */}
