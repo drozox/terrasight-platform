@@ -273,11 +273,52 @@ export async function getDrenajesDoblesGeoJSON(
   };
 }
 
-/** Páramos — polígonos. La tabla `sgs_amb_paramos` no tiene geometría en la BD
- *  (solo atributos + relaciones), así que hoy devuelve vacío. */
-export async function getParamosGeoJSON(): Promise<FeatureCollection> {
-  return { type: "FeatureCollection", features: [] };
-}
+/** Páramos / áreas protegidas — polígonos (sgs_amb_paramos.geom, SRID 4686). */
+export const getParamosGeoJSON = unstable_cache(
+  async (): Promise<FeatureCollection> => {
+    try {
+      const rows = await sql<{
+        id: number;
+        nombre: string | null;
+        complejo: string | null;
+        area_ha: number | string | null;
+        geom: string;
+      }[]>`
+        SELECT id_paramos AS id, nombre_paramo AS nombre, complejo_nombre AS complejo, area_ha,
+               ST_AsGeoJSON(
+                 CASE WHEN ST_SRID(geom) = 4326 THEN geom
+                      ELSE ST_Transform(geom, 4326) END
+               ) AS geom
+        FROM sgs_amb_paramos
+        WHERE geom IS NOT NULL
+        ORDER BY nombre_paramo;
+      `;
+      return {
+        type: "FeatureCollection",
+        features: rows.map((r) => ({
+          type: "Feature",
+          id: r.id,
+          properties: {
+            id: r.id,
+            nombre: r.nombre,
+            complejo: r.complejo,
+            areaHa: r.area_ha != null ? Number(r.area_ha) : null,
+            layer: "paramos",
+          },
+          geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
+        })),
+      };
+    } catch (err) {
+      // Defensivo: si faltara `geom`, no romper con 503.
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[geo] paramos:", (err as Error).message);
+      }
+      return { type: "FeatureCollection", features: [] };
+    }
+  },
+  ["geo-paramos"],
+  { revalidate: 300, tags: ["mapa"] },
+);
 
 /** Vías — líneas. */
 export const getViasGeoJSON = unstable_cache(
