@@ -120,14 +120,18 @@ test.describe("UX-AUDIT sprint — features nuevos", () => {
   });
 
   // --------------------------------------------------------------------
-  // Login con logos aliados
+  // Login: convenio como texto (sin logos de terceros)
   // --------------------------------------------------------------------
-  test("/login muestra los 3 logos aliados en panel lateral", async ({ page }) => {
+  test("/login muestra el convenio (texto) y NO los logos de terceros", async ({ page }) => {
     await page.goto("/login");
-    // En md+ el panel de aliados aparece; el viewport default (1280x720) lo muestra.
-    // Los alt salen de PartnerLogo (label de cada aliado).
-    await expect(page.getByAltText("WWF")).toBeVisible();
-    await expect(page.getByAltText("CAR Cundinamarca")).toBeVisible();
-    await expect(page.getByAltText("Fundación Natura")).toBeVisible();
+    // El convenio se muestra como texto (hero + pie de la tarjeta).
+    await expect(page.getByText(/Convenio 3038-2024/).first()).toBeVisible();
+    await expect(
+      page.getByText(/CAR Cundinamarca · WWF Colombia · Fundación Natura/).first(),
+    ).toBeVisible();
+    // Ya NO se usan logos de CAR / WWF / Fundación Natura.
+    await expect(page.getByAltText("WWF")).toHaveCount(0);
+    await expect(page.getByAltText("CAR Cundinamarca")).toHaveCount(0);
+    await expect(page.getByAltText("Fundación Natura")).toHaveCount(0);
   });
 });
