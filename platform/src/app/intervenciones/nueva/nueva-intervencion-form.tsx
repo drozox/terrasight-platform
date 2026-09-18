@@ -647,6 +647,8 @@ function Field({
 //   - linea: clicks acumulan vertices; preview + boton Cerrar.
 //   - poligono: igual que linea, ademas cierra el anillo al final.
 // =============================================================================
+const DBL_CLICK_MS = 220;
+
 function MapEditor({
   tipo,
   geom,
@@ -658,6 +660,8 @@ function MapEditor({
 }) {
   const [points, setPoints] = useState<[number, number][]>([]);
   const [hover, setHover] = useState<[number, number] | null>(null);
+  const [finished, setFinished] = useState(false);
+  const clickTimer = useRef<number | null>(null);
 
   function buildGeomFromPoints(pts: [number, number][]): GeoJSON.Geometry | null {
     if (tipo === "punto") {
@@ -708,6 +712,7 @@ function MapEditor({
   }, [geom]);
 
   function handleMapClick(e: L.LeafletMouseEvent) {
+    if (finished) return;
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
     if (tipo === "punto") {
@@ -715,26 +720,50 @@ function MapEditor({
       onGeomChange({ type: "Point", coordinates: [lng, lat] });
       return;
     }
-    const next: [number, number][] = [...points, [lat, lng]];
-    setPoints(next);
-    if (tipo === "linea" && next.length >= 2) {
-      const coords = next.map(([la, lo]) => [lo, la] as [number, number]);
-      onGeomChange({ type: "LineString", coordinates: coords });
-    } else if (tipo === "poligono" && next.length >= 3) {
-      const ring = next.map(([la, lo]) => [lo, la] as [number, number]);
-      ring.push([ring[0]?.[0] ?? 0, ring[0]?.[1] ?? 0]);
-      onGeomChange({ type: "Polygon", coordinates: [ring] });
+    // Se retrasa para no duplicar el vértice con el doble click.
+    if (clickTimer.current != null) {
+      window.clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      return;
     }
+    const latlng = e.latlng;
+    clickTimer.current = window.setTimeout(() => {
+      clickTimer.current = null;
+      const next: [number, number][] = [...points, [latlng.lat, latlng.lng]];
+      setPoints(next);
+      onGeomChange(buildGeomFromPoints(next));
+    }, DBL_CLICK_MS);
+  }
+
+  function handleMapDblClick() {
+    if (clickTimer.current != null) {
+      window.clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+    }
+    finishShape();
   }
 
   function handleMapMouseMove(e: L.LeafletMouseEvent) {
-    if (tipo === "punto") return;
+    if (tipo === "punto" || finished) return;
     setHover([e.latlng.lat, e.latlng.lng]);
   }
 
+  function finishShape() {
+    if (tipo === "punto") return;
+    if (points.length < (tipo === "linea" ? 2 : 3)) return;
+    setFinished(true);
+    setHover(null);
+    onGeomChange(buildGeomFromPoints(points));
+  }
+
   function clearAll() {
+    if (clickTimer.current != null) {
+      window.clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+    }
     setPoints([]);
     setHover(null);
+    setFinished(false);
     onGeomChange(null);
   }
 
@@ -745,21 +774,39 @@ function MapEditor({
     }
     const next = points.slice(0, -1);
     setPoints(next);
+    setFinished(false);
     onGeomChange(buildGeomFromPoints(next));
   }
 
-  function closeShape() {
-    onGeomChange(buildGeomFromPoints(points));
-  }
+  // "Enter" finaliza el dibujo (cuando no se está escribiendo en un campo).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Enter" || finished || tipo === "punto") return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || t?.isContentEditable) return;
+      if (points.length >= (tipo === "linea" ? 2 : 3)) {
+        e.preventDefault();
+        finishShape();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [finished, tipo, points.length]);
 
   // Render del preview.
   const previewLine: [number, number][] =
-    tipo === "punto" || !hover || points.length === 0
+    tipo === "punto" || finished || !hover || points.length === 0
       ? []
       : [...points, hover];
   const previewPolygon: [number, number][] =
-    tipo === "poligono" && hover && points.length >= 2
+    tipo === "poligono" && !finished && hover && points.length >= 2
       ? [...points, hover, points[0] as [number, number]]
+      : [];
+  const finalLine: [number, number][] = finished && tipo === "linea" ? points : [];
+  const finalPolygon: [number, number][] =
+    finished && tipo === "poligono" && points.length >= 3
+      ? [...points, points[0] as [number, number]]
       : [];
 
   return (
@@ -768,7 +815,9 @@ function MapEditor({
         <p className="text-body-sm text-on-surface-variant">
           {tipo === "punto" && "Haz click en el mapa para colocar el punto."}
           {(tipo === "linea" || tipo === "poligono") &&
-            `Haz click para colocar vertices (${points.length}). Pulsa "Cerrar" cuando termines.`}
+            (finished
+              ? `Dibujo finalizado (${points.length} vértices). Usá "Deshacer" o "Limpiar" para ajustar.`
+              : `Haz click para colocar vértices (${points.length}). Doble click o Enter para finalizar.`)}
         </p>
         <div className="flex items-center gap-1">
           {(tipo === "linea" || tipo === "poligono") && points.length > 0 && (
@@ -777,9 +826,10 @@ function MapEditor({
             </Button>
           )}
           {(tipo === "linea" || tipo === "poligono") &&
+            !finished &&
             points.length >= (tipo === "linea" ? 2 : 3) && (
-              <Button size="sm" type="button" onClick={closeShape}>
-                Cerrar
+              <Button size="sm" type="button" onClick={finishShape}>
+                Finalizar
               </Button>
             )}
           <Button variant="ghost" size="sm" type="button" onClick={clearAll}>
@@ -793,6 +843,7 @@ function MapEditor({
           center={CUNDINAMARCA_CENTER}
           zoom={11}
           scrollWheelZoom
+          doubleClickZoom={false}
           className="h-full w-full"
           style={{ background: "#cee5d8" }}
         >
@@ -800,7 +851,11 @@ function MapEditor({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="© OpenStreetMap"
           />
-          <MapClicker onClick={handleMapClick} onMove={handleMapMouseMove} />
+          <MapClicker
+            onClick={handleMapClick}
+            onDblClick={handleMapDblClick}
+            onMove={handleMapMouseMove}
+          />
           {tipo === "punto" && points.length > 0 && (
             <Marker
               position={points[points.length - 1] as [number, number]}
@@ -826,6 +881,18 @@ function MapEditor({
               }}
             />
           )}
+          {finalLine.length > 1 && (
+            <PPolyline
+              positions={finalLine}
+              pathOptions={{ color: "#006d37", weight: 3.5 }}
+            />
+          )}
+          {finalPolygon.length > 2 && (
+            <PPolygon
+              positions={finalPolygon}
+              pathOptions={{ color: "#006d37", weight: 2.5, fillColor: "#2e7d4f", fillOpacity: 0.3 }}
+            />
+          )}
         </MapContainer>
       </div>
     </Card>
@@ -833,17 +900,20 @@ function MapEditor({
 }
 
 // =============================================================================
-// MapClicker — captura clicks y mousemove del mapa Leaflet.
+// MapClicker — captura clicks, doble click y mousemove del mapa Leaflet.
 // =============================================================================
 function MapClicker({
   onClick,
+  onDblClick,
   onMove,
 }: {
   onClick: (e: L.LeafletMouseEvent) => void;
+  onDblClick: (e: L.LeafletMouseEvent) => void;
   onMove: (e: L.LeafletMouseEvent) => void;
 }) {
   useMapEvents({
     click: (e) => onClick(e),
+    dblclick: (e) => onDblClick(e),
     mousemove: (e) => onMove(e),
   });
   return null;

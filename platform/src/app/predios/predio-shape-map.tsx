@@ -3,15 +3,15 @@
 // =============================================================================
 // PredioShapeMap — editor de shape para el alta de predios (DEEPSEEK-F3.2).
 //
-// Dibujo manual por clicks (mismo patrón que /intervenciones/nueva):
-//   - click agrega vértices; "Cerrar" cierra el anillo.
-//   - Al cerrar se calculan (aprox. en cliente) área, perímetro y centroide, y
-//     se emite el WKT en SRID 4326 (lon/lat). La BD recalcula con PostGIS.
+//   - Dibujo manual: click agrega vértices; doble click o Enter finaliza.
+//   - Carga de archivo: shapefile (.zip/.shp), KML, KMZ o GeoJSON.
+//   - Al finalizar se calculan (aprox. en cliente) área, perímetro y centroide,
+//     y se emite el WKT en SRID 4326 (lon/lat). La BD recalcula con PostGIS.
 //   - "Deshacer" / "Limpiar" para corregir.
 // El shape es OBLIGATORIO: el formulario padre bloquea el guardado sin WKT.
 // =============================================================================
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -23,7 +23,7 @@ import {
 } from "react-leaflet";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Trash2, Undo2 } from "lucide-react";
+import { Loader2, Trash2, Undo2, Upload } from "lucide-react";
 
 export type ShapeMetrics = {
   wkt: string;
@@ -34,6 +34,7 @@ export type ShapeMetrics = {
 };
 
 const CENTER: [number, number] = [4.92, -73.93];
+const DBL_CLICK_MS = 220;
 
 // --- Geodesia aproximada para métricas de UI (la BD usa PostGIS exacto) ---
 function shoelaceAreaDeg2(ring: number[][]): { value: number; meanLat: number } {
@@ -86,6 +87,19 @@ function ringToWkt(ring: number[][]): string {
   return `POLYGON((${pts}))`;
 }
 
+/** Toma el primer anillo exterior (el de mayor área) de un Polygon/MultiPolygon. */
+function geometryToRing(g: GeoJSON.Geometry | null): number[][] | null {
+  if (!g) return null;
+  if (g.type === "Polygon") return (g.coordinates[0] as number[][]) ?? null;
+  if (g.type === "MultiPolygon") {
+    const polys = g.coordinates as number[][][][];
+    if (!polys.length) return null;
+    const biggest = polys.reduce((a, b) => (b[0].length > a[0].length ? b : a));
+    return biggest[0] ?? null;
+  }
+  return null;
+}
+
 export function PredioShapeMap({
   onChange,
   error,
@@ -96,6 +110,12 @@ export function PredioShapeMap({
   const [points, setPoints] = useState<[number, number][]>([]);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const [closed, setClosed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [fileMsg, setFileMsg] = useState<string | null>(null);
+  const [fileErr, setFileErr] = useState<string | null>(null);
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const clickTimer = useRef<number | null>(null);
 
   function emit(pts: [number, number][], close: boolean) {
     if (!close || pts.length < 3) {
@@ -113,11 +133,23 @@ export function PredioShapeMap({
     });
   }
 
+  function addVertex(latlng: L.LatLng) {
+    setPoints((prev) => [...prev, [latlng.lat, latlng.lng]]);
+  }
+
+  // Click simple agrega vértice; se retrasa para no duplicar en doble click.
   function handleClick(e: L.LeafletMouseEvent) {
     if (closed) return;
-    const next: [number, number][] = [...points, [e.latlng.lat, e.latlng.lng]];
-    setPoints(next);
-    emit(next, false);
+    if (clickTimer.current != null) {
+      window.clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      return;
+    }
+    const latlng = e.latlng;
+    clickTimer.current = window.setTimeout(() => {
+      clickTimer.current = null;
+      addVertex(latlng);
+    }, DBL_CLICK_MS);
   }
 
   function closeShape() {
@@ -125,6 +157,66 @@ export function PredioShapeMap({
     setClosed(true);
     setHover(null);
     emit(points, true);
+  }
+
+  function handleDblClick() {
+    if (clickTimer.current != null) {
+      window.clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+    }
+    closeShape();
+  }
+
+  // "Enter" finaliza el dibujo (cuando no se está escribiendo en un campo).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Enter" || closed) return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || t?.isContentEditable) return;
+      if (points.length >= 3) {
+        e.preventDefault();
+        closeShape();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [closed, points.length]);
+
+  async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setLoading(true);
+    setFileMsg(null);
+    setFileErr(null);
+    try {
+      const { parseUpload } = await import("@/lib/geo/parse-upload");
+      const res = await parseUpload(file);
+      const ring = geometryToRing(res.geometry);
+      if (!ring || ring.length < 3) {
+        throw new Error(
+          "El archivo no contiene un polígono válido (se requiere Polygon/MultiPolygon para un predio).",
+        );
+      }
+      // Quitar el cierre duplicado si viene.
+      const clean =
+        ring.length > 1 &&
+        ring[0]?.[0] === ring[ring.length - 1]?.[0] &&
+        ring[0]?.[1] === ring[ring.length - 1]?.[1]
+          ? ring.slice(0, -1)
+          : ring;
+      const pts = clean.map(([lon, lat]) => [lat, lon] as [number, number]);
+      setPoints(pts);
+      setClosed(true);
+      setHover(null);
+      emit(pts, true);
+      setFileMsg(`Archivo cargado: ${clean.length} vértices${res.note ? `. ${res.note}` : ""}.`);
+    } catch (err) {
+      setFileErr((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function undoLast() {
@@ -138,6 +230,8 @@ export function PredioShapeMap({
     setClosed(false);
     setPoints([]);
     setHover(null);
+    setFileMsg(null);
+    setFileErr(null);
     onChange(null);
   }
 
@@ -153,13 +247,47 @@ export function PredioShapeMap({
   return (
     <div className="space-y-2">
       <Card className="overflow-hidden p-0">
+        {/* Carga de archivo */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-4 py-2">
+          <p className="text-[11px] text-on-surface-variant">
+            Cargar shapefile (.zip/.shp), KML, KMZ o GeoJSON — o dibujar en el mapa.
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => fileRef.current?.click()}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            Cargar archivo
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".zip,.shp,.dbf,.prj,.kml,.kmz,.geojson,.json"
+            className="hidden"
+            onChange={onImportFile}
+          />
+        </div>
+        {fileMsg && (
+          <p className="border-b border-outline-variant bg-primary/5 px-4 py-1.5 text-[11px] text-primary">
+            {fileMsg}
+          </p>
+        )}
+        {fileErr && (
+          <p className="border-b border-outline-variant bg-error/5 px-4 py-1.5 text-[11px] text-error">
+            {fileErr}
+          </p>
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-low px-4 py-2">
           <p className="text-body-sm text-on-surface-variant">
             {closed
               ? `Shape cerrado (${points.length} vértices). Usá "Limpiar" para rehacerlo.`
               : points.length === 0
                 ? "Hacé click en el mapa para dibujar el polígono del predio."
-                : `Click para agregar vértices (${points.length}). Mínimo 3 y pulsá "Cerrar".`}
+                : `Click para agregar vértices (${points.length}). Doble click o Enter para finalizar.`}
           </p>
           <div className="flex items-center gap-1">
             {!closed && points.length > 0 && (
@@ -170,7 +298,7 @@ export function PredioShapeMap({
             )}
             {!closed && points.length >= 3 && (
               <Button size="sm" type="button" onClick={closeShape}>
-                Cerrar
+                Finalizar
               </Button>
             )}
             <Button variant="ghost" size="sm" type="button" onClick={clearAll}>
@@ -184,6 +312,7 @@ export function PredioShapeMap({
             center={CENTER}
             zoom={11}
             scrollWheelZoom
+            doubleClickZoom={false}
             className="h-full w-full"
             style={{ background: "#cee5d8" }}
           >
@@ -191,9 +320,13 @@ export function PredioShapeMap({
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution="© OpenStreetMap"
             />
-            <MapClicker onClick={handleClick} onMove={(e) => {
-              if (!closed) setHover([e.latlng.lat, e.latlng.lng]);
-            }} />
+            <MapClicker
+              onClick={handleClick}
+              onDblClick={handleDblClick}
+              onMove={(e) => {
+                if (!closed) setHover([e.latlng.lat, e.latlng.lng]);
+              }}
+            />
             {previewLine.length > 1 && (
               <PPolyline
                 positions={previewLine}
@@ -222,13 +355,16 @@ export function PredioShapeMap({
 
 function MapClicker({
   onClick,
+  onDblClick,
   onMove,
 }: {
   onClick: (e: L.LeafletMouseEvent) => void;
+  onDblClick: (e: L.LeafletMouseEvent) => void;
   onMove: (e: L.LeafletMouseEvent) => void;
 }) {
   useMapEvents({
     click: (e) => onClick(e),
+    dblclick: (e) => onDblClick(e),
     mousemove: (e) => onMove(e),
   });
   return null;
