@@ -124,9 +124,7 @@ function renderPopup(
     if (props.predioNombre) {
       body += `<div class="text-on-surface-variant">Predio: ${props.predioNombre}</div>`;
     }
-    if (props.beneficiario) {
-      body += `<div class="text-on-surface-variant"><strong>Beneficiario:</strong> ${props.beneficiario}</div>`;
-    }
+    body += `<div class="text-on-surface-variant"><strong>Beneficiario:</strong> ${props.beneficiario || "Sin beneficiario"}</div>`;
     if (props.cedula) {
       body += `<div class="text-on-surface-variant">Cédula: ${props.cedula}</div>`;
     }

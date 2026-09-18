@@ -369,7 +369,7 @@ export default async function IntervencionesPage({
                     <td className="px-4 py-3 font-mono text-on-surface">
                       {i.codigoPredio}
                     </td>
-                    <td className="px-4 py-3 text-on-surface">{i.beneficiario || "—"}</td>
+                    <td className="px-4 py-3 text-on-surface">{i.beneficiario || "Sin beneficiario"}</td>
                     <td className="px-4 py-3">{i.municipio || "Sin información"}</td>
                     <td className="px-4 py-3">{i.vereda || "Sin información"}</td>
                     <td className="px-4 py-3">
