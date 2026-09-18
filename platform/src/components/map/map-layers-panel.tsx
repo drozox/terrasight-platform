@@ -142,11 +142,11 @@ export function MapLayersPanel({
   const counts = externalCounts ?? {};
 
   return (
-    <div className="absolute left-4 top-4 z-[600] flex max-h-[calc(100%-5rem)] w-72 max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-xl border border-outline-variant/40 bg-surface-container-lowest/95 shadow-xl backdrop-blur">
+    <div className="absolute left-4 top-4 z-[600] w-72 max-w-[calc(100%-2rem)] overflow-hidden rounded-xl border border-outline-variant/40 bg-surface-container-lowest/95 shadow-xl backdrop-blur">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full shrink-0 items-center justify-between gap-2 border-b border-outline-variant/40 px-3 py-2 text-left transition-colors hover:bg-surface-container-low"
+        className="flex w-full items-center justify-between gap-2 border-b border-outline-variant/40 px-3 py-2 text-left transition-colors hover:bg-surface-container-low"
       >
         <span className="flex items-center gap-2 text-label-lg font-bold uppercase text-on-surface-variant">
           <Layers className="size-4" />
@@ -161,7 +161,7 @@ export function MapLayersPanel({
       </button>
 
       {open && (
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
+        <div className="max-h-[calc(100vh-220px)] space-y-3 overflow-y-auto p-3">
           {/* Base map selector */}
           <div>
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
@@ -170,7 +170,7 @@ export function MapLayersPanel({
             <div className="grid grid-cols-3 gap-1">
               {(
                 [
-                  { k: "osm" as const,       label: "Limpio"   },
+                  { k: "osm" as const,       label: "Calles"   },
                   { k: "topo" as const,      label: "Topo"     },
                   { k: "satellite" as const, label: "Satélite" },
                 ]

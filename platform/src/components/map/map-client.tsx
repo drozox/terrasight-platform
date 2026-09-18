@@ -75,9 +75,7 @@ interface Props {
 }
 
 const BASEMAPS: Record<BasemapKey, { url: string; maxZoom?: number; attribution: string }> = {
-  // Base "limpia": CartoDB Positron SIN etiquetas de lugares (no tapa las
-  // capas del convenio con textos como "RÍO BOGOTÁ" o "SABANA OCCIDENTE").
-  osm:       { url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", maxZoom: 20, attribution: "© OpenStreetMap · © CARTO" },
+  osm:       { url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", maxZoom: 20, attribution: "© OpenStreetMap" },
   topo:      { url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",  maxZoom: 17, attribution: "© OpenTopoMap" },
   satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", maxZoom: 20, attribution: "Tiles © Esri" },
 };
@@ -371,7 +369,7 @@ export default function MapClient({
         />
 
         <ZoomControl position="topright" />
-        <ScaleControl position="bottomleft" imperial={false} />
+        <ScaleControl position="bottomright" imperial={false} />
 
         {/* Capas geográficas — geometría real (DEBT-3.8) */}
         {layers.municipios && (

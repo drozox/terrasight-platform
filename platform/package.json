@@ -27,7 +27,6 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "audit:resultados": "node scripts/audit_resultados.mjs",
-    "favicons": "node scripts/gen-favicons.mjs",
     "release:gate": "node scripts/release_gate.mjs"
   },
   "dependencies": {
