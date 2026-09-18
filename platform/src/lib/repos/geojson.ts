@@ -354,13 +354,31 @@ export const getPropuestasLineaGeoJSON = unstable_cache(
 export const getPropuestasPuntoGeoJSON = unstable_cache(
   async (componente: string | null = null, accion: string | null = null): Promise<FeatureCollection> => {
     const { compCond, accionCond } = filtroProps(componente, accion);
-    const rows = await sql<{ id: number; nombre: string | null; tipo: string | null; geom: string }[]>`
+    const rows = await sql<{
+      id: number;
+      nombre: string | null;
+      tipo: string | null;
+      beneficiario: string | null;
+      cedula: string | null;
+      telefono: string | null;
+      predio_nombre: string | null;
+      municipio: string | null;
+      geom: string;
+    }[]>`
       SELECT pt.id_prop_punto AS id, pt.actividad AS nombre, pt.tipo_punto AS tipo,
+             pt.beneficiario, pt.cedula, pt.telefono, pt.predio_nombre,
+             mun.nombre_municipio AS municipio,
              ST_AsGeoJSON(CASE WHEN ST_SRID(pt.geom) = 4326 THEN pt.geom ELSE ST_Transform(pt.geom, 4326) END) AS geom
       FROM sgs_pro_propuesta_punto pt
       JOIN sgs_pro_propuesta  pp ON pp.id_propuesta = pt.id_propuesta
       JOIN sgs_com_accion     a  ON a.id_accion     = pp.id_accion
       JOIN sgs_com_componente c  ON c.id_componente = a.id_componente
+      LEFT JOIN LATERAL (
+        SELECT m.nombre_municipio
+        FROM bcs_lpa_municipio m
+        WHERE ST_Intersects(m.geom, pt.geom)
+        LIMIT 1
+      ) mun ON true
       WHERE pt.geom IS NOT NULL ${compCond} ${accionCond}
       ORDER BY pt.id_prop_punto;
     `;
@@ -369,7 +387,17 @@ export const getPropuestasPuntoGeoJSON = unstable_cache(
       features: rows.map((r) => ({
         type: "Feature",
         id: r.id,
-        properties: { id: r.id, nombre: r.nombre, tipo: r.tipo, layer: "propuestas_punto" },
+        properties: {
+          id: r.id,
+          nombre: r.nombre,
+          tipo: r.tipo,
+          beneficiario: r.beneficiario,
+          cedula: r.cedula,
+          telefono: r.telefono,
+          predioNombre: r.predio_nombre,
+          municipio: r.municipio,
+          layer: "propuestas_punto",
+        },
         geometry: JSON.parse(r.geom) as GeoJSON.Geometry,
       })),
     };

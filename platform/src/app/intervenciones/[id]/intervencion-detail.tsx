@@ -163,6 +163,27 @@ export function IntervencionDetail({
             {initial.vereda?.nombre ?? "—"}
           </Field>
 
+          {initial.beneficiario && (
+            <Field label="Beneficiario" icon={<MapPin className="size-3.5" />}>
+              <span className="text-on-surface">{initial.beneficiario.nombre}</span>
+              {initial.beneficiario.cedula && (
+                <span className="ml-1 text-[11px] font-normal text-on-surface-variant">
+                  · CC {initial.beneficiario.cedula}
+                </span>
+              )}
+              {initial.beneficiario.telefono && (
+                <span className="ml-1 text-[11px] font-normal text-on-surface-variant">
+                  · Tel {initial.beneficiario.telefono}
+                </span>
+              )}
+              {initial.beneficiario.predioNombre && (
+                <span className="ml-1 text-[11px] font-normal text-on-surface-variant">
+                  · {initial.beneficiario.predioNombre}
+                </span>
+              )}
+            </Field>
+          )}
+
           <Field label="Quebrada" icon={<Droplets className="size-3.5" />}>
             {initial.quebrada?.nombre ?? <span className="text-on-surface-variant/60">N/A</span>}
           </Field>

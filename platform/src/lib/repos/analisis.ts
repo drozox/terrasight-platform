@@ -324,6 +324,7 @@ const getIntervencionesRecientesImpl = async (
         nombre_componente: string;
         nombre_accion: string;
         id_accion: number | string;
+        beneficiario: string | null;
         hectareas: number | string | null;
         longitud: number | string | null;
         avance: number | string | null;
@@ -348,6 +349,7 @@ const getIntervencionesRecientesImpl = async (
         c.nombre                                                     AS nombre_componente,
         a.nombre                                                     AS nombre_accion,
         a.id_accion                                                  AS id_accion,
+        pt.beneficiario                                              AS beneficiario,
         pol.area_ha                                                  AS hectareas,
         pl.longitud_m                                                AS longitud,
         av.avance_pct                                                AS avance,
@@ -433,6 +435,7 @@ const getIntervencionesRecientesImpl = async (
         codigoPredio: pgText(r.codigo_predio),
         municipio: pgText(r.nombre_municipio_predio ?? r.nombre_municipio_geo),
         vereda: pgText(r.nombre_vereda_predio ?? r.nombre_vereda_geo),
+        beneficiario: r.beneficiario ? pgText(r.beneficiario) : null,
         componente: pgText(r.nombre_componente),
         accion: pgText(r.nombre_accion),
         componenteAccion: codigo,

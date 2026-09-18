@@ -45,6 +45,8 @@ export type IntervencionReciente = {
   codigoPredio: string;
   municipio: string;
   vereda?: string | null;
+  /** Beneficiario (solo intervenciones punto, si existe). */
+  beneficiario?: string | null;
   componente: string;
   accion: string;
   idAccion?: number | null;
@@ -380,6 +382,14 @@ export type PoligonoGeom = {
   geojson: GeoJSONPolygon | GeoJSONMultiPolygon;
 }
 
+/** Datos del beneficiario de una intervención punto. */
+export type BeneficiarioIntervencion = {
+  nombre: string;
+  cedula: string | null;
+  telefono: string | null;
+  predioNombre: string | null;
+};
+
 interface IntervencionCompletaBase {
   id: number;
   tipo: "punto" | "linea" | "poligono";
@@ -391,6 +401,8 @@ interface IntervencionCompletaBase {
   municipio: { id: number; nombre: string; departamento: string } | null;
   accion: { id: number; nombre: string; componente: string } | null;
   quebrada: { id: number; nombre: string } | null;
+  /** Beneficiario (solo intervenciones punto con dato). */
+  beneficiario: BeneficiarioIntervencion | null;
   // Avance (HU-IC-04)
   /**
    * Porcentaje de avance real del último evento manual, o `null` si la

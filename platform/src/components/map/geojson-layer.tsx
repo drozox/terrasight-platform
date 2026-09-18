@@ -120,5 +120,22 @@ function renderPopup(
   if (props.actividad && layer === "propuestas") {
     body += `<div class="text-on-surface-variant">Actividad: ${props.actividad}</div>`;
   }
+  if (layer === "propuestas_punto") {
+    if (props.predioNombre) {
+      body += `<div class="text-on-surface-variant">Predio: ${props.predioNombre}</div>`;
+    }
+    if (props.beneficiario) {
+      body += `<div class="text-on-surface-variant"><strong>Beneficiario:</strong> ${props.beneficiario}</div>`;
+    }
+    if (props.cedula) {
+      body += `<div class="text-on-surface-variant">Cédula: ${props.cedula}</div>`;
+    }
+    if (props.telefono) {
+      body += `<div class="text-on-surface-variant">Teléfono: ${props.telefono}</div>`;
+    }
+    if (props.municipio) {
+      body += `<div class="text-on-surface-variant">Municipio: ${props.municipio}</div>`;
+    }
+  }
   return `<div class="font-sans text-xs">${body}</div>`;
 }

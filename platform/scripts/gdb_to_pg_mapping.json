@@ -213,6 +213,10 @@
         "norte":        "norte",
         "descripcion":  "descripcion",
         "id_predio":    "id_predio",
+        "nombre_pro":   "beneficiario",
+        "cedula":       "cedula",
+        "telefono":     "telefono",
+        "nombre_pre":   "predio_nombre",
         "__geometry": "geom"
       }
     },

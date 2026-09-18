@@ -314,6 +314,7 @@ export default async function IntervencionesPage({
                   <th className="px-4 py-3">
                     <SortableHeader field="nombrePredio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Predio</SortableHeader>
                   </th>
+                  <th className="px-4 py-3">Beneficiario</th>
                   <th className="px-4 py-3">
                     <SortableHeader field="municipio" currentSort={sort} currentOrder={order} basePath="/intervenciones" searchParams={{ componente: componente ?? undefined, accion: accion ?? undefined }}>Municipio</SortableHeader>
                   </th>
@@ -338,7 +339,7 @@ export default async function IntervencionesPage({
                    Antes <td colSpan> con texto plano. */}
                 {intervenciones.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="p-0">
+                    <td colSpan={11} className="p-0">
                       <EmptyState
                         icon={Inbox}
                         eyebrow={componente ?? "Convenio CAR · WWF · Natura"}
@@ -368,6 +369,7 @@ export default async function IntervencionesPage({
                     <td className="px-4 py-3 font-mono text-on-surface">
                       {i.codigoPredio}
                     </td>
+                    <td className="px-4 py-3 text-on-surface">{i.beneficiario || "—"}</td>
                     <td className="px-4 py-3">{i.municipio || "Sin información"}</td>
                     <td className="px-4 py-3">{i.vereda || "Sin información"}</td>
                     <td className="px-4 py-3">

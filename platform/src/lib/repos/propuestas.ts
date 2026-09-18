@@ -26,6 +26,7 @@ import type {
   PuntoGeom,
   LineaGeom,
   PoligonoGeom,
+  BeneficiarioIntervencion,
 } from "../types";
 
 // `IntervencionCompletaBase` no se exporta de `./types` (es un detalle
@@ -41,6 +42,7 @@ interface IntervencionCompletaBase {
   municipio: { id: number; nombre: string; departamento: string } | null;
   accion: { id: number; nombre: string; componente: string } | null;
   quebrada: { id: number; nombre: string } | null;
+  beneficiario: BeneficiarioIntervencion | null;
   avancePctActual: number | null;
   avances: AvancePropuesta[];
 }
@@ -263,6 +265,10 @@ export async function getIntervencionCompleta(
     norte: number | string;
     tipo_punto: string;
     descripcion: string;
+    beneficiario: string | null;
+    cedula: string | null;
+    telefono: string | null;
+    predio_nombre: string | null;
   };
   type LineaRow = {
     longitud_m: number | string;
@@ -297,7 +303,11 @@ export async function getIntervencionCompleta(
       SELECT este,
              norte,
              tipo_punto,
-             descripcion
+             descripcion,
+             beneficiario,
+             cedula,
+             telefono,
+             predio_nombre
       FROM   sgs_pro_propuesta_punto
       WHERE  id_propuesta = ${id}
       LIMIT  1;
@@ -342,6 +352,24 @@ export async function getIntervencionCompleta(
     }
   }
 
+  // Beneficiario (solo intervenciones punto con dato).
+  const textOrNull = (v: unknown): string | null => {
+    const s = pgText(v).trim();
+    return s && s.toUpperCase() !== "NA" && s !== "N.A." ? s : null;
+  };
+  let beneficiario: BeneficiarioIntervencion | null = null;
+  if (tipo === "punto" && geomRow && "este" in geomRow) {
+    const r = geomRow as PuntoRow;
+    if (textOrNull(r.beneficiario)) {
+      beneficiario = {
+        nombre: pgText(r.beneficiario),
+        cedula: textOrNull(r.cedula),
+        telefono: textOrNull(r.telefono),
+        predioNombre: textOrNull(r.predio_nombre),
+      };
+    }
+  }
+
   const base: IntervencionCompletaBase = {
     id: pgInt(row.id_propuesta),
     tipo,
@@ -380,6 +408,7 @@ export async function getIntervencionCompleta(
       row.id_quebrada != null
         ? { id: pgInt(row.id_quebrada), nombre: pgText(row.nombre_quebrada) }
         : null,
+    beneficiario,
     avancePctActual,
     avances,
   };
